@@ -1,7 +1,8 @@
+from numpy import ndarray
 from src.buffer_error import VideoBufferError
 from threading import Thread
 from queue import LifoQueue, Queue
-from time import time, sleep
+from time import time
 import cv2
 import ipdb
 
@@ -24,6 +25,7 @@ class VideoBuffer():
         # Definições das variaveis responsavel pela criação do buffer
         self._end_frame = None
         self._start_frame = None
+        self.current_frame = None
 
         # Checando a integridade dos dados
         self._checking_integrity()
@@ -34,14 +36,18 @@ class VideoBuffer():
     def _checking_integrity(self):
         if self.end_frame() is None:
             raise VideoBufferError('the current frame index is not a valid index')
-        if self.end_frame() not in self.sequence_frames_ord:
-            raise IndexError(f'the index of the current frame "{self.end_frame()}" does not belong '
-                             'to the sequence of the past batch of frames')
 
     def _mount_sequence(self):
 
         end_frame = self.end_frame()
-        if end_frame > 0:
+        self.current_frame = end_frame
+
+        if len(self.sequence_frames_ord) == 0:
+            ...
+        elif end_frame not in self.sequence_frames_ord:
+            self.sequence_frames = {pos: True for pos in self.sequence_frames_ord}
+            self._end_frame = self.sequence_frames_ord[-1]
+        elif end_frame > 0:
             index = self.sequence_frames_ord.index(end_frame)
             seqs = self.sequence_frames_ord[:index]
 
@@ -95,6 +101,9 @@ class VideoBuffer():
                     break
                 count_frame += 1
 
+            if self.current_frame != end_frame:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame + 1)
+
             end = time()
             if bufferlog:
                 print(f'\nLidos {len(stack)} em {end - start}s')
@@ -140,7 +149,7 @@ class VideoBuffer():
 
     def read(self):
         # Metodo para o comsumo do buffer, retorna None quando a pilha estiver vazia
-        if len(self.stack):
+        if not self.empty():
             return self.stack.pop()
         return None
 
@@ -150,8 +159,14 @@ class VideoBuffer():
         # Checa se a pilha esta vazia
         return len(self.stack) == 0
 
-    def put(self):
-        ...
+    def full(self):
+        # Checa se a pilha esta cheia
+        return len(self.stack) == self.buffersize
+
+    def put(self, value: tuple[int, ndarray]):
+        if self.full():
+            _ = self.stack.pop(0)
+        self.stack.append(value)
 
     def get(self):
         return self.read()
@@ -196,4 +211,3 @@ if __name__ == '__main__':
     buffer.start()
     print('Inicalizando...')
     buffer.join()
-

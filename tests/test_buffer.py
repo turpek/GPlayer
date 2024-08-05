@@ -90,6 +90,8 @@ def mycap():
 # ############ Testando os pre-processamentos do buffer antes de enche-lo ###############3
 
 
+
+
 def test_buffer_mount_sequence_buffer_menor_que_index_do_frame(mycap):
     expect = 5
     seq = list(range(20))
@@ -167,6 +169,21 @@ def test_buffer_mount_sequence_buffer_com_frames_nao_continuos(mycap):
 
     result_seq = buffer.sequence_frames
     assert result_seq == expect_seq
+
+
+def test_buffer_mount_sequence_indice_do_frame_nao_pertence_ao_lot(mycap):
+    seq = [90, 91, 95, 98, 100, 101, 102, 103, 104, 105, 106, 107, 108]
+    expect_size = 10
+
+    cap = mycap.return_value
+    cap.set(cv2.CAP_PROP_POS_FRAMES, 231)
+    ret, _ = cap.read()
+    buffer = VideoBuffer(cap, seq, buffersize=10)
+    buffer._mount_sequence()
+
+    result_size = len(buffer.sequence_frames)
+    assert result_size == expect_size
+
 
 
 def test_buffer_metodo_end_frame_lido_2_frame(mycap):
@@ -390,4 +407,111 @@ def test_buffer_consumindo_todo_o_buffer_com_lot_nao_continuo(mycap):
     assert result == expect
 
 
+def test_buffer__checando_o_frame_final_do_cap(mycap):
+    seq = list(range(20))
+    cap = mycap.return_value
+    cap.set(cv2.CAP_PROP_POS_FRAMES, 14)
+    ret, _ = cap.read()
+    expect = cap.get(cv2.CAP_PROP_POS_FRAMES)
+
+    buffer = VideoBuffer(cap, seq, buffersize=5)
+    buffer.start()
+    buffer.join()
+
+    result = cap.get(cv2.CAP_PROP_POS_FRAMES)
+
+    assert result == expect
+
+
+def test_buffer_indice_do_frame_nao_pertence_ao_lot_checando_o_frame_final_do_cap(mycap):
+    seq = [90, 91, 95, 98, 100, 101, 102, 103, 104, 105, 106, 107, 108]
+
+    cap = mycap.return_value
+    cap.set(cv2.CAP_PROP_POS_FRAMES, 231)
+    ret, _ = cap.read()
+    expect = cap.get(cv2.CAP_PROP_POS_FRAMES)
+
+    buffer = VideoBuffer(cap, seq, buffersize=10)
+    buffer.start()
+    buffer.join()
+
+    result = cap.get(cv2.CAP_PROP_POS_FRAMES)
+
+    assert result == expect
+
 # ################  Testando o enchimento manual do buffer ##########################
+
+
+def test_buffer_colocando_um_frame_manual_com_buffer_vazio(mycap):
+    seq = []
+    frame_id = 231
+    expect = 1
+
+    cap = mycap.return_value
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_id)
+    ret, frame = cap.read()
+
+    buffer = VideoBuffer(cap, seq, buffersize=10)
+    buffer.put((frame_id, frame))
+    result = buffer.qsize()
+
+    assert result == expect
+
+
+def test_buffer_colocando_dois_frames_manual_com_buffer_vazio(mycap):
+    seq = []
+    frame_id1 = 231
+    frame_id2 = 232
+    expect = 2
+
+    cap = mycap.return_value
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_id1)
+    _, frame1 = cap.read()
+    _, frame2 = cap.read()
+
+    buffer = VideoBuffer(cap, seq, buffersize=10)
+    buffer.put((frame_id1, frame1))
+    buffer.put((frame_id2, frame2))
+    result = buffer.qsize()
+
+    assert result == expect
+
+
+def test_buffer_enchendo_o_buffer_manualmente(mycap):
+    seq = []
+    frame_id1 = 131
+    expect = 10
+
+    def gerador_de_frames(cap):
+        frame_id = cap.get(cv2.CAP_PROP_POS_FRAMES)
+        frame = cap.read()
+        return (frame_id, frame)
+
+    cap = mycap.return_value
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_id1)
+
+    buffer = VideoBuffer(cap, seq, buffersize=10)
+    [buffer.put(gerador_de_frames(cap)) for _ in range(10)]
+    result = buffer.qsize()
+
+    assert result == expect
+
+
+def test_buffer_rotacao(mycap):
+    seq = []
+    frame_id1 = 131
+    expect_frame_id = 132
+
+    def gerador_de_frames(cap):
+        frame_id = cap.get(cv2.CAP_PROP_POS_FRAMES)
+        frame = cap.read()
+        return (frame_id, frame)
+
+    cap = mycap.return_value
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_id1)
+
+    buffer = VideoBuffer(cap, seq, buffersize=10)
+    [buffer.put(gerador_de_frames(cap)) for _ in range(11)]
+    result_frame_id = buffer.stack[0][0]
+
+    assert result_frame_id == expect_frame_id
