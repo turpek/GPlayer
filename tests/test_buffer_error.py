@@ -1,0 +1,51 @@
+from src.buffer import VideoBuffer
+from src.buffer_error import VideoBufferError
+from pytest import fixture, raises
+from unittest.mock import MagicMock, patch
+
+
+import cv2
+import numpy as np
+import ipdb
+
+
+class MyVideoCapture():
+    def __init__(self):
+        self.frames = [np.zeros((2, 2)) for x in range(300)]
+        self.index = 0
+
+    def read(self):
+        if self.index < len(self.frames):
+            frame = self.frames[self.index]
+            self.index += 1
+            return True, frame
+        return False, None
+
+    def set(self, flag, value):
+        if cv2.CAP_PROP_POS_FRAMES == flag:
+            if len(self.frames) >= value and value >= 0:
+                self.index = value
+                return True
+            else:
+                return False
+        return False
+
+    def get(self, flag):
+        if cv2.CAP_PROP_FRAME_COUNT == flag:
+            return len(self.frames)
+        elif cv2.CAP_PROP_POS_FRAMES == flag:
+            return self.index
+        return False
+
+
+@fixture
+def mycap():
+    with patch('cv2.VideoCapture', return_value=MyVideoCapture()) as mock:
+        yield mock
+
+
+def test_buffer_metodo_end_frame_com_o_video_no_inicio(mycap):
+    cap = mycap.return_value
+    with raises(VideoBufferError) as excinfo:
+        VideoBuffer(cap, list(range(300)), buffersize=25, name='buffer0')
+    assert excinfo.value.message == 'the current frame index is not a valid index'
