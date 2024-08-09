@@ -1,7 +1,7 @@
 from cv2 import VideoCapture
 from numpy import ndarray
 from src.buffer_error import VideoBufferError
-from threading import Thread
+from threading import Thread, Lock
 from queue import LifoQueue, Queue
 from time import time, sleep
 import cv2
@@ -74,6 +74,7 @@ class VideoBufferLeft():
         self._end_frame = None
         self._start_frame = None
 
+        del self.stack
         # Atualizando o buffer
         self._checking_integrity()
         self._mount_sequence()
@@ -208,9 +209,8 @@ class VideoBufferRight():
         self.sequence_frames_ord = sorted(sequence_frames)
         self.sequence_frames = dict()
         self.thread = None
-
-        # Atributo que monitora os frames lidos na thread
-        self._frame_read = None
+        self.lock = Lock()
+        self.delay = 0.005
 
         # Definições das variaveis responsavel pela criação do buffer
         self._end_frame = None
@@ -314,25 +314,31 @@ class VideoBufferRight():
             # Função responsavel por carregar a stack
 
             start = time()
-            self._frame_read = count_frame
+            count = 0
+            with self.lock:
+                self._frame_read = count_frame
             while True:
-                ret, frame = cap.read()
+                with self.lock:
+                    ret, frame = cap.read()
                 if ret and sequence_frames.get(count_frame):
                     # Deve-se colocar o indice do frame + frame na stack
-                    stack.append((count_frame, frame))
+                    with self.lock:
+                        stack.append((count_frame, frame))
                 if bufferlog:
                     print(len(stack), count_frame, end_frame)
                 if count_frame == end_frame:
                     break
-                self._frame_read = count_frame
+                with self.lock:
+                    self._frame_read = count_frame
                 count_frame += 1
+                count += 1
 
             cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
 
             end = time()
             if bufferlog:
-                print(f'\nLidos {len(stack)} em {end - start}s')
-                print(f'{len(stack) / (end - start):.2f} FPS')
+                print(f'\nLidos {count} em {end - start}s')
+                print(f'{count / (end - start):.2f} FPS')
 
         # Argumentos para a função reader
         args = (self.cap,
@@ -344,6 +350,8 @@ class VideoBufferRight():
         thread = Thread(target=reader, name=self.name, args=args)
         thread.start()
         self.thread = thread
+        # self.join()
+        sleep(self.delay)
 
     def join(self):
         if self.thread:
@@ -353,8 +361,12 @@ class VideoBufferRight():
 
     def read(self):
         # Metodo para o comsumo do buffer, retorna None quando a pilha estiver vazia
+        sleep(self.delay)
         if not self.empty():
-            return self.queue.pop(0)
+            frame_id, frame = self.queue.pop(0)
+            if frame_id == self.end_frame:
+                self.join()
+            return (frame_id, frame)
         return None
 
     # Metodos que simulam alguns metodos do objeto Queue
@@ -379,9 +391,12 @@ class VideoBufferRight():
 
     def observer(self, frame_id):
         # Metod não testado!!
+        if not self.thread.is_alive() and self.empty():
+            return False
         while True and self.thread.is_alive():
-            if self._frame_read >= frame_id:
-                break
+            with self.lock:
+                if self._frame_read >= frame_id:
+                    break
             sleep(0.0001)
         return True
 
