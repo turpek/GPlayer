@@ -11,39 +11,6 @@ from time import sleep
 FILE = 'model.mp4'
 
 
-@fixture
-def seq1():
-    SEQ1 = {
-        'filename': 'video.mkv',
-        'start_frame': 100,
-        'end_frame': 123,
-        'lot': ['0', '1', '2', '3'],
-        '0': [100, 101, 102, 103, 104],
-        '1': [105, 106, 107, 108, 109, 110, 111],
-        '2': [112, 113, 114, 115],
-        '3': [116, 117, 118, 119, 120, 121, 122, 123],
-        'undo': []  # undo deve ser do tipo [(lot[str], indice[int|None], frame[list[ndarray]])]
-    }
-    return SEQ1
-
-
-def seq2():
-    SEQ2 = {
-        'filename': 'video.mkv',
-        'start_frame': 100,
-        'end_frame': 123,
-        'lot': ['0', '1', '2', '3'],
-        '0': [100, 101, 102, 103, 104],
-        '1': [105, 106, 107, 108, 109, 110, 111],
-        '2': [112, 113, 114, 115],
-        '3': [116, 117, 118, 119, 120, 121, 122, 123],
-        'undo': [
-            #  1o comando: c
-        ]
-    }
-    return SEQ2
-
-
 def consumidor(buffer):
     frames_id = list()
     while not buffer.empty():
@@ -51,10 +18,12 @@ def consumidor(buffer):
         frames_id.append(frame_id)
     return frames_id
 
+
 class MyVideoCapture():
     def __init__(self):
         self.frames = [np.zeros((2, 2)) for x in range(300)]
         self.index = 0
+        self.isopened = True
 
     def read(self):
         if self.index < len(self.frames):
@@ -79,6 +48,8 @@ class MyVideoCapture():
             return self.index
         return False
 
+    def isOpened(self):
+        return self.isopened
 
 @fixture
 def mycap():
