@@ -7,9 +7,10 @@ import ipdb
 
 
 class Control():
-    def __init__(self, sequence: dict, *, buffersize=25):
+    def __init__(self, sequence: dict, *, buffersize=25, bufferlog=False):
         self.sequence = sequence
         self.buffersize = buffersize
+        self.bufferlog = bufferlog
 
         self.filename = sequence['filename']
         self.start_frame = sequence['start_frame']
@@ -28,6 +29,7 @@ class Control():
         self.index = 0
 
         self.cap = cv2.VideoCapture(self.filename)
+        self.cap1 = cv2.VideoCapture(self.filename)
 
         self.__check_integraty()
 
@@ -36,10 +38,14 @@ class Control():
         # se o mesmo não for lido, então o estado é indeterminado
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_id())
         self.ret, self._frame = self.cap.read()
+        self.cap1.set(cv2.CAP_PROP_POS_FRAMES, self.frames_id()[-1] - buffersize)
 
-        self.bufferRight = VideoBufferRight(self.cap, self.frames_id(), buffersize=buffersize, name='Buffer1')
+        self.bufferRight = VideoBufferRight(self.cap, self.frames_id(), buffersize=buffersize, bufferlog=bufferlog, name='Buffer1')
+        self.nbuffer = True
         self.bufferRight.start()
-        self.bufferLeft = VideoBufferLeft(self.cap, self.frames_id(), buffersize=buffersize, name='Buffer0')
+        self.bufferLeft = VideoBufferLeft(self.cap, self.frames_id(), buffersize=buffersize, bufferlog=bufferlog, name='Buffer0')
+        self.tmp_buffer = VideoBufferLeft(self.cap1, self.frames_id(), buffersize=buffersize, bufferlog=bufferlog, name='Buffer0')
+        self.tmp_buffer.start()
 
     def __check_integraty(self):
         if not self.cap.isOpened():
@@ -79,9 +85,10 @@ class Control():
     def next_frame(self):
         # tempo necessario para o buffer ler 1 frame!
         lot = self._lot
+        is_dead = not self.bufferRight.thread.is_alive()
         if len(self.sequence[lot]) - 1 > self.index:
 
-            if self.bufferRight.empty():
+            if self.bufferRight.empty() and is_dead:
                 # Se o buffer right estiver vazio devemos ler o proximo frame
                 # de maneira manual e atualizar os dados no frame e enchelo novamente
 
@@ -103,6 +110,12 @@ class Control():
                     self.index += 1
                 else:
                     raise Exception(f'Não foi possível ler o frame do buffer {self.bufferRight.name}')
+
+    def prev_frame(self):
+        if not self.bufferLeft.empty() and self.index > 0:
+            self.bufferRight.put((self.frame_id(), self.frame()))
+            frame_id, self._frame = self.bufferLeft.read()
+            self.index -= 0
 
     def remove_frame(self):
         lot = self._lot

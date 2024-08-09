@@ -218,7 +218,7 @@ def test_control_primeiro_frame(mycap, seq1):
     control = Control(seq1)
     result = control.frame_id()
 
-    assert expect == result
+    assert result == expect
 
 
 def test_control_next_frame(seq3, mycap):
@@ -228,7 +228,7 @@ def test_control_next_frame(seq3, mycap):
     control.next_frame()
     result = control.frame_id()
 
-    assert expect == result
+    assert result == expect
 
 
 def test_control_next_frame_2(seq3, mycap):
@@ -239,7 +239,7 @@ def test_control_next_frame_2(seq3, mycap):
     control.next_frame()
     result = control.frame_id()
 
-    assert expect == result
+    assert result == expect
 
 
 def test_control_next_frame_consumindo_o_buffer_de_25(seq3, mycap):
@@ -250,7 +250,7 @@ def test_control_next_frame_consumindo_o_buffer_de_25(seq3, mycap):
     control.next_frame()
     result = control.frame_id()
 
-    assert expect == result
+    assert result == expect
 
 
 def test_control_next_frame_consumindo_o_buffer_de_25_e_enchendo_o_mesmo(seq3, mycap):
@@ -261,7 +261,28 @@ def test_control_next_frame_consumindo_o_buffer_de_25_e_enchendo_o_mesmo(seq3, m
     control.next_frame()
     result = control.frame_id()
 
-    assert expect == result
+    assert result == expect
+
+
+def test_control_prev_frame_0(seq3, mycap):
+    expect = 0
+
+    control = Control(seq3)
+    control.prev_frame()
+    result = control.frame_id()
+
+    assert result == expect
+
+
+def test_control_prev_frame_1(seq3, mycap):
+    expect = 0
+
+    control = Control(seq3)
+    control.next_frame()
+    control.prev_frame()
+    result = control.frame_id()
+
+    assert result == expect
 
 
 def test_control_removendo_o_1_frame(mycap, seq1):
