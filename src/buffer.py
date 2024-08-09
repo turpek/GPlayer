@@ -3,7 +3,7 @@ from numpy import ndarray
 from src.buffer_error import VideoBufferError
 from threading import Thread
 from queue import LifoQueue, Queue
-from time import time
+from time import time, sleep
 import cv2
 import ipdb
 
@@ -20,6 +20,10 @@ class VideoBufferLeft():
         self.sequence_frames_ord = sorted(sequence_frames)
         self.sequence_frames = dict()
         self.thread = None
+        self.is_dead = True
+
+        # Atributo que monitora os frames lidos na thread
+        self._frame_read = None
 
         # Definições das variaveis responsavel pela criação do buffer
         self._end_frame = None
@@ -88,7 +92,7 @@ class VideoBufferLeft():
             # Função responsavel por carregar a stack
 
             start = time()
-
+            self._frame_read = count_frame
             while True:
                 ret, frame = cap.read()
                 if ret and sequence_frames.get(count_frame):
@@ -98,6 +102,8 @@ class VideoBufferLeft():
                     print(len(stack), count_frame, end_frame)
                 if count_frame == end_frame:
                     break
+
+                self._frame_read = count_frame
                 count_frame += 1
 
             if self.current_frame != end_frame:
@@ -175,6 +181,15 @@ class VideoBufferLeft():
     def maxsize(self):
         return self.buffersize
 
+    def observer(self, frame_id):
+        # Metod não testado!!
+
+        while True and self.thread.is_alive():
+            if self._frame_read >= frame_id:
+                break
+            sleep(0.0001)
+        return True
+
 
 class VideoBufferRight():
     def __init__(self,
@@ -193,6 +208,9 @@ class VideoBufferRight():
         self.sequence_frames_ord = sorted(sequence_frames)
         self.sequence_frames = dict()
         self.thread = None
+
+        # Atributo que monitora os frames lidos na thread
+        self._frame_read = None
 
         # Definições das variaveis responsavel pela criação do buffer
         self._end_frame = None
@@ -254,6 +272,21 @@ class VideoBufferRight():
             index = self.sequence_frames_ord.index(start_frame)
             self.sequence_frames = {self.sequence_frames_ord[index]: True}
 
+    def reflesh(self, sequence_frames):
+        # Metodo que atualiza o buffer
+
+        # Variaveis a serem atualizadas
+        self.stack = list()
+        self.sequence_frames_ord = sorted(sequence_frames)
+        self.sequence_frames = dict()
+        self.thread = None
+        self._end_frame = None
+        self._start_frame = None
+
+        # Atualizando o buffer
+        self._checking_integrity()
+        self._mount_sequence()
+
     def start_frame(self):
         if self._start_frame is None:
             read_frame = self.cap.get(cv2.CAP_PROP_POS_FRAMES)
@@ -281,7 +314,7 @@ class VideoBufferRight():
             # Função responsavel por carregar a stack
 
             start = time()
-
+            self._frame_read = count_frame
             while True:
                 ret, frame = cap.read()
                 if ret and sequence_frames.get(count_frame):
@@ -291,6 +324,7 @@ class VideoBufferRight():
                     print(len(stack), count_frame, end_frame)
                 if count_frame == end_frame:
                     break
+                self._frame_read = count_frame
                 count_frame += 1
 
             cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
@@ -342,6 +376,14 @@ class VideoBufferRight():
 
     def get(self):
         return self.read()
+
+    def observer(self, frame_id):
+        # Metod não testado!!
+        while True and self.thread.is_alive():
+            if self._frame_read >= frame_id:
+                break
+            sleep(0.0001)
+        return True
 
 
 if __name__ == '__main__':
