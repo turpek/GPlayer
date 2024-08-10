@@ -285,6 +285,48 @@ def test_control_prev_frame_1(seq3, mycap):
     assert result == expect
 
 
+def test_control_prev_frame_consumindo_o_buffer_de_25_e_voltando_um_frame(seq3, mycap):
+    expect = 24
+    expect_size_right = 1
+
+    control = Control(seq3, buffersize=25)
+    [control.next_frame() for _ in range(25)]
+    control.prev_frame()
+    result = control.frame_id()
+    result_size_right = control.bufferRight.qsize()
+
+    assert result == expect
+    assert result_size_right == expect_size_right
+
+
+def test_control_prev_frame_consumindo_o_buffer_de_25_e_voltando_todos_os_frames(seq3, mycap):
+    expect = 0
+    expect_size_right = 25
+
+    control = Control(seq3, buffersize=25)
+    [control.next_frame() for _ in range(25)]
+    [control.prev_frame() for _ in range(25)]
+    result = control.frame_id()
+    result_size_right = control.bufferRight.qsize()
+
+    assert result == expect
+    assert result_size_right == expect_size_right
+
+
+def test_control_prev_frame_consumindo_o_buffer_de_25_2xVezes_e_voltando_1xVez(seq3, mycap):
+    expect = 24
+    expect_size_right = 25
+
+    control = Control(seq3, buffersize=25)
+    [control.next_frame() for _ in range(50)]
+    [control.prev_frame() for _ in range(26)]
+    result = control.frame_id()
+    result_size_right = control.bufferRight.qsize()
+
+    assert result == expect
+    assert result_size_right == expect_size_right
+
+
 def test_control_removendo_o_1_frame(mycap, seq1):
     expect = [101, 102, 103, 104]
     expect_story = ('0', 0, 100)

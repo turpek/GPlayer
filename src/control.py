@@ -38,14 +38,11 @@ class Control():
         # se o mesmo não for lido, então o estado é indeterminado
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_id())
         self.ret, self._frame = self.cap.read()
-        self.cap1.set(cv2.CAP_PROP_POS_FRAMES, self.frames_id()[-1] - buffersize)
 
         self.bufferRight = VideoBufferRight(self.cap, self.frames_id(), buffersize=buffersize, bufferlog=bufferlog, name='Buffer1')
-        self.nbuffer = True
         self.bufferRight.start()
         self.bufferLeft = VideoBufferLeft(self.cap, self.frames_id(), buffersize=buffersize, bufferlog=bufferlog, name='Buffer0')
-        self.tmp_buffer = VideoBufferLeft(self.cap1, self.frames_id(), buffersize=buffersize, bufferlog=bufferlog, name='Buffer0')
-        self.tmp_buffer.start()
+        self.aux_buffer = True
 
     def __check_integraty(self):
         if not self.cap.isOpened():
@@ -103,6 +100,7 @@ class Control():
                 # Atualizando o buffer
                 self.bufferRight.reflesh(self.frames_id())
                 self.bufferRight.start()
+                return True
             else:
                 self.bufferLeft.put((self.frame_id(), self.frame()))
                 if self.bufferRight.observer(self.frame_id()):
@@ -110,12 +108,42 @@ class Control():
                     self.index += 1
                 else:
                     raise Exception(f'Não foi possível ler o frame do buffer {self.bufferRight.name}')
+                return True
+        return False
 
     def prev_frame(self):
+        if self.index == 0:
+            return False
+        if self.bufferLeft.empty():
+            self.bufferLeft = self.aux_buffer
+            self.aux_buffer = True
+            """
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_id())
+            ret, frame_id = self.cap.read()
+            self.bufferLeft = VideoBufferLeft(self.cap,
+                                              self.frames_id(),
+                                              buffersize=self.buffersize,
+                                              bufferlog=self.bufferlog,
+                                              name='Buffer2')
+            self.bufferLeft.start()
+            self.bufferLeft.join()
+            """
         if not self.bufferLeft.empty() and self.index > 0:
             self.bufferRight.put((self.frame_id(), self.frame()))
             frame_id, self._frame = self.bufferLeft.read()
-            self.index -= 0
+            self.index -= 1
+
+            start_frame = frame_id - self.buffersize + 1
+            if self.aux_buffer is True and start_frame > self.start_frame:
+                self.cap1.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+                _ = self.cap1.read()
+                self.aux_buffer = VideoBufferLeft(self.cap1,
+                                                  self.frames_id(),
+                                                  buffersize=self.buffersize,
+                                                  bufferlog=True,
+                                                  name='Buffer3')
+                self.aux_buffer.start()
+            return True
 
     def remove_frame(self):
         lot = self._lot
