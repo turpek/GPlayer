@@ -18,6 +18,9 @@ class Control():
         self._lots = sequence['lot']
         self._lot = self._lots.pop(0)
 
+        # FLAG que permite que o lote seja ordenado
+        self._sorted_lot_flag = True
+
         self.right_lots = Queue()
         self.left_lots = LifoQueue()
         [self.right_lots.put(lo) for lo in self._lots]
@@ -32,6 +35,10 @@ class Control():
         self.cap1 = cv2.VideoCapture(self.filename)
 
         self.__check_integraty()
+
+        # Garantindo que o primeiro lot esteja com os frames_id ordenado,
+        # já que os outro lotes teram seus frames_id ordenados no metodo next_lot
+        self.__sorted_lot()
 
         # Colocando o objeto cap no primeiro frame do lote e lendo-o
         # pois por padrão VideoBufferLeft trabalha com o frame atual,
@@ -48,6 +55,10 @@ class Control():
         if not self.cap.isOpened():
             raise Exception('Não foi possível abrir o vídeo')
 
+    def __sorted_lot(self):
+        lot = self.lot()
+        self.sequence[lot].sort()
+
     def frame(self):
         if self._frame is not None:
             return self._frame
@@ -55,11 +66,24 @@ class Control():
     def lot(self):
         return self._lot
 
-    def next_lot(self):
+    def next_lot(self) -> bool:
+        # Metodo usado para passar para o proximo lote de frames.
+
         if self.right_lots.empty():
+            # Quando chegamos no ultimo lote, ou seja, fila vazia, devemos
+            # fazer a flag _sorted_lot_flag ser False, para que os frames_id
+            # do lote não sejam mais ordenados!
+            self._sorted_lot_flag = False
             return False
+
+        # Colocando o id do lote na queue da esquerda para "setar" o proximo lote
         self.left_lots.put(self._lot)
         self._lot = self.right_lots.get()
+
+        # Garantindo que o lote esteja ordenado.
+        if self._sorted_lot_flag is True:
+            self.__sorted_lot()
+
         return True
 
     def prev_lot(self):
@@ -68,6 +92,16 @@ class Control():
         self.right_lots.put(self._lot)
         self._lot = self.left_lots.get()
         return True
+
+    def first_frame_id(self):
+        frames_id = self.frames_id()
+        if len(frames_id) > 0:
+            return frames_id[0]
+
+    def last_frame_id(self):
+        frames_id = self.frames_id()
+        if len(frames_id) > 0:
+            return frames_id[-1]
 
     def frames_id(self):
         lot = self._lot
@@ -134,13 +168,12 @@ class Control():
             self.index -= 1
 
             start_frame = frame_id - self.buffersize + 1
-            if self.aux_buffer is True and start_frame > self.start_frame:
+            if self.aux_buffer is True:
                 self.cap1.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
                 _ = self.cap1.read()
                 self.aux_buffer = VideoBufferLeft(self.cap1,
                                                   self.frames_id(),
                                                   buffersize=self.buffersize,
-                                                  bufferlog=True,
                                                   name='Buffer3')
                 self.aux_buffer.start()
             return True

@@ -182,6 +182,23 @@ def test_control_prev_lot_ultrapassando_o_inicio(mycap, seq1):
 
 # ######### TESTES SOBRE OS FRAMES #################################3
 
+def test_control_first_frame_id(mycap, seq1):
+    expect = 100
+
+    control = Control(seq1)
+    result = control.first_frame_id()
+
+    assert result == expect
+
+
+def test_control_last_frame_id(mycap, seq1):
+    expect = 104
+
+    control = Control(seq1)
+    result = control.last_frame_id()
+
+    assert result == expect
+
 
 def test_control_frames_id_do_lote_0(mycap, seq1):
     expect = [100, 101, 102, 103, 104]
