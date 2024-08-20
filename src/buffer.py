@@ -21,6 +21,7 @@ class VideoBufferLeft():
         self.sequence_frames = dict()
         self.thread = None
         self.is_dead = True
+        self.delay = 0.01
 
         # Atributo que monitora os frames lidos na thread
         self._frame_read = None
@@ -154,6 +155,7 @@ class VideoBufferLeft():
 
     def read(self):
         # Metodo para o comsumo do buffer, retorna None quando a pilha estiver vazia
+        sleep(self.delay)
         if not self.empty():
             return self.stack.pop()
         return None
