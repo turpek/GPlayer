@@ -130,8 +130,28 @@ def test_queue_pqueue_colocando_25_dados_e_mais_1_manualmente():
     result_qsize = queue.qsize()
     result_values = [queue.get() for _ in range(25)]
 
-    ipdb.set_trace()
     assert result_empty == expect_empty
     assert result_full == expect_full
     assert result_qsize == expect_qsize
     assert result_values == expect_values
+
+
+def test_queue_pqueue_colocando_25_dados_e_consumindo_a_queue():
+    expect_empty = True
+    expect_full = False
+    expect_qsize = 0
+
+    lock = Lock()
+    queue = Queue(maxsize=25, lock=lock)
+    with lock:
+        [queue.pqueue.put(x) for x in range(1, 26)]
+    [queue.get() for _ in range(25)]
+    result_empty = queue.empty()
+    print(queue.queue)
+    print(queue.queue)
+    result_full = queue.full()
+    result_qsize = queue.qsize()
+
+    assert result_empty == expect_empty
+    assert result_full == expect_full
+    assert result_qsize == expect_qsize

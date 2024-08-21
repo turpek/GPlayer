@@ -106,12 +106,15 @@ def test_control_current_lot(mycap, seq1):
 
 def test_control_next_lot(mycap, seq1):
     expect = '1'
+    expect_index = 0
 
     control = Control(seq1)
     control.next_lot()
     result = control.lot()
+    result_index = control.index
 
     assert result == expect
+    assert result_index == expect_index
 
 
 def test_control_next_lot_ultimo_lote(mycap, seq1):
@@ -180,7 +183,39 @@ def test_control_prev_lot_ultrapassando_o_inicio(mycap, seq1):
     assert result == expect
 
 
-# ######### TESTES SOBRE OS FRAMES #################################3
+# ######### TESTES SOBRE O NEXT_FRAME + NEXT_LOT ###################
+
+
+def test_control_next_frames_mais_next_lot(mycap, seq1):
+    expect = '1'
+    expect_index = 0
+
+    control = Control(seq1)
+    [control.next_frame() for _ in range(15)]
+    control.next_lot()
+    result = control.lot()
+    result_index = control.index
+
+    assert result == expect
+    assert result_index == expect_index
+
+
+def test_control_next_lot_mais_next_frames_mais_prev_lot(mycap, seq1):
+    expect = '0'
+    expect_index = 0
+
+    control = Control(seq1)
+    control.next_lot()
+    [control.next_frame() for _ in range(15)]
+    control.prev_lot()
+    result = control.lot()
+    result_index = control.index
+
+    assert result == expect
+    assert result_index == expect_index
+
+# ######### TESTES SOBRE OS FRAMES #################################
+
 
 def test_control_first_frame_id(mycap, seq1):
     expect = 100

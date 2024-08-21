@@ -684,8 +684,8 @@ def test_buffer_VideoBufferRight_enchendo_o_buffer_com_lot_de_frames_continuo_ch
 
     buffer = VideoBufferRight(cap, seq, buffersize=25, name='buffer0')
     buffer.start()
-    result = buffer.queue
     buffer.join()
+    result = buffer.queue
 
     result_id_frames = [id_frame for id_frame, _ in result]
     assert result_id_frames == expect_id_frames
