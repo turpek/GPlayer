@@ -2,7 +2,8 @@ from cv2 import VideoCapture
 from numpy import ndarray
 from src.buffer_error import VideoBufferError
 from threading import Thread, Lock
-from queue import LifoQueue, Queue
+from queue import LifoQueue
+from src.my_structure import Queue
 from time import time, sleep
 import cv2
 import ipdb
@@ -194,7 +195,7 @@ class VideoBufferLeft():
         return True
 
 
-class VideoBufferRight():
+class VideoBufferRight(Queue):
     def __init__(self,
                  cap: VideoCapture,
                  sequence_frames: list[int],
@@ -202,16 +203,15 @@ class VideoBufferRight():
                  bufferlog=False,
                  name='buffer'):
 
+        super().__init__(maxsize=buffersize)
         # Definições das variaveis que lidam com o Thread
         self.cap = cap
         self.name = name
-        self.queue = list()
         self.buffersize = buffersize
         self.bufferlog = bufferlog
         self.sequence_frames_ord = sorted(sequence_frames)
         self.sequence_frames = dict()
         self.thread = None
-        self.lock = Lock()
         self.delay = 0.005
 
         # Definições das variaveis responsavel pela criação do buffer
@@ -365,31 +365,11 @@ class VideoBufferRight():
         # Metodo para o comsumo do buffer, retorna None quando a pilha estiver vazia
         sleep(self.delay)
         if not self.empty():
-            frame_id, frame = self.queue.pop(0)
+            frame_id, frame = self.get()
             if frame_id == self.end_frame:
                 self.join()
             return (frame_id, frame)
         return None
-
-    # Metodos que simulam alguns metodos do objeto Queue
-
-    def empty(self):
-        # Checa se a pilha esta vazia
-        return len(self.queue) == 0
-
-    def qsize(self):
-        return len(self.queue)
-
-    def full(self):
-        return len(self.queue) == self.buffersize
-
-    def put(self, value: tuple[int, ndarray]):
-        if self.full():
-            _ = self.queue.pop()
-        self.queue.insert(0, value)
-
-    def get(self):
-        return self.read()
 
     def observer(self, frame_id):
         # Metod não testado!!
