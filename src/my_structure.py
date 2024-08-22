@@ -33,7 +33,7 @@ class Queue():
         if not self.empty():
             return self.queue.pop(0)
 
-    def put(self, value):
+    def _put(self, value):
         """put(value) metodo para inserção manual dos dados na fila, tal metodo
          tem a preferencia na fila, ou seja, o dado eh colocado no inicio da fila
         """
