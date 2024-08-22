@@ -61,7 +61,7 @@ def mycap():
 
 @fixture
 def seq():
-    sequence = [(frame_id, np.zeros((2, 2))) for frame_id in range(150)]
+    sequence = [(frame_id, np.zeros((2, 2))) for frame_id in range(10, -1, -1)]
     return sequence
 
 
@@ -105,24 +105,13 @@ def test_buffer_VideoBufferRight_sequence_linear(mycap):
     assert result == expect
 
 
-def test_buffer_VideoBufferRight_metodo_end_frame(mycap):
-    lote = list(range(0, 20))
-    expect = 4
-    buffer = VideoBufferRight('path', lote, buffersize=5)
-    result = buffer.end_frame()
-    assert result == expect
-
-
 def test_buffer_VideoBufferRight_metodo_set_frame(mycap):
     lote = list(range(0, 150))
     expect_start_frame = 25
-    expect_end_frame = 49
     buffer = VideoBufferRight('path', lote, buffersize=25)
     buffer.set(25)
     result_start_frame = buffer.start_frame()
-    result_end_frame = buffer.end_frame()
     assert result_start_frame == expect_start_frame
-    assert result_end_frame == expect_end_frame
 
 
 def test_buffer_VideoBufferRight_metodo_set_frame_com_lote_nao_linear(mycap):
@@ -145,11 +134,32 @@ def test_buffer_VideoBufferRight_metodo_set_frame_com_lote_nao_linear_ultimo_fra
 
 def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente(mycap, seq):
     lote = list(range(0, 100))
-    expect_start_frame = 9
-    expect_end_frame = expect_start_frame + 24
+    expect_start_frame = False
+    expect_qsize = 10
     buffer = VideoBufferRight('path', lote, buffersize=25)
     [buffer.put(*seq.pop(0)) for _ in range(10)]
     result_start_frame = buffer.start_frame()
-    result_end_frame = buffer.end_frame()
+    result_qsize = buffer.qsize()
     assert result_start_frame == expect_start_frame
-    assert result_end_frame == expect_end_frame
+    assert result_qsize == expect_qsize
+
+
+def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente_com_o_buffer_lotado(mycap, seq):
+    lote = list(range(0, 100))
+    expect_start_frame = False
+    buffer = VideoBufferRight('path', lote, buffersize=25)
+    [buffer.queue.append((frame_id, np.zeros((2, 2)))) for frame_id in range(25, 50)]
+    buffer._old_frame = 25
+    [buffer.put(*seq.pop(0)) for _ in range(3)]
+    result_start_frame = buffer.start_frame()
+    assert result_start_frame == expect_start_frame
+
+    # Consumindo os frames para testar se start_frame() deixa de estar bloqueado
+    expect_start_frame = 47
+    [buffer.read() for _ in range(25)]
+    buffer.read()
+    result_start_frame = buffer.start_frame()
+    assert result_start_frame == expect_start_frame
+
+
+

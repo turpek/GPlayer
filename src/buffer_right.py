@@ -53,6 +53,11 @@ class VideoBufferRight(Queue):
         self.buffersize = buffersize
         self.bufferlog = bufferlog
 
+        # Definições das variaveis responsavel pela criação do buffer
+        self._start_frame = None
+        self._old_frame = None
+        self.__store_frame_id = None
+
         # Atributos usados para determinar os frames que serao armazenados no buffer
         self.lot = list()
         self.lot_mapping = set()
@@ -60,10 +65,6 @@ class VideoBufferRight(Queue):
 
         self.process = None
         self.delay = 0.005
-
-        # Definições das variaveis responsavel pela criação do buffer
-        self._end_frame = None
-        self._start_frame = None
 
         # Criando os pipe para comunicação entre os processos
         parent_conn, child_conn = Pipe()
@@ -86,30 +87,23 @@ class VideoBufferRight(Queue):
         """
         return self.lot[-1]
 
-    def start_frame(self) -> int:
-        """Primeiro frame a ser lido pelo buffer.
+    def start_frame(self) -> int|bool:
+        """Define o primeiro frame a ser lido em cada novo ciclo do buffer.
+
+            Quando usado o metodo put, start_frame pode assumir o valor de False,
+            passando a ter valor númerico novamente somente quando o ciclo terminar, isso
+            ocorre pois, o metodo put permite colocar frames_id com valor abaixo do 1o frame
+            no buffer, podendo ocorre de o frame_id não seguir a sequencia do lot, assim pulando
+            frames, com isso não é muito seguro calcular o valor de start_frame, sendo mais seguro,
+            consumir o buffer e acessar o último frame diretamente.
 
             Returns:
-                int: retorna o frame_id do 1o. frame.
+                int: retorna o frame_id.
         """
         if self._start_frame is None:
             self._start_frame = self.lot[0]
+            self._start_frame = self.lot[0]
         return self._start_frame
-
-    def end_frame(self) -> None:
-        """Último frame a ser lido pelo buffer.
-
-            Returns:
-                int: retorna o frame_id do No. frame, onde N =< buffersize
-        """
-        if self._end_frame is None:
-            start_frame = self.start_frame()
-            idx = start_frame + self.buffersize - 1
-            if idx >= len(self.lot):
-                idx = -1
-            self._end_frame = self.lot[idx]
-
-        return self._end_frame
 
     def set_lot(self, lot: list[int]) -> None:
         """Cria o mapping dos frames a serem lidos
@@ -119,6 +113,7 @@ class VideoBufferRight(Queue):
         """
         self.lot = array('l', sorted(lot))
         self.lot_mapping = set(lot)
+        self._old_frame = self.lot[0]
 
     def set(self, frame_id: int) -> None:
         """Coloco o frame_id como start_frame no próximo ciclo de leitura dos frames.
@@ -139,7 +134,7 @@ class VideoBufferRight(Queue):
                 raise IndexError('frame_id does not belong to the lot range.')
 
         self._start_frame = frame_id
-        self._end_frame = None
+        self._old_frame = None
 
     def put(self, frame_id: int, frame: ndarray) -> None:
         """Método usado para encher o buffer de maneira manual e de forma segura.
@@ -148,8 +143,13 @@ class VideoBufferRight(Queue):
                 frame_id (int): frame_id do frame a ser colocado no buffer.
                 frame (ndarray): frame a ser colocado no buffer.
         """
-        self.set(frame_id)
+        if self._old_frame is None:
+            raise Exception('operação bloqueada até que um novo ciclo ocorra')
+        elif self._old_frame < frame_id and self.qsize() > 0:
+            raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual ')
         self._put((frame_id, frame))
+        self._start_frame = False
+        self._old_frame = frame_id
 
     """
     def start(self):
@@ -213,9 +213,10 @@ class VideoBufferRight(Queue):
         # Metodo para o comsumo do buffer, retorna None quando a pilha estiver vazia
         if not self.empty():
             frame_id, frame = self.get()
-            if frame_id == self.end_frame:
-                self.join()
+            self.__store_frame_id = frame_id
             return (frame_id, frame)
+        elif self.start_frame() is False:
+            self.set(self.__store_frame_id + 1)
         return None
 
 
