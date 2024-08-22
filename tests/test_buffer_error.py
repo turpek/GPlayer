@@ -95,3 +95,14 @@ def test_buffer_mount_sequence_VideoBufferRight_preencher_o_buffer_com_a_fila_na
         buffer.start()
         buffer.join()
     assert excinfo.value.message == 'buffer is not empty'
+
+
+"""
+def test_buffer_VideoBufferRight_metodo_end_frame_com_start_frame_mais_buffer_maior_que_o_tamanho_do_lote(mycap):
+    lote = list(range(0, 20))
+    expect = 19
+    buffer = VideoBufferRight('path', lote, buffersize=5)
+    buffer.set(16)
+    result = buffer.end_frame()
+    assert result == expect
+"""

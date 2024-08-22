@@ -31,7 +31,7 @@ def test_queue_put_colocando_3_dados():
     expect_qsize = 3
 
     queue = Queue(maxsize=25)
-    [queue.put(x) for x in [3, 2, 1]]
+    [queue._put(x) for x in [3, 2, 1]]
     result_empty = queue.empty()
     result_full = queue.full()
     result_qsize = queue.qsize()
@@ -47,7 +47,7 @@ def test_queue_put_colocando_25_dados():
     expect_qsize = 25
 
     queue = Queue(maxsize=25)
-    [queue.put(x) for x in range(25, 0, -1)]
+    [queue._put(x) for x in range(25, 0, -1)]
     result_empty = queue.empty()
     result_full = queue.full()
     result_qsize = queue.qsize()
@@ -64,7 +64,7 @@ def test_queue_put_colocando_26_dados():
     expect_values = list(range(1, 26))
 
     queue = Queue(maxsize=25)
-    [queue.put(x) for x in range(26, 0, -1)]
+    [queue._put(x) for x in range(26, 0, -1)]
     result_empty = queue.empty()
     result_full = queue.full()
     result_qsize = queue.qsize()
@@ -124,7 +124,7 @@ def test_queue_pqueue_colocando_25_dados_e_mais_1_manualmente():
         [queue.pqueue.put(x) for x in range(2, 27)]
     result_empty = queue.empty()
     print(queue.queue)
-    queue.put(1)
+    queue._put(1)
     print(queue.queue)
     result_full = queue.full()
     result_qsize = queue.qsize()
