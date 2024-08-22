@@ -1,36 +1,45 @@
 from src.my_structure import Queue
-from multiprocessing import Lock
+from multiprocessing import Pipe
 from pytest import fixture
 
-import ipdb
 
-def test_queua_esta_vazia():
+@fixture
+def mypipe():
+    parent, chield = Pipe()
+    return parent, chield
+
+
+def test_queua_esta_vazia(mypipe):
     expect = True
-    queue = Queue(maxsize=25)
+    parent, chield = mypipe
+    queue = Queue(parent, maxsize=25)
     result = queue.empty()
     assert result == expect
 
 
-def test_queua_nao_esta_cheia():
+def test_queua_nao_esta_cheia(mypipe):
     expect = False
-    queue = Queue(maxsize=25)
+    parent, chield = mypipe
+    queue = Queue(parent, maxsize=25)
     result = queue.full()
     assert result == expect
 
 
-def test_queue_qsize_fila_vazia():
+def test_queue_qsize_fila_vazia(mypipe):
     expect = 0
-    queue = Queue(maxsize=25)
+    parent, chield = mypipe
+    queue = Queue(parent, maxsize=25)
     result = queue.qsize()
     assert result == expect
 
 
-def test_queue_put_colocando_3_dados():
+def test_queue_put_colocando_3_dados(mypipe):
     expect_empty = False
     expect_full = False
     expect_qsize = 3
 
-    queue = Queue(maxsize=25)
+    parent, chield = mypipe
+    queue = Queue(parent, maxsize=25)
     [queue._put(x) for x in [3, 2, 1]]
     result_empty = queue.empty()
     result_full = queue.full()
@@ -41,12 +50,13 @@ def test_queue_put_colocando_3_dados():
     assert result_qsize == expect_qsize
 
 
-def test_queue_put_colocando_25_dados():
+def test_queue_put_colocando_25_dados(mypipe):
     expect_empty = False
     expect_full = True
     expect_qsize = 25
 
-    queue = Queue(maxsize=25)
+    parent, chield = mypipe
+    queue = Queue(parent, maxsize=25)
     [queue._put(x) for x in range(25, 0, -1)]
     result_empty = queue.empty()
     result_full = queue.full()
@@ -57,13 +67,14 @@ def test_queue_put_colocando_25_dados():
     assert result_qsize == expect_qsize
 
 
-def test_queue_put_colocando_26_dados():
+def test_queue_put_colocando_26_dados(mypipe):
     expect_empty = False
     expect_full = True
     expect_qsize = 25
     expect_values = list(range(1, 26))
 
-    queue = Queue(maxsize=25)
+    parent, chield = mypipe
+    queue = Queue(parent, maxsize=25)
     [queue._put(x) for x in range(26, 0, -1)]
     result_empty = queue.empty()
     result_full = queue.full()
@@ -76,15 +87,14 @@ def test_queue_put_colocando_26_dados():
     assert result_values == expect_values
 
 
-def test_queue_pqueue_colocando_3_dados():
+def test_queue_pqueue_colocando_3_dados(mypipe):
     expect_empty = False
     expect_full = False
     expect_qsize = 3
 
-    lock = Lock()
-    queue = Queue(maxsize=25, lock=lock)
-    with lock:
-        [queue.pqueue.put(x) for x in [1, 2, 3]]
+    parent, chield = mypipe
+    queue = Queue(parent, maxsize=25)
+    [chield.send(x) for x in [1, 2, 3]]
     result_empty = queue.empty()
     result_full = queue.full()
     result_qsize = queue.qsize()
@@ -94,15 +104,14 @@ def test_queue_pqueue_colocando_3_dados():
     assert result_qsize == expect_qsize
 
 
-def test_queue_pqueue_colocando_25_dados():
+def test_queue_pqueue_colocando_25_dados(mypipe):
     expect_empty = False
     expect_full = True
     expect_qsize = 25
 
-    lock = Lock()
-    queue = Queue(maxsize=25, lock=lock)
-    with lock:
-        [queue.pqueue.put(x) for x in range(1, 26)]
+    parent, chield = mypipe
+    queue = Queue(parent, maxsize=25)
+    [chield.send(x) for x in range(1, 26)]
     result_empty = queue.empty()
     result_full = queue.full()
     result_qsize = queue.qsize()
@@ -112,16 +121,15 @@ def test_queue_pqueue_colocando_25_dados():
     assert result_qsize == expect_qsize
 
 
-def test_queue_pqueue_colocando_25_dados_e_mais_1_manualmente():
+def test_queue_pqueue_colocando_25_dados_e_mais_1_manualmente(mypipe):
     expect_empty = False
     expect_full = True
     expect_qsize = 25
     expect_values = list(range(1, 26))
 
-    lock = Lock()
-    queue = Queue(maxsize=25, lock=lock)
-    with lock:
-        [queue.pqueue.put(x) for x in range(2, 27)]
+    parent, chield = mypipe
+    queue = Queue(parent, maxsize=25)
+    [chield.send(x) for x in range(2, 27)]
     result_empty = queue.empty()
     print(queue.queue)
     queue._put(1)
@@ -136,15 +144,14 @@ def test_queue_pqueue_colocando_25_dados_e_mais_1_manualmente():
     assert result_values == expect_values
 
 
-def test_queue_pqueue_colocando_25_dados_e_consumindo_a_queue():
+def test_queue_pqueue_colocando_25_dados_e_consumindo_a_queue(mypipe):
     expect_empty = True
     expect_full = False
     expect_qsize = 0
 
-    lock = Lock()
-    queue = Queue(maxsize=25, lock=lock)
-    with lock:
-        [queue.pqueue.put(x) for x in range(1, 26)]
+    parent, chield = mypipe
+    queue = Queue(parent, maxsize=25)
+    [chield.send(x) for x in range(1, 26)]
     [queue.get() for _ in range(25)]
     result_empty = queue.empty()
     print(queue.queue)

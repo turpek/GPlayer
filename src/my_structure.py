@@ -1,24 +1,19 @@
-from multiprocessing import Lock, Process, SimpleQueue as Pqueue
-from time import sleep
-import ipdb
+from multiprocessing import Pipe
 
 
 class Queue():
     """
     Fila para ser usada na classe VideoBufferRight
     """
-    def __init__(self, *, maxsize=0, lock=None):
+    def __init__(self, conn_parent: Pipe, *, maxsize=0, lock=None):
         self.maxsize = maxsize
-        self.lock = lock if lock else Lock()
-        self.pqueue = Pqueue()
+        self.conn = conn_parent
         self.queue = list()
 
     def __checkout(self):
-        with self.lock:
-            sleep(0)
-            while not self.pqueue.empty():
-                value = self.pqueue.get()
-                self.queue.append(value)
+        while self.conn.poll():
+            value = self.conn.recv()
+            self.queue.append(value)
 
     def empty(self):
         self.__checkout()
