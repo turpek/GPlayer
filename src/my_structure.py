@@ -1,20 +1,14 @@
-from multiprocessing import Pipe, shared_memory
-from src.utils import BUFFER_RIGHT, BUFFER_LEFT
 from threading import Lock
 from queue import Queue
-
-import ipdb
-import numpy as np
-import pickle
 
 
 class MyQueue():
     """
     Fila para ser usada na classe VideoBufferRight
     """
-    def __init__(self, queue: Queue, lock: Lock, *, maxsize=0):
+    def __init__(self, lock: Lock, *, maxsize=25):
         self.maxsize = maxsize
-        self.tqueue = queue
+        self.tqueue = Queue(maxsize=maxsize)
         self.lock = lock
         self.queue = list()
         self._end_frame = None
