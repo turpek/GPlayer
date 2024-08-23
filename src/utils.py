@@ -128,4 +128,3 @@ def reader(cap: VideoCapture,
     finally:
         if cap is not None:
             cap.release()
-        print('fILHO FOI FECHADO...')
