@@ -22,17 +22,15 @@ módulo da opencv, a mesma tem a seguinte estrutura:
 
 
 from array import array
-from cv2 import VideoCapture
 from multiprocessing import Pipe, Process
 from numpy import ndarray
-from pathlib3x import Path
 from src.buffer_error import VideoBufferError
 from src.my_structure import Queue
-from time import sleep, time
+from src.utils import reader
 
 import bisect
-import cv2
-import ipdb
+from src.utils import READINESS
+# import ipdb
 
 
 class VideoBufferRight(Queue):
@@ -45,7 +43,12 @@ class VideoBufferRight(Queue):
                  bufferlog=False,
                  name='buffer'):
 
-        super().__init__(maxsize=buffersize)
+        # Criando os pipe para comunicação entre os processos
+        parent_conn, child_conn = Pipe()
+        self.parent_conn = parent_conn
+        self.child_conn = child_conn
+
+        super().__init__(parent_conn, maxsize=buffersize)
 
         # Definições das variaveis que lidam com o Thread
         self.path = path
@@ -65,11 +68,6 @@ class VideoBufferRight(Queue):
 
         self.process = None
         self.delay = 0.005
-
-        # Criando os pipe para comunicação entre os processos
-        parent_conn, child_conn = Pipe()
-        self.parent_conn = parent_conn
-        self.child_conn = child_conn
 
     def first_frame(self) -> int:
         """Devolve o primeiro frame do lote.
@@ -151,63 +149,21 @@ class VideoBufferRight(Queue):
         self._start_frame = False
         self._old_frame = frame_id
 
-    """
     def start(self):
 
         if not self.empty():
             raise VideoBufferError('buffer is not empty')
+        elif self.process is None:
+            # Argumentos para a função reader
+            args = (self.path, self.child_conn, self.buffersize, self.bufferlog)
+            process = Process(target=reader, name=self.name, args=args)
+            process.start()
+            self.process = process
+            value = self.parent_conn.recv()
+            if value == READINESS:
+                self.parent_conn.send(True)
 
-        def reader(cap, stack, count_frame, sequence_frames, end_frame, bufferlog, conn):
-            # Função responsavel por carregar a stack
-
-            start = time()
-            count, qsize = 0, 0
-            while True:
-                with self.lock:
-                    ret, frame = cap.read()
-
-                if ret and sequence_frames.get(count_frame):
-                    with self.lock:
-                        # Deve-se colocar o indice do frame + frame na stack
-                        stack.put((count_frame, frame))
-                        qsize += 1
-
-                if bufferlog:
-                    print(qsize, count_frame, end_frame)
-                if count_frame == end_frame:
-                    break
-                conn.send(count_frame)
-                count_frame += 1
-                count += 1
-
-            end = time()
-            if bufferlog:
-                print(f'\nLidos {count} em {end - start}s')
-                print(f'{count / (end - start):.2f} FPS')
-
-        def task(path, queue, bufferlog, conn):
-            cap = cv2.VideoCapture(str(path))
-            while True:
-                task_flag = conn.recv()
-                if task_flag is True:
-                    count_frame, seq_frames, end_frame = conn.recv()
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, count_frame)
-                    reader(cap, queue, count_frame, seq_frames, end_frame, bufferlog, conn)
-                elif task_flag is False:
-                    break
-                else:
-                    raise Exception('Erro: a flag deve ser bool')
-
-            conn.close()
-
-        # Argumentos para a função reader
-        args = (self.path, self.queue, self.bufferlog, self.child_conn)
-        process = Process(target=reader, name=self.name, args=args)
-        process.start()
-        self.parent_conn.send(True)
-        self.parent_conn.send(count_frame, self.sequence_frames, self.end_frame())
-        self.process = process
-    """
+        self.parent_conn.send((self.start_frame(), self.lot))
 
     def read(self):
         # Metodo para o comsumo do buffer, retorna None quando a pilha estiver vazia
@@ -215,8 +171,10 @@ class VideoBufferRight(Queue):
             frame_id, frame = self.get()
             self.__store_frame_id = frame_id
             return (frame_id, frame)
-        elif self.start_frame() is False:
-            self.set(self.__store_frame_id + 1)
+        else:
+            if self.start_frame() is False:
+                self.set(self.__store_frame_id + 1)
+            self.start()
         return None
 
 
