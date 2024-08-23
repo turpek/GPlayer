@@ -1,6 +1,5 @@
 from pytest import fixture
 from src.my_structure import MyQueue
-from threading import Lock
 
 # import ipdb
 import numpy as np
@@ -8,8 +7,7 @@ import numpy as np
 
 @fixture
 def my_queue():
-    lock = Lock()
-    queue = MyQueue(lock, maxsize=25)
+    queue = MyQueue(maxsize=25)
     return queue
 
 

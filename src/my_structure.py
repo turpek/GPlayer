@@ -2,19 +2,21 @@ from threading import Lock
 from queue import Queue
 
 
+lock = Lock()
+
+
 class MyQueue():
     """
     Fila para ser usada na classe VideoBufferRight
     """
-    def __init__(self, lock: Lock, *, maxsize=25):
+    def __init__(self, maxsize=25):
         self.maxsize = maxsize
         self.tqueue = Queue(maxsize=maxsize)
-        self.lock = lock
         self.queue = list()
         self._end_frame = None
 
     def __checkout(self):
-        with self.lock:
+        with lock:
             frame_id = self._end_frame
             while not self.tqueue.empty():
                 frame_id, frame = self.tqueue.get_nowait()
