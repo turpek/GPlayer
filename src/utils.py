@@ -1,8 +1,8 @@
 from src.buffer_error import VideoOpenError
 from cv2 import VideoCapture
-from multiprocessing import Pipe, shared_memory
-from pathlib3x import Path
+from threading import Lock
 from time import time
+from queue import Queue
 
 import cv2
 import numpy as np
@@ -10,35 +10,42 @@ import pickle
 import traceback
 
 
-READINESS = 0
-READING = 1
-CLEANING = 2
-EXCEPTION = 3
+# Sinais usados para iniciar um ciclo de leitura dos frames
+BUFFER_RIGHT = 'BUFFER_RIGHT'
+BUFFER_LEFT = 'BUFFER_LEFT'
 
 
-def reader(filename: str,
-           conn: Pipe,
+def reader(cap: VideoCapture,
+           queue: Queue,
+           notify: Queue,
+           notify_error: Queue,
+           lock: Lock,
            buffersize: int,
            bufferlog: bool) -> None:
     """Um invólucro que chama a função responsável por ler os frames através do modulo da Opencv.
 
         Args:
-            filename (str): caminho até o arquivo de mídeo.
-            conn (Pipe): canal para comunicação entre os dois processos.
+            cap (str): instancia de VideoCapture.
+            queue (Queue): Fila onde os frames serão armazenados.
+            notify (Queue): Queue para fazer a comunicação entre as threads e a linha principal do programa.
+            notify_error (Queue): Queue para fazer a comunicação de erros
             buffersize (int): número de frames a serem armazenadas na queue.
+            lock (Lock): Objeto dp modulo threading para ler as filas de forma segura.
             bufferlog (bool): ativa o log.
 
     """
 
     def reader_task(cap: VideoCapture,
-                    conn: Pipe,
+                    queue: Queue,
+                    lock: Lock,
                     buffersize: int,
                     bufferlog: bool) -> int:
         """Função responsável por ler os frames através do modulo da Opencv.
 
             Args:
                 cap (VideoCapture): objeto usado para gerar os frames.
-                conn (Pipe): canal para comunicação entre os dois processos.
+                queue (Queue): Fila onde os frames serão armazenados.
+                lock (Lock): Objeto dp modulo threading para ler as filas de forma segura.
                 buffersize (int): número de frames a serem armazenadas na queue.
                 bufferlog (bool): ativa o log.
 
@@ -47,10 +54,9 @@ def reader(filename: str,
 
         """
 
-        # O pai precissa passar o frame inicial e lote de frames
-        # start_frame define o frame incial, ja lot é um set contendo todos
-        # os frames a serem lidos
-        start_frame, lot = conn.recv()
+        # O fluxo principal do programa deve passar o frame_id "start_frame" que
+        # define o  frame incial, ja lot é um set contendo todos os frames a serem lidos.
+        start_frame, lot = queue.get()
         frame_id, qsize = start_frame, 0
         start = time()
 
@@ -63,10 +69,6 @@ def reader(filename: str,
         elif check_frame_id != frame_id:
             cap.set(cv2.CAP_PROP_POS_FRAMES, frame_id)
 
-        # Enviando o sinal de leitura do frames
-        conn.send(READING)
-        shm_list = list()
-
         # Bloco onde os frames são lidos e armazenados na fila
         while True:
 
@@ -74,14 +76,7 @@ def reader(filename: str,
             if frame_id in lot:
                 ret, frame = cap.read()
                 if ret:
-                    shm_name = f'frame_id={frame_id}'
-                    shm = shared_memory.SharedMemory(name=shm_name,
-                                                     create=True,
-                                                     size=frame.nbytes)
-                    shared_frame = np.ndarray(frame.shape, dtype=frame.dtype, buffer=shm.buf)
-                    shared_frame[:] = frame[:]
-                    conn.send((frame_id, shm_name, frame.shape, frame.dtype))
-                    shm_list.append(shm)
+                    queue.put_nowait((frame_id, frame))
                     qsize += 1
             else:
                 print('grab')
@@ -90,7 +85,6 @@ def reader(filename: str,
             if bufferlog:
                 print(qsize, qsize, frame_id)
             if qsize == buffersize:
-                print('Saindo normal')
                 break
             frame_id += 1
 
@@ -100,54 +94,38 @@ def reader(filename: str,
             print(f'\nLidos {count} em {end - start}s')
             print(f'{count / (end - start):.2f} FPS')
 
-        # Enviando o sinal para a limpeza
-        conn.send(CLEANING)
-        clean_flag = conn.recv()
-        if clean_flag is True:
-            for shm in shm_list:
-                print(f'filho fechou {shm.name}')
-                shm.close()
-                shm.unlink()
-        conn.send(READINESS)
-
         return frame_id
 
-    cap = None
     try:
-        file = Path(filename)
-        if not file.is_file():
-            raise FileNotFoundError(f'Não foi possível encontrar o arquivo {file}.')
-
-        cap = cv2.VideoCapture(str(file))
         if not cap.isOpened():
-            raise VideoOpenError(f'Não foi possível abrir o arquivo {file}.')
+            raise VideoOpenError('Não foi possível abrir o arquivo.')
 
         # Bloco "príncipal" da função, que é responsavel por ativar a leitura dos
         # frames por meio da função reader_task.
-        conn.send(READINESS)
         while True:
 
             # O pai deve enviar um bool para task_flag, se a mesma for True
             # a task é iniciada, se for false devemos sair do bloco while, se
             # task_flag não for bool, uma exceção deve ser levantada.
-            task_flag = conn.recv()
-            if task_flag is True:
-                reader_task(cap, conn, buffersize, bufferlog)
-            elif task_flag is False:
-                break
+            with lock:
+                (buffer, signal) = notify.get()
+            if buffer is BUFFER_RIGHT:
+                if signal is True:
+                    reader_task(cap, queue, lock, buffersize, bufferlog)
+                elif signal is False:
+                    break
+                else:
+                    raise TypeError('A flag deve ser do tipo bool.')
             else:
-                raise TypeError('A flag deve ser do tipo bool.')
+                with lock:
+                    notify.put((buffer, signal))
 
     except Exception as e:
         exc_info = traceback.format_exc()
-
-        print(e)
-        # Enviando o sinal de exceção!
-        conn.send(EXCEPTION)
-        conn.send(pickle.dumps((e, exc_info)))
+        with lock:
+            notify_error.put_nowait((e, exc_info))
 
     finally:
         if cap is not None:
             cap.release()
         print('fILHO FOI FECHADO...')
-        conn.close()
