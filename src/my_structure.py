@@ -7,11 +7,6 @@ import ipdb
 import numpy as np
 import pickle
 
-READINESS = 0
-READING = 1
-CLEANING = 2
-EXCEPTION = 3
-
 
 class MyQueue():
     """
@@ -20,11 +15,13 @@ class MyQueue():
     def __init__(self, queue: Queue, lock: Lock, *, maxsize=0):
         self.maxsize = maxsize
         self.tqueue = queue
+        self.lock = lock
         self.queue = list()
         self._end_frame = None
 
     def __checkout(self):
         with self.lock:
+            frame_id = self._end_frame
             while not self.tqueue.empty():
                 frame_id, frame = self.tqueue.get_nowait()
                 self.queue.append((frame_id, frame))
