@@ -1,5 +1,5 @@
 from pytest import fixture
-from src.my_structure import MyQueue
+from src.my_structure import MyQueueTest
 
 # import ipdb
 import numpy as np
@@ -7,7 +7,7 @@ import numpy as np
 
 @fixture
 def my_queue():
-    queue = MyQueue(maxsize=25)
+    queue = MyQueueTest(maxsize=25)
     return queue
 
 
