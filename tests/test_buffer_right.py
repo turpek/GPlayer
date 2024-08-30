@@ -73,29 +73,9 @@ def seq():
 @fixture
 def myvideo(mycap, request):
     lote, buffersize = request.param
-    notify = Queue(maxsize=2)
-    notify_error = Queue()
     cap = mycap.return_value
-    buffer = VideoBufferRight(cap, lote, notify, notify_error, buffersize=buffersize)
-    return buffer
-
-
-@fixture
-def myvideo15_20(mycap):
-    lote = list(range(15, 20))
-    notify = Queue(maxsize=2)
-    notify_error = Queue()
-    buffer = VideoBufferRight(mycap, lote, notify, notify_error, buffersize=5)
-    return buffer
-
-
-@fixture
-def myvideo25(mycap):
-    lote = list(range(200))
-    notify = Queue(maxsize=2)
-    notify_error = Queue()
-    buffer = VideoBufferRight(mycap, lote, notify, notify_error, buffersize=25)
-    return buffer
+    buffer = VideoBufferRight(cap, lote, buffersize=buffersize)
+    yield buffer
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
@@ -185,6 +165,7 @@ def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente(myvideo, seq):
 def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente_com_o_buffer_lotado(myvideo, seq):
     expect_start_frame = False
     buffer = myvideo
+    buffer.bufferlog=True
     [buffer.queue.append((frame_id, np.zeros((2, 2)))) for frame_id in range(25, 50)]
     buffer._old_frame = 25
     [buffer.put(*seq.pop(0)) for _ in range(3)]
@@ -194,7 +175,10 @@ def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente_com_o_buffer_lota
     # Consumindo os frames para testar se start_frame() deixa de estar bloqueado
     expect_start_frame = 47
     [buffer.read() for _ in range(25)]
-    buffer.read()
+    try:
+        buffer.read()
+    except TimeoutError:
+        ...
     result_start_frame = buffer.start_frame()
     assert result_start_frame == expect_start_frame
 
@@ -203,14 +187,20 @@ def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente_com_o_buffer_lota
 def test_buffer_VideoBufferRight_lendo_todo_o_video(myvideo, seq):
     expect = 99
     buffer = myvideo
+    buffer.bufferlog = True
     buffer.start()
     result = None
+
     while True:
         if buffer.finish():
             break
-        ret = buffer.read()
-        if isinstance(ret, tuple):
-            frame_id, frame = ret
-            # print('video', frame_id)
-            result = frame_id
+        try:
+            ret = buffer.read()
+            if isinstance(ret, tuple):
+                frame_id, frame = ret
+                print('video', frame_id)
+                result = frame_id
+        except TimeoutError:
+            print(TimeoutError)
+            break
     assert result == expect

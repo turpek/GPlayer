@@ -35,14 +35,9 @@ class MyQueue(ABC):
         if not self.empty():
             return self.queue.pop(0)
 
+    @abstractmethod
     def _put(self, value):
-        """put(value) metodo para inserção manual dos dados na fila, tal metodo
-         tem a preferencia na fila, ou seja, o dado eh colocado no inicio da fila
-        """
-        self._checkout()
-        if self.full():
-            _ = self.queue.pop()
-        self.queue.insert(0, value)
+        ...
 
     def qsize(self):
         self._checkout()
