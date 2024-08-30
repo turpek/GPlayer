@@ -29,14 +29,11 @@ from src.my_structure import MyQueue
 from src.channel import Channel
 from src.utils import reader, BUFFER_RIGHT
 from threading import Event, Thread, Lock
-from time import sleep
+from time import sleep, time
 
 import bisect
 import ipdb
 
-lock = Lock()
-
-event = Event()
 
 
 class VideoBufferRight(MyQueue):
@@ -47,7 +44,8 @@ class VideoBufferRight(MyQueue):
                  sequence_frames: list[int], *,
                  buffersize=25,
                  bufferlog=False,
-                 name='buffer'):
+                 name='buffer',
+                 timeout: int = 1):
 
         super().__init__(maxsize=buffersize)
 
@@ -55,19 +53,24 @@ class VideoBufferRight(MyQueue):
         parent_conn, child_conn = Channel()
         self.parent_conn = parent_conn
         self.child_conn = child_conn
-        self.check = Checkout(parent_conn, event, lock)
+        self.lock = Lock()
+        self.event = Event()
+        self.check = Checkout(parent_conn, self.event, self.lock)
 
         # Definições das variaveis que lidam com o Thread
         self.cap = cap
         self.name = name
         self.buffersize = buffersize
         self.bufferlog = bufferlog
+        self.timeout = 1
 
         # Definições das variaveis responsavel pela criação do buffer
         self._start_frame = None
-        self.frame_id = None
+        self._frame_id = None
         self.__store_frame_id = None
         self._set_frame = None
+        self._finished = False
+        self._is_done = False
 
         # Atributos usados para determinar os frames que serao armazenados no buffer
         self.lot = list()
@@ -80,9 +83,9 @@ class VideoBufferRight(MyQueue):
 
     def __del__(self):
         if self.thread is not None:
-            while event.is_set():
+            while self.event.is_set():
                 sleep(0.1)
-                event.clear()
+                self.event.clear()
             self.parent_conn.send(False)
         self.parent_conn.close()
 
@@ -95,58 +98,65 @@ class VideoBufferRight(MyQueue):
         return self._frame_id
 
     def first_frame(self) -> int:
-        """Devolve o primeiro frame do lote.
+        """
+        Devolve o primeiro frame do lote.
 
-            Returns:
-                int: frame_id do primeiro frame do lote.
+        Returns:
+            int: frame_id do primeiro frame do lote.
         """
         return self.lot[0]
 
     def last_frame(self) -> int:
-        """Devolve o último frame do lote.
+        """
+        Devolve o último frame do lote.
 
-            Returns:
-                int: frame_id do último frame do lote.
+        Returns:
+            int: frame_id do último frame do lote.
         """
         return self.lot[-1]
 
     def start_frame(self) -> int | bool:
-        """Define o primeiro frame a ser lido em cada novo ciclo do buffer.
+        """
+        Define o primeiro frame a ser lido em cada novo ciclo do buffer.
 
-            Quando usado o metodo put, start_frame pode assumir o valor de False,
-            passando a ter valor númerico novamente somente quando o ciclo terminar, isso
-            ocorre pois, o metodo put permite colocar frames_id com valor abaixo do 1o frame
-            no buffer, podendo ocorre de o frame_id não seguir a sequencia do lot, assim pulando
-            frames, com isso não é muito seguro calcular o valor de start_frame, sendo mais seguro,
-            consumir o buffer e acessar o último frame diretamente.
+        Quando usado o metodo put, start_frame pode assumir o valor de False,
+        passando a ter valor númerico novamente somente quando o ciclo terminar, isso
+        ocorre pois, o metodo put permite colocar frames_id com valor abaixo do 1o frame
+        no buffer, podendo ocorre de o frame_id não seguir a sequencia do lot, assim pulando
+        frames, com isso não é muito seguro calcular o valor de start_frame, sendo mais seguro,
+        consumir o buffer e acessar o último frame diretamente.
 
-            Returns:
-                int: retorna o frame_id.
+        Returns:
+            int: retorna o frame_id.
         """
         if self._start_frame is None:
             self._start_frame = self.lot[0]
         return self._start_frame
 
     def set_lot(self, lot: list[int]) -> None:
-        """Cria o mapping dos frames a serem lidos
+        """
+        Cria o mapping dos frames a serem lidos
 
-            Args:
-                lot (list): Lista que contem os frames_id a serem lidos
+        Args:
+            lot (list): Lista que contem os frames_id a serem lidos
         """
         self.lot = array('l', sorted(lot))
         self.lot_mapping = set(lot)
 
     def set(self, frame_id: int) -> None:
-        """Coloco o frame_id como start_frame no próximo ciclo de leitura dos frames.
+        """
+        Coloco o frame_id como start_frame no próximo ciclo de leitura dos frames.
         O ínicio de um novo ciclo ocorre quando o buffer esta vazio! se o frame_id não
         estiver no lote o valor setado será o valor a direita mais próximo do mesmo.
 
-            Args:
-                frame_id (int): id do frame a ser lido no próximo ciclo, ou seja, qu
+        Args:
+            frame_id (int): id do frame a ser lido no próximo ciclo, ou seja, qu
 
         """
         if not isinstance(frame_id, int):
-            raise TypeError('frame_id must be an integer')
+            raise TypeError('frame_id must be an integer.')
+        elif frame_id < 0:
+            raise Exception('frame_id deve ser maior que 0.')
         if frame_id not in self.lot_mapping:
             idx = bisect.bisect_right(self.lot, frame_id)
             try:
@@ -154,7 +164,17 @@ class VideoBufferRight(MyQueue):
             except IndexError:
                 raise IndexError('frame_id does not belong to the lot range.')
 
+        self._finished = False
         self._set_frame = frame_id
+
+    def _put(self, value) -> None:
+        """put(value) metodo para inserção manual dos dados na fila, tal metodo
+         tem a preferencia na fila, ou seja, o dado eh colocado no inicio da fila
+        """
+        self._checkout()
+        if self.full():
+            _ = self.queue.pop()
+        self.queue.insert(0, value)
 
     def put(self, frame_id: int, frame: ndarray) -> None:
         """Método usado para encher o buffer de maneira manual e de forma segura.
@@ -165,8 +185,8 @@ class VideoBufferRight(MyQueue):
         """
         if self._set_frame is not None:
             raise Exception('operação bloqueada até que um novo ciclo ocorra')
-        elif isinstance(self.frame_id, int):
-            if self.frame_id < frame_id and self.qsize() > 0:
+        elif isinstance(self._frame_id, int):
+            if self._frame_id < frame_id and self.qsize() > 0:
                 raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual ')
 
         self._put((frame_id, frame))
@@ -181,7 +201,7 @@ class VideoBufferRight(MyQueue):
             args = (self.cap,
                     self.tqueue,
                     self.child_conn,
-                    event,
+                    self.event,
                     self.buffersize,
                     self.bufferlog)
             thread = Thread(target=reader, name=self.name, args=args)
@@ -191,39 +211,34 @@ class VideoBufferRight(MyQueue):
         self._checkout()
 
     def join(self):
+        self.event.clear()
         self.parent_conn.send(False)
 
     def read(self):
         # Metodo para o comsumo do buffer, retorna None quando a pilha estiver vazia
-        """
-        if not self.empty():
-            frame_id, frame = self.get()
-            self.frame_id = frame_id
-            self._start_frame = frame_id + 1
-            self._checkout()
-            return (frame_id, frame)
-        else:
-        """
-        while self.speed_empty():
-            sleep(0.01)
+
+        self.check.timeout(self)
         frame_id, frame = self.get()
-        self.frame_id = frame_id
+        self._frame_id = frame_id
         self._start_frame = frame_id + 1
         self._checkout()
         return (frame_id, frame)
 
     def _checkout(self):
+        self.check.is_finished(self)
         self.check.check_queue(self.queue, self.tqueue)
-        self.check.check_error()
+        self.check.channel()
+        self.check.error_channel()
+        self.check.is_done(self)
 
         if len(self.queue) == 0:
             if self.start_frame() is False and self._set_frame is None:
-                ipdb.set_trace()
-                self.set(self.frame_id + 1)
+                self.set(self._frame_id + 1)
             if self._set_frame is not None:
                 self._start_frame = self._set_frame
                 self._set_frame = None
             self.check.fill_buffer(self.start_frame(), self.last_frame(), self.lot_mapping)
 
+
     def finish(self):
-        return self.start_frame() >= self.last_frame()
+        return self._finished

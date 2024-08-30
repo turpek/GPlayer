@@ -12,6 +12,7 @@ import traceback
 # Sinais usados para iniciar um ciclo de leitura dos frames
 BUFFER_RIGHT = 'BUFFER_RIGHT'
 BUFFER_LEFT = 'BUFFER_LEFT'
+READER_ERROR = 'READER_ERROR'
 
 
 def reader(cap: VideoCapture,
@@ -78,9 +79,10 @@ def reader(cap: VideoCapture,
 
             if bufferlog:
                 print(qsize, qsize, frame_id)
-            if qsize == buffersize:
+            if frame_id == last_frame:
+                conn.send((BUFFER_RIGHT, True))
                 break
-            elif frame_id == last_frame:
+            elif qsize == buffersize:
                 break
             elif frame_id == frame_count:
                 raise IndexError('o video acabou')
@@ -115,7 +117,7 @@ def reader(cap: VideoCapture,
 
     except Exception as e:
         exc_info = traceback.format_exc()
-        conn.send((e, exc_info))
+        conn.send((READER_ERROR, (e, exc_info)))
 
     finally:
         if cap is not None:
