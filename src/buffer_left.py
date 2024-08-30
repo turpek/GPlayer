@@ -1,206 +1,169 @@
+"""Este módulo fornece a classe VideoBufferLeft.
+
+A classe VideoBufferLeft é responsável por armazenar os frames lidos atráves do
+módulo da opencv, a mesma tem a seguinte estrutura:
+
+    class VideoBufferRight(Queue):
+        +cap: string que armazena o caminho até o arquivo de mídeo a ser lido.
+        +name: string que da o nome do buffer.
+        +buffersize: inteiro que determina o tamanho do buffer.
+        +sequence_frames_ord: lista que fornece os frames a serem lidos.
+        +sequence_frames: dicionário que mapeia os frames a serem lidos.
+        +process: Processo que roda em paralelo com o programa principal, na qual os frames serão lidos
+        -_start_frame: inteiro que armazenao o id do primeiro frame a ser lido
+        +parent_conn: pipe para comunicação com o processo descrito acima
+        +child_conn: pipe passado para o processo descrito acima
+
+        +start_frame() int: metodo que retorna o id do primeiro frame a ser lido
+
+"""
+
+
+from array import array
 from cv2 import VideoCapture
 from numpy import ndarray
+from queue import Queue
 from src.buffer_error import VideoBufferError
-from pathlib3x import Path
-from threading import Thread, Lock
-from time import time, sleep
-from queue import LifoQueue
-import cv2
+from src.checkout import Checkout
+from src.my_structure import MyQueue
+from src.channel import Channel
+from src.utils import reader, BUFFER_RIGHT
+from threading import Event, Thread, Lock
+from time import sleep
+import bisect
 import ipdb
 
 
-class VideoBufferLeft():
-    def __init__(self, cap, sequence_frames: list[int], buffersize=25, *, bufferlog=False, name='buffer'):
+lock = Lock()
+event = Event()
+
+
+class VideoBufferLeft(MyQueue):
+    """Classe que implementa o buffer dos frames a serem lidos"""
+
+    def __init__(self,
+                 cap: VideoCapture,
+                 sequence_frames: list[int], *,
+                 buffersize=25,
+                 bufferlog=False,
+                 name='buffer'):
+
+        super().__init__(maxsize=buffersize)
+
+        # Criando as queues  para comunicação entre as threads
+        parent_conn, child_conn = Channel()
+        self.parent_conn = parent_conn
+        self.child_conn = child_conn
+        self.check = Checkout(parent_conn, event, lock)
 
         # Definições das variaveis que lidam com o Thread
         self.cap = cap
         self.name = name
-        self.stack = list()
         self.buffersize = buffersize
         self.bufferlog = bufferlog
-        self.sequence_frames_ord = sorted(sequence_frames)
-        self.sequence_frames = dict()
-        self.thread = None
-        self.is_dead = True
-        self.delay = 0.01
-
-        # Atributo que monitora os frames lidos na thread
-        self._frame_read = None
 
         # Definições das variaveis responsavel pela criação do buffer
-        self._end_frame = None
         self._start_frame = None
-        self.current_frame = None
+        self.frame_id = None
+        self.__store_frame_id = None
+        self._set_frame = None
 
-        # Checando a integridade dos dados
-        self._checking_integrity()
+        # Atributos usados para determinar os frames que serao armazenados no buffer
+        self.lot = list()
+        self.lot_mapping = set()
+        self.set_lot(sequence_frames)
 
-        # Montando a sequencia de frames
-        self._mount_sequence()
-
-    def _checking_integrity(self):
-        if self.end_frame() is None:
-            raise VideoBufferError('the current frame index is not a valid index')
-
-    def _mount_sequence(self):
-
-        end_frame = self.end_frame()
-        self.current_frame = end_frame
-
-        if len(self.sequence_frames_ord) == 0:
-            ...
-        elif end_frame not in self.sequence_frames_ord:
-            self.sequence_frames = {pos: True for pos in self.sequence_frames_ord}
-            self._end_frame = self.sequence_frames_ord[-1]
-        elif end_frame > 0:
-            index = self.sequence_frames_ord.index(end_frame)
-            seqs = self.sequence_frames_ord[:index]
-
-            if index >= self.buffersize:
-                frame0 = index - self.buffersize
-            else:
-                frame0 = 0
-            self.sequence_frames = {pos: True for pos in seqs[frame0: index]}
-        elif end_frame == 0:
-            index = self.sequence_frames_ord.index(end_frame)
-            self.sequence_frames = {self.sequence_frames_ord[index]: True}
-
-    def reflesh(self, sequence_frames):
-        # Metodo que atualiza o buffer
-
-        # Variaveis a serem atualizadas
-        self.stack = list()
-        self.sequence_frames_ord = sorted(sequence_frames)
-        self.sequence_frames = dict()
         self.thread = None
-        self._end_frame = None
-        self._start_frame = None
+        self.no_block = True
 
-        del self.stack
-        # Atualizando o buffer
-        self._checking_integrity()
-        self._mount_sequence()
+    def __del__(self):
+        if self.thread is not None:
+            while event.is_set():
+                sleep(0.1)
+                event.clear()
+            self.parent_conn.send(False)
+        self.parent_conn.close()
 
-    def start(self):
-        # Função que carrega os frames na "pilha", a mesma so carregara se a stack esiver vazia
+    def _checkout(self):
+        if self._set_frame is not None:
+            self._start_frame = self._set_frame
+            self._set_frame = None
 
-        if not self.empty():
-            return False
+    def set_lot(self, lot: list[int]) -> None:
+        """
+        Cria o mapping dos frames a serem lidos
 
-        # Inicalizando a obtenção dos estados possiveis dos frames
-        count_frame = self.start_frame()
-        self.cap.set(cv2.CAP_PROP_POS_FRAMES, count_frame)
+        Args:
+            lot (list): Lista que contem os frames_id a serem lidos
+        """
+        self.lot = array('l', sorted(lot))
+        self.lot_mapping = set(lot)
 
-        def reader(cap, stack, count_frame, sequence_frames, end_frame, bufferlog):
-            # Função responsavel por carregar a stack
+    def first_frame(self) -> int:
+        """
+        Devolve o primeiro frame do lote.
 
-            start = time()
-            self._frame_read = count_frame
-            while True:
-                ret, frame = cap.read()
-                if ret and sequence_frames.get(count_frame):
-                    # Deve-se colocar o indice do frame + frame na stack
-                    stack.append((count_frame, frame))
-                if bufferlog:
-                    print(len(stack), count_frame, end_frame)
-                if count_frame == end_frame:
-                    break
+        Returns:
+            int: frame_id do primeiro frame do lote.
+        """
+        return self.lot[0]
 
-                self._frame_read = count_frame
-                count_frame += 1
+    def last_frame(self) -> int:
+        """
+        Devolve o último frame do lote.
 
-            if self.current_frame != end_frame:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame + 1)
+        Returns:
+            int: frame_id do último frame do lote.
+        """
+        return self.lot[-1]
 
-            end = time()
-            if bufferlog:
-                print(f'\nLidos {len(stack)} em {end - start}s')
-                print(f'{len(stack) / (end - start):.2f} FPS')
+    def start_frame(self) -> int | bool:
+        """
+        Define o primeiro frame a ser lido em cada novo ciclo do buffer.
 
-        # Argumentos para a função reader
-        args = (self.cap,
-                self.stack,
-                count_frame,
-                self.sequence_frames,
-                self.end_frame(),
-                self.bufferlog)
-        thread = Thread(target=reader, name=self.name, args=args)
-        thread.start()
-        self.thread = thread
-
-    def join(self):
-        self.thread.join()
-
-    def end_frame(self):
-        # Metodo que devolve o ultimo frame a ser empilhado, o mesmo
-        # deve ser calculado como _end_frame = current_frame - 1, como
-        if self._end_frame is None:
-            read_frame = self.cap.get(cv2.CAP_PROP_POS_FRAMES) - 1
-            if read_frame < 0:
-                return None
-            self._end_frame = int(read_frame)
-        return self._end_frame
-
-    def start_frame(self):
-        # Metodo que calcula a posição do primeiro frame a ser lido pela stack
+        Returns:
+            int: retorna o frame_id.
+        """
         if self._start_frame is None:
-            self._start_frame = int(sorted(list(self.sequence_frames.keys()))[0])
+            self._start_frame = self.lot[0]
         return self._start_frame
 
-    def current_frame(self):
-        # Calcula a posição atual do frame, se a stack estiver vazia, a mesma
-        # deve retornar None
-        if len(self.stack) == 0:
-            return None
-        return self.start_frame() + len(self.stack)
+    def set(self, frame_id: int) -> None:
+        """
+        Coloco o frame_id como start_frame no próximo ciclo de leitura dos frames.
+        O ínicio de um novo ciclo ocorre quando o buffer esta vazio! se o frame_id não
+        estiver no lote o valor setado será o valor a esquerda mais próximo do mesmo.
 
-    def read(self):
-        # Metodo para o comsumo do buffer, retorna None quando a pilha estiver vazia
-        sleep(self.delay)
-        if not self.empty():
-            return self.stack.pop()
-        return None
+        Args:
+            frame_id (int): id do frame a ser lido no próximo ciclo, ou seja, qu
+        """
+        if not isinstance(frame_id, int):
+            raise TypeError('frame_id must be an integer')
+        elif frame_id < 0:
+            raise Exception('frame_id deve ser maior que 0.')
+        temp_idx = bisect.bisect_left(self.lot, frame_id) - 1
+        if (idx := temp_idx - self.buffersize) > 0:
+            try:
+                frame_id = self.lot[idx]
+            except IndexError:
+                raise IndexError('frame_id does not belong to the lot range.')
+        else:
+            frame_id = self.lot[0]
+        self._set_frame = frame_id
 
-    # Metodos que simulam alguns metodos do objeto Queue
+    def put(self, frame_id: int, frame: ndarray) -> None:
+        """
+        Método usado para encher o buffer de maneira manual e de forma segura.
 
-    def empty(self):
-        # Checa se a pilha esta vazia
-        return len(self.stack) == 0
+        Args:
+            frame_id (int): frame_id do frame a ser colocado no buffer.
+            frame (ndarray): frame a ser colocado no buffer.
+        """
+        if self._set_frame is not None:
+            raise Exception('operação bloqueada até que um novo ciclo ocorra')
+        elif isinstance(self.frame_id, int):
+            if self.frame_id < frame_id and self.qsize() > 0:
+                raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual ')
 
-    def full(self):
-        # Checa se a pilha esta cheia
-        return len(self.stack) == self.buffersize
-
-    def put(self, value: tuple[int, ndarray]):
-        if self.full():
-            _ = self.stack.pop(0)
-        self.stack.append(value)
-
-    def get(self):
-        return self.read()
-
-    def qsize(self):
-        return len(self.stack)
-
-    def maxsize(self):
-        return self.buffersize
-
-    def observer(self, frame_id):
-        # Metod não testado!!
-
-        while True and self.thread.is_alive():
-            if self._frame_read >= frame_id:
-                break
-            sleep(0.0001)
-        return True
-
-
-if __name__ == '__main__':
-    cap = cv2.VideoCapture('src/model.mp4')
-
-    cap.set(cv2.CAP_PROP_POS_FRAMES, 600)
-    cap.read()
-    buffer = VideoBufferLeft(cap, list(range(1001)), bufferlog=True, buffersize=25)
-    buffer.start()
-    print('Inicalizando...')
-    buffer.join()
+        self._put((frame_id, frame))
+        self._start_frame = False
