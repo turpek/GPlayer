@@ -7,7 +7,18 @@ class Buffer:
     -primary: É uma Queue que define o buffer primario
     -secondary: É uma Queue que define o buffer segundario
 
-    +secondary_is_empty() Bool: Método que retorna True se o buffer segundario estiver vazio
+
+    -primary_is_empty() bool: Método que retorna True se o buffer segundario estiver vazio.
+    -primary_is_full() bool: Método que retorna True se o buffer segundario estiver cheio.
+    +secondary_is_empty() bool: Método que retorna True se o buffer segundario estiver vazio.
+    +secondary_is_full() bool: Método que retorna True se o buffer segundario estiver cheio.
+    +empty() bool: Retorna True se o buffer estiver vazio.
+    +full() bool: Retorna True se o buffer estiver cheio.
+    +put() None: Coloca um dado no buffer.
+    +get() tuple[Bool, any]: Retorna uma tupla, onde o primeiro valor representa o sucesso do método
+        e o segundo o valor armazenado.
+    +swap() bool: Faz a troca se necessario entre os dois buffers, retornando True se a mesma for realizada
+        e False caso contrário.
 
 """
 from queue import Queue
