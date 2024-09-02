@@ -22,30 +22,63 @@ class Buffer:
 
 """
 from queue import Queue
+from threading import Lock
 
 
 class Buffer:
     def __init__(self, size=15):
+        # Queue que armazenam os frames
         self.__primary = Queue(maxsize=size)
         self.__secondary = Queue(maxsize=size)
+        self.lock = Lock()
 
-    def __primary_is_empty(self) -> bool:
+        # Queue para a comunicação do buffer com a thread
+        self.__input = Queue(maxsize=1)
+
+        # Queue para o envio de possíveis erros que venham a ocorrer na thread
+        self.__error = Queue()
+
+        self._task = Queue(maxsize=1)
+        self._task.put_nowait(True)
+
+    def __check_swap(self) -> bool:
         """
-        Método privado que verifica se o buffer primario esta vazio.
+        Método privado usado para verificar se é necessario fazer o swap
+
+        Returns:
+            bool
+        """
+        return self.task_is_done() and self.primary_is_empty() and self.secondary_is_empty() is False
+
+    def primary_is_empty(self) -> bool:
+        """
+        Método que verifica se o buffer primario esta vazio.
 
         Returns:
             bool
         """
         return self.__primary.empty()
 
-    def __primary_is_full(self) -> bool:
+    def primary_is_full(self) -> bool:
         """
-        Método privado que verifica se o buffer primario esta cheio.
+        Método que verifica se o buffer primario esta cheio.
 
         Returns:
             bool
         """
         return self.__primary.full()
+
+    def task_is_done(self) -> bool:
+        """
+        Verifica se o ciclo para encher o buffer secundary foi concluido.
+
+        Returns:
+            bool
+        """
+        with self.lock:
+            task_is_done = self._task.get_nowait()
+            self._task.put_nowait(task_is_done)
+        return task_is_done
 
     def swap(self) -> bool:
         """
@@ -55,7 +88,7 @@ class Buffer:
         Returns:
             bool
         """
-        if self.__primary_is_empty() and self.secondary_is_empty() is False:
+        if self.__check_swap():
             self.__primary, self.__secondary = self.__secondary, self.__primary
             return True
         return False
@@ -85,7 +118,7 @@ class Buffer:
         Returns:
             bool
         """
-        return self.__primary_is_empty() and self.secondary_is_empty()
+        return self.primary_is_empty() and self.secondary_is_empty()
 
     def full(self) -> bool:
         """
@@ -94,7 +127,7 @@ class Buffer:
         Returns:
             bool
         """
-        return self.__primary_is_full() and self.secondary_is_full()
+        return self.primary_is_full() and self.secondary_is_full()
 
     def put(self, value: any) -> None:
         """
@@ -121,9 +154,42 @@ class Buffer:
             e o segundo elemento contém o valor recuperado do buffer.
         """
 
-        if self.__primary_is_empty() is False:
+        if self.primary_is_empty() is False:
             return (True, self.__primary.get_nowait())
         return (False, True)
 
+    def send(self, data: any) -> None:
+        """
+        Método para enviar dados para a thread, como a queue onde é armazenado os dados tem tamanho 1,
+        verifique com o método poll sé a dados ainda a serem lidos, antes de colocar mais dados e assim
+        não travar o fluxo do programa
 
 
+        Args:
+            data any: os dados a serem enviados.
+
+        Returns:
+            None
+        """
+        with self.lock:
+            self.__input.put(data)
+
+    def recv(self) -> any:
+        """
+        Método para receber os dados envidos pelo método send
+
+        Returns:
+            any
+        """
+        with self.lock:
+            return self.__input.get()
+
+    def poll(self) -> bool:
+        """
+        Verifica se a dados a serem lidos
+
+        Returns:
+            bool
+        """
+        with self.lock:
+            return self.__input.qsize() == 1
