@@ -33,3 +33,6 @@ class MyVideoCapture():
 
     def isOpened(self):
         return self.isopened
+
+    def release(self):
+        ...
