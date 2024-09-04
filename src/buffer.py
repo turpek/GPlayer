@@ -26,17 +26,19 @@ from threading import Lock
 
 
 class Buffer:
-    def __init__(self, size=15):
+    def __init__(self, *, maxsize=15, bufferlog=False):
         # Queue que armazenam os frames
-        self.__primary = Queue(maxsize=size)
-        self.__secondary = Queue(maxsize=size)
+        self.buffersize = maxsize
+        self.bufferlog = bufferlog
+        self.__primary = Queue(maxsize=maxsize)
+        self.__secondary = Queue(maxsize=maxsize)
         self.lock = Lock()
 
         # Queue para a comunicação do buffer com a thread
         self.__input = Queue(maxsize=1)
 
         # Queue para o envio de possíveis erros que venham a ocorrer na thread
-        self.__error = Queue()
+        self._error = Queue()
 
         self._task = Queue(maxsize=1)
         self._task.put_nowait(True)
@@ -171,8 +173,7 @@ class Buffer:
         Returns:
             None
         """
-        with self.lock:
-            self.__input.put(data)
+        self.__input.put(data)
 
     def recv(self) -> any:
         """
@@ -181,8 +182,7 @@ class Buffer:
         Returns:
             any
         """
-        with self.lock:
-            return self.__input.get()
+        return self.__input.get()
 
     def poll(self) -> bool:
         """
