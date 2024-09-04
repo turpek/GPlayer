@@ -8,9 +8,16 @@ class MyQueue(ABC):
     """
     def __init__(self, maxsize=25):
         self.maxsize = maxsize
-        self.tqueue = Queue(maxsize=maxsize)
         self.queue = list()
         self._end_frame = None
+
+    @abstractmethod
+    def _put(self, value):
+        ...
+
+    @abstractmethod
+    def get(self):
+        ...
 
     @abstractmethod
     def _checkout(self):
@@ -30,21 +37,53 @@ class MyQueue(ABC):
         self._checkout()
         return len(self.queue) == self.maxsize
 
-    def get(self):
-        self._checkout()
-        if not self.empty():
-            return self.queue.pop(0)
-
-    @abstractmethod
-    def _put(self, value):
-        ...
-
     def qsize(self):
         self._checkout()
         return len(self.queue)
 
 
-class MyQueueTest(MyQueue):
+class MyQueueRight(MyQueue):
+    def __init__(self, maxsize=25):
+        super().__init__(maxsize=maxsize)
+        self.tqueue = Queue(maxsize=maxsize)
+
+    def _put(self, value) -> None:
+        """put(value) metodo para inserção manual dos dados na fila, tal metodo
+         tem a preferencia na fila, ou seja, o dado eh colocado no inicio da fila
+        """
+        self._checkout()
+        if self.full():
+            _ = self.queue.pop()
+        self.queue.insert(0, value)
+
+    def get(self):
+        self._checkout()
+        if not self.empty():
+            return self.queue.pop(0)
+
+
+class MyQueueLeft(MyQueue):
+    """
+    Fila para ser usada na classe VideoBufferRight
+    """
+    def __init__(self, maxsize=25):
+        self.maxsize = maxsize
+        self.queue = list()
+        self._end_frame = None
+
+    def _put(self, value):
+        self._checkout()
+        if self.full():
+            _ = self.queue.pop(0)
+        self.queue.append(value)
+
+    def get(self):
+        self._checkout()
+        if not self.empty():
+            return self.queue.pop()
+
+
+class MyQueueTest(MyQueueRight):
     def __init__(self, maxsize=25):
         super().__init__(maxsize=maxsize)
 
