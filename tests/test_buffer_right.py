@@ -165,7 +165,7 @@ def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente(myvideo, seq):
 def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente_com_o_buffer_lotado(myvideo, seq):
     expect_start_frame = False
     buffer = myvideo
-    buffer.bufferlog=True
+    buffer.bufferlog = True
     [buffer.queue.append((frame_id, np.zeros((2, 2)))) for frame_id in range(25, 50)]
     buffer._old_frame = 25
     [buffer.put(*seq.pop(0)) for _ in range(3)]
