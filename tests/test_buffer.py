@@ -1,101 +1,44 @@
-from src.buffer import Buffer
+from pytest import fixture
+from src.buffer import FakeBuffer as Buffer
+from threading import Semaphore
+import numpy as np
 import pytest
 
 
-def test_buffer_esta_vazio():
-    expect = True
-    buffer = Buffer(12)
-    result = buffer.empty()
-    assert result == expect
+@fixture
+def buffer():
+    semaphore = Semaphore()
+    bf = Buffer(semaphore, maxsize=25)
+    yield bf
+
+def lote(start, end, step):
+    return [(frame_id, np.ones((2,2))) for frame_id in range(start, end, step)]
 
 
-def test_buffer_segundario_esta_vazio():
-    expect = True
-    buffer = Buffer(12)
-    result = buffer.secondary_is_empty()
-    assert result == expect
+def test_colocando_1_frame_no_buffer_secondary(buffer):
+    expect = 1
+    [buffer.sput(frame) for frame in lote(0, 1, 1)]
+    result = buffer._secondary.qsize()
+    assert expect == result
 
 
-def test_buffer_segundario_nao_esta_vazio():
+def test_enchendo_o_buffer_secondary(buffer):
+    expect = True 
+    [buffer.sput(frame) for frame in lote(0, 25, 1)]
+    result = buffer._secondary.full()
+    assert expect == result
+
+
+def test_setando_o_buffer(buffer):
     expect = False
-    buffer = Buffer(12)
-    buffer.put(5)
-    result = buffer.secondary_is_empty()
-    assert result == expect
+    buffer.set()
+    result = buffer.task_is_done()
+    assert expect == result
 
 
-def test_buffer_segundario_nao_esta_cheio():
-    expect = False
-    buffer = Buffer(12)
-    result = buffer.secondary_is_full()
-    assert result == expect
-
-
-def test_buffer_segundario_nao_esta_cheio_colocando_1_valor_no_mesmo():
-    expect = False
-    buffer = Buffer(12)
-    buffer.put(5)
-    result = buffer.secondary_is_full()
-    assert result == expect
-
-
-def test_buffer_segundario_esta_cheio():
+def test_clear_do_buffer(buffer):
     expect = True
-    buffer = Buffer(12)
-    [buffer.put(x) for x in range(12)]
-    result = buffer.secondary_is_full()
-    assert result == expect
-
-
-def test_buffer_fazendo_o_swap_entre_os_buffers_internos():
-    expect = True
-    buffer = Buffer(12)
-    [buffer.put(x) for x in range(12)]
-    result = buffer.swap()
-    assert result == expect
-
-
-def test_buffer_enchendo_o_buffer():
-    expect = True
-    buffer = Buffer(12)
-    [buffer.put(x) for x in range(12)]
-    buffer.swap()
-    [buffer.put(x) for x in range(12)]
-    result = buffer.full()
-    assert result == expect
-
-
-def test_buffer_consumindo_o_buffer_primario_cheio():
-    expect = True
-    buffer = Buffer(12)
-    [buffer.put(x) for x in range(12)]
-    buffer.swap()
-    [buffer.put(x) for x in range(12)]
-    [buffer.get() for x in range(12)]
-    buffer.swap()
-    result = buffer.secondary_is_empty()
-    assert result == expect
-
-
-def test_buffer_consumindo_o_buffer():
-    expect = True
-    buffer = Buffer(12)
-    [buffer.put(x) for x in range(12)]
-    buffer.swap()
-    [buffer.put(x) for x in range(12)]
-    [buffer.get() for x in range(12)]
-    buffer.swap()
-    [buffer.get() for x in range(12)]
-    result = buffer.empty()
-    assert result == expect
-
-
-def test_buffer_swap_com_o_buffer_secundario_nao_cheio():
-    expect = True
-    expect_empty = True
-    buffer = Buffer(12)
-    [buffer.put(x) for x in range(7)]
-    result = buffer.swap()
-    result_empty = buffer.secondary_is_empty()
-    assert result == expect
-    assert result_empty == expect_empty
+    buffer.set()
+    buffer.clear()
+    result = buffer.task_is_done()
+    assert expect == result
