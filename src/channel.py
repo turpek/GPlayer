@@ -58,3 +58,46 @@ class Channel:
         self.pipe1 = _Channel(inpt, outp, send_err, recv_err)
         self.pipe2 = _Channel(outp, inpt, recv_err, send_err)
         return self.pipe1, self.pipe2
+
+
+
+class Channel1:
+    """
+    Classe para comunicação em uma direção entre o programa e a threads 
+    """
+    def __init__(self):
+    
+        self.__conn = Queue(maxsize)
+
+        def send(self, data: any) -> None:
+            """
+            Método para enviar dados para a thread, como a queue onde é armazenado os dados tem tamanho 1,
+            verifique com o método poll sé a dados ainda a serem lidos, antes de colocar mais dados e assim
+            não travar o fluxo do programa
+
+
+            Args:
+                data any: os dados a serem enviados.
+
+            Returns:
+                None
+            """
+            self.__conn.put(data)
+
+        def recv(self) -> any:
+            """
+            Método para receber os dados envidos pelo método send
+
+            Returns:
+                any
+            """
+            return self.__conn.get()
+
+        def poll(self) -> bool:
+            """
+            Verifica se a dados a serem lidos
+
+            Returns:
+                bool
+            """
+            return self.__conn.qsize() == 1
