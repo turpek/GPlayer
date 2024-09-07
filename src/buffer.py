@@ -7,7 +7,7 @@ class Buffer:
     -_primary: É um deque que define o buffer primario.
     -_secondary: É uma Queue que define o buffer segundario.
 
-    +block_task() bool: Método para bloquear a task 
+    +no_block_task() bool: Método para bloquear a task 
     +clear() bool: Método para se chamado dentro da task para liberar os recursos de controle do Buffer.
     +empty() bool: Retorna True se o buffer primario estiver vazio.
     +full() bool: Retorna True se o buffer primario estiver cheio.
@@ -63,7 +63,7 @@ class Buffer(ABC, Channel1):
     def __getitem__(self, var):
         return self._primary[var]
 
-    def block_task(self, value: bool= None) -> bool:
+    def no_block_task(self, value: bool= None) -> bool:
         """
         Usado para verificar se a task deve ser feita (se nenhum argumento for passado), passe bool como 
         argumento para bloquear ou liberar a task.
@@ -176,7 +176,7 @@ class Buffer(ABC, Channel1):
         # Atributo para bloqueia da task enquanto o usuario colocar valores
         # manualmente, o bloqueio será desfeito somente quando um valor for lido
         # do Buffer
-        self.block_task(False)
+        self.no_block_task(False)
         self._primary.appendleft(value)
 
     def get(self) -> any:
@@ -188,7 +188,7 @@ class Buffer(ABC, Channel1):
         """
 
         # Desbloquando a task
-        self.block_task(True)
+        self.no_block_task(True)
         return self._primary.popleft()
 
 
