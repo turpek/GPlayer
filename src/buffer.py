@@ -4,29 +4,44 @@ estár sempre cheio, para isso temos os seguintes atributos e métodos.
 
 
 class Buffer:
-    -primary: É uma Queue que define o buffer primario
-    -secondary: É uma Queue que define o buffer segundario
+    -_primary: É um deque que define o buffer primario.
+    -_secondary: É uma Queue que define o buffer segundario.
+
+    +block_task() bool: Método para bloquear a task 
+    +clear() bool: Método para se chamado dentro da task para liberar os recursos de controle do Buffer.
+    +empty() bool: Retorna True se o buffer primario estiver vazio.
+    +full() bool: Retorna True se o buffer primario estiver cheio.
+    +get() any: Retorna o valor armazenado no Buffer
+    +put() None: Coloca um dado no buffer primario manualmente.
+    +sempty() bool: Retorna True se o buffer segundario estiver vazio.
+    +set() bool: Método para ser chamado dentro da task, seta recurso para o controle do Buffer.
+    +sput() bool: Método para armazenar o dado no buffer segundaroi.
+    +task_is_done() bool: Verifica se a tarefa esta concluida.
+    +unqueue None: Método que deve ser implementado ao herdar de Buffer.
 
 
-    -primary_is_empty() bool: Método que retorna True se o buffer segundario estiver vazio.
-    -primary_is_full() bool: Método que retorna True se o buffer segundario estiver cheio.
-    +secondary_is_empty() bool: Método que retorna True se o buffer segundario estiver vazio.
-    +secondary_is_full() bool: Método que retorna True se o buffer segundario estiver cheio.
-    +empty() bool: Retorna True se o buffer estiver vazio.
-    +full() bool: Retorna True se o buffer estiver cheio.
-    +put() None: Coloca um dado no buffer.
-    +get() tuple[Bool, any]: Retorna uma tupla, onde o primeiro valor representa o sucesso do método
-        e o segundo o valor armazenado.
-    +swap() bool: Faz a troca se necessario entre os dois buffers, retornando True se a mesma for realizada
-        e False caso contrário.
+class FakeBuffer(Buffer):
+    classe que implementa unqueue para tornar possível a testagem do Buffer.
+    +unqueue None: Método placebo.
 
+
+class BufferRight(Buffer):
+    +unqueue() None: Método que faz a transferencia dos valores armazenados no buffer segundario
+        para o buffer primario
+
+
+class BufferLeft(Buffer):
+    +unqueue() None: Método que faz a transferencia dos valores armazenados no buffer segundario
+        para o buffer primario
 """
+
+
 from abc import ABC, abstractmethod
 from collections import deque
 from queue import Queue
 from src.channel import Channel1
 from threading import Lock, Semaphore
-
+import ipdb
 
 class Buffer(ABC, Channel1):
     def __init__(self, semaphore: Semaphore, *,maxsize: int=15, log: bool=False):
@@ -35,6 +50,7 @@ class Buffer(ABC, Channel1):
         self.log = log
         self._primary = deque(list(), maxlen=maxsize)
         self._secondary = Queue(maxsize=maxsize)
+        self.__block_task = True
         self.lock = Lock()
         self.semaphore = semaphore
 
@@ -46,6 +62,21 @@ class Buffer(ABC, Channel1):
 
     def __getitem__(self, var):
         return self._primary[var]
+
+    def block_task(self, value: bool= None) -> bool:
+        """
+        Usado para verificar se a task deve ser feita (se nenhum argumento for passado), passe bool como 
+        argumento para bloquear ou liberar a task.
+
+        Args:
+            value (bool): Se value for False então a task será bloqueada, caso contrário será liberada.
+
+        Returns:
+            bool
+        """
+        if isinstance(value, bool):
+            self.__block_task = value
+        return self.__block_task
 
     def sput(self, value: any) -> None:
         """
@@ -110,7 +141,7 @@ class Buffer(ABC, Channel1):
         Returns:
             boll
         """
-        return len(self.deque) == 0
+        return len(self._primary) == 0
 
     def full(self) -> bool:
         """
@@ -119,29 +150,89 @@ class Buffer(ABC, Channel1):
         Returns:
             boll
         """
-        return len(self.deque) == self.deque.maxlen
+        return len(self._primary) == self._primary.maxlen
 
     @abstractmethod
-    def _put(self, value: any) -> None:
+    def unqueue(self) -> None:
         ...
 
     def put(self, value: any) -> None:
-        ...
+        """
+        Coloca um valor no Buffer.
 
-    @abstractmethod
-    def _get(self) -> any:
-        ...
+        Args:
+            value (any): valor a ser armazenado no Buffer.
+
+        Returns:
+            None
+        """
+
+        # Devemos colocar o máximo de dados que pudermos no buffer primario
+        # pois o buffer segundario será limpo, caso haja valores no mesmo.
+        self.unqueue()
+        if self.sempty() is False:
+            self._secondary = Queue(maxsize=self.maxsize)
+
+        # Atributo para bloqueia da task enquanto o usuario colocar valores
+        # manualmente, o bloqueio será desfeito somente quando um valor for lido
+        # do Buffer
+        self.block_task(False)
+        self._primary.appendleft(value)
 
     def get(self) -> any:
-        ...
+        """
+            Retira um valor do Buffer.
+
+            Returns:
+                any: valor a ser retirado do Buffer.
+        """
+
+        # Desbloquando a task
+        self.block_task(True)
+        return self._primary.popleft()
 
 
 class FakeBuffer(Buffer):
     def __init__(self, semaphore: Semaphore, *, maxsize: int=25, log: bool=False):
         super().__init__(semaphore, maxsize=maxsize, log=log)
 
-    def _put(self) -> None:
+    def unqueue(self):
         ...
 
-    def _get(self) -> any:
-        ...
+
+class BufferRight(Buffer):
+    def __init__(self, semaphore: Semaphore, *, maxsize: int=25, log: bool=False):
+        super().__init__(semaphore, maxsize=maxsize, log=log)
+
+
+    def unqueue(self) -> None:
+        """
+        Método para passar os frames do buffer segundario para o primario.
+
+        Returns:
+            None
+        """
+
+        if self.task_is_done():
+            while not self.sempty():
+                value = self._secondary.get()
+                self._primary.append(value)
+
+
+class BufferLeft(Buffer):
+    def __init__(self, semaphore: Semaphore, *, maxsize: int=25, log: bool=False):
+        super().__init__(semaphore, maxsize=maxsize, log=log)
+
+
+    def unqueue(self) -> None:
+        """
+        Método para passar os frames do buffer segundario para o primario.
+
+        Returns:
+            None
+        """
+
+        if self.task_is_done():
+            while not self.sempty():
+                value = self._secondary.get()
+                self._primary.appendleft(value)
