@@ -19,14 +19,14 @@ def lote(start, end, step):
 
 def test_buffer_secondary_vazio(buffer):
     expect = True
-    result = buffer.sempty()
+    result = buffer.secondary_empty()
     assert expect == result
 
 
 def test_buffer_secondary_nao_esta_vazio(buffer):
     expect = False
     [buffer.sput(frame) for frame in lote(0, 1, 1)]
-    result = buffer.sempty()
+    result = buffer.secondary_empty()
     assert expect == result
 
 
@@ -146,3 +146,139 @@ def test_buffer_desbloquando_a_task_ao_ler_o_buffer(buffer):
     result = buffer.no_block_task()
     assert expect == result
 
+
+def test_buffer_do_task_retorna_true(buffer):
+    expect = True
+    result = buffer.do_task()
+    assert expect == result
+
+
+def test_buffer_do_task_retorna_false_secondary_nao_esta_vazio(buffer):
+    expect = False
+    expect_secondary = False
+    expect_no_block_task = True
+    expect_task_is_done = True
+    [buffer.sput(frame) for frame in lote(0, 1, 1)]
+
+    result = buffer.do_task()
+    result_secondary = buffer.secondary_empty()
+    result_no_block_task = buffer.no_block_task()
+    result_task_is_done = buffer.task_is_done()
+
+    assert expect == result
+    assert expect_secondary == result_secondary
+    assert expect_no_block_task == result_no_block_task
+    assert expect_task_is_done == result_task_is_done
+
+
+def test_buffer_do_task_retorna_false_no_block_task_eh_false(buffer):
+    expect = False
+    expect_secondary = True
+    expect_no_block_task = False
+    expect_task_is_done = True
+    [buffer.put(frame) for frame in lote(0, 1, 1)]
+
+    result = buffer.do_task()
+    result_secondary = buffer.secondary_empty()
+    result_no_block_task = buffer.no_block_task()
+    result_task_is_done = buffer.task_is_done()
+
+    assert expect == result
+    assert expect_secondary == result_secondary
+    assert expect_no_block_task == result_no_block_task
+    assert expect_task_is_done == result_task_is_done
+
+
+def test_buffer_do_task_retorna_false_task_is_done_eh_false(buffer):
+    expect = False
+    expect_secondary = True
+    expect_no_block_task = True
+    expect_task_is_done = False
+
+    buffer.set()
+    result = buffer.do_task()
+    result_secondary = buffer.secondary_empty()
+    result_no_block_task = buffer.no_block_task()
+    result_task_is_done = buffer.task_is_done()
+
+    assert expect == result
+    assert expect_secondary == result_secondary
+    assert expect_no_block_task == result_no_block_task
+    assert expect_task_is_done == result_task_is_done
+
+
+def test_buffer_do_task_secondary_eh_task_is_done_sao_false(buffer):
+    expect = False
+    expect_secondary = False
+    expect_no_block_task = True
+    expect_task_is_done = False
+
+    buffer.set()
+    [buffer.sput(frame) for frame in lote(0, 1, 1)]
+    result = buffer.do_task()
+    result_secondary = buffer.secondary_empty()
+    result_no_block_task = buffer.no_block_task()
+    result_task_is_done = buffer.task_is_done()
+
+    assert expect == result
+    assert expect_secondary == result_secondary
+    assert expect_no_block_task == result_no_block_task
+    assert expect_task_is_done == result_task_is_done
+
+
+def test_buffer_do_task_no_block_task_eh_task_is_done_sao_false(buffer):
+    expect = False
+    expect_secondary = True
+    expect_no_block_task = False
+    expect_task_is_done = False
+
+    buffer.set()
+    [buffer.put(frame) for frame in lote(0, 1, 1)]
+    result = buffer.do_task()
+    result_secondary = buffer.secondary_empty()
+    result_no_block_task = buffer.no_block_task()
+    result_task_is_done = buffer.task_is_done()
+
+    assert expect == result
+    assert expect_secondary == result_secondary
+    assert expect_no_block_task == result_no_block_task
+    assert expect_task_is_done == result_task_is_done
+
+
+def test_buffer_do_task_secondary_eh_no_block_task_eh_sao_false(buffer):
+    expect = False
+    expect_secondary =  False
+    expect_no_block_task = False
+    expect_task_is_done = True
+
+    [buffer.put(frame) for frame in lote(0, 1, 1)]
+    [buffer.sput(frame) for frame in lote(0, 1, 1)]
+    result = buffer.do_task()
+    result_secondary = buffer.secondary_empty()
+    result_no_block_task = buffer.no_block_task()
+    result_task_is_done = buffer.task_is_done()
+
+    assert expect == result
+    assert expect_secondary == result_secondary
+    assert expect_no_block_task == result_no_block_task
+    assert expect_task_is_done == result_task_is_done
+
+
+def test_buffer_do_task_todos_sao_false(buffer):
+    expect = False
+    expect_secondary =  False
+    expect_no_block_task = False
+    expect_task_is_done = False
+
+    [buffer.put(frame) for frame in lote(0, 1, 1)]
+    [buffer.sput(frame) for frame in lote(0, 1, 1)]
+    buffer.set()
+    result = buffer.do_task()
+    result_secondary = buffer.secondary_empty()
+    result_no_block_task = buffer.no_block_task()
+    result_task_is_done = buffer.task_is_done()
+
+    assert expect == result
+    assert expect_secondary == result_secondary
+    assert expect_no_block_task == result_no_block_task
+    assert expect_task_is_done == result_task_is_done
