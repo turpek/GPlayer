@@ -43,15 +43,15 @@ def test_buffer_left_put_1_elemento(buffer):
 
 def test_buffer_left_enchendo_o_buffer_secondary_2_vezes_e_colocando_1_elemento_com_put(buffer):
     expect_block = False
-    expect_sempty = True
+    expect_secondary_empty = True
     expect_frame_id = 75
     [buffer.sput(frame) for frame in lote(50, 75, 1)]
     buffer.unqueue()
     [buffer.sput(frame) for frame in lote(25, 50, 1)]
     [buffer.put(frame) for frame in lote(75, 76, 1)]
     result_block = buffer.no_block_task()
-    result_sempty = buffer.sempty()
+    result_secondary_empty = buffer.secondary_empty()
     result_frame_id = buffer.get()[0]
     assert result_block == expect_block
-    assert result_sempty == expect_sempty
+    assert result_secondary_empty == expect_secondary_empty
     assert result_frame_id == expect_frame_id
