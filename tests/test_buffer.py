@@ -115,27 +115,27 @@ def test_buffer_lendo_todos_os_valores_do_buffer(buffer):
 
 def test_buffer_nao_esta_bloqueado_para_task(buffer):
     expect = True
-    result = buffer.block_task()
+    result = buffer.no_block_task()
     assert expect == result
 
 
 def test_buffer_bloquando_a_task_ao_colocar_valor_no_buffer_manualmente(buffer):
     expect = False
     [buffer.put(frame) for frame in lote(0, 1, 1)]
-    result = buffer.block_task()
+    result = buffer.no_block_task()
     assert expect == result
 
 
 def test_buffer_bloquando_a_task_manualmente(buffer):
     expect = False
-    result = buffer.block_task(False)
+    result = buffer.no_block_task(False)
     assert expect == result
 
 
 def test_buffer_desbloquando_a_task_manualmente(buffer):
     expect = True
     [buffer.put(frame) for frame in lote(0, 1, 1)]
-    result = buffer.block_task(True)
+    result = buffer.no_block_task(True)
     assert expect == result
 
 
@@ -143,6 +143,6 @@ def test_buffer_desbloquando_a_task_ao_ler_o_buffer(buffer):
     expect = True
     [buffer.put(frame) for frame in lote(0, 1, 1)]
     buffer.get()
-    result = buffer.block_task()
+    result = buffer.no_block_task()
     assert expect == result
 
