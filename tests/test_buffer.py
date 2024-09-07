@@ -3,6 +3,7 @@ from src.buffer import FakeBuffer as Buffer
 from threading import Semaphore
 import numpy as np
 import pytest
+import ipdb
 
 
 @fixture
@@ -15,6 +16,20 @@ def lote(start, end, step):
     return [(frame_id, np.ones((2,2))) for frame_id in range(start, end, step)]
 
 
+
+def test_buffer_secondary_vazio(buffer):
+    expect = True
+    result = buffer.sempty()
+    assert expect == result
+
+
+def test_buffer_secondary_nao_esta_vazio(buffer):
+    expect = False
+    [buffer.sput(frame) for frame in lote(0, 1, 1)]
+    result = buffer.sempty()
+    assert expect == result
+
+
 def test_colocando_1_frame_no_buffer_secondary(buffer):
     expect = 1
     [buffer.sput(frame) for frame in lote(0, 1, 1)]
@@ -23,7 +38,7 @@ def test_colocando_1_frame_no_buffer_secondary(buffer):
 
 
 def test_enchendo_o_buffer_secondary(buffer):
-    expect = True 
+    expect = True
     [buffer.sput(frame) for frame in lote(0, 25, 1)]
     result = buffer._secondary.full()
     assert expect == result
@@ -42,3 +57,92 @@ def test_clear_do_buffer(buffer):
     buffer.clear()
     result = buffer.task_is_done()
     assert expect == result
+
+def test_buffer_esta_vazio(buffer):
+    expect = True
+    result = buffer.empty()
+    assert expect == result
+
+def test_buffer_colocando_1_frame_no_buffer_manualmente(buffer):
+    expect = False
+    [buffer.put(frame) for frame in lote(0, 1, 1)]
+    result = buffer.empty()
+    assert expect == result
+
+
+def test_buffer_nao_esta_cheio(buffer):
+    expect = False
+    [buffer.put(frame) for frame in lote(0, 1, 1)]
+    result = buffer.full()
+    assert expect == result
+
+
+def test_buffer_esta_cheio(buffer):
+    expect = True
+    [buffer.put(frame) for frame in lote(0, 25, 1)]
+    result = buffer.full()
+    assert expect == result
+
+
+def test_buffer_checando_o_ultimo_elemento(buffer):
+    expect_frame_id = 25
+    [buffer.put(frame) for frame in lote(25, 0, -1)]
+    result_frame_id, _ = buffer._primary[-1]
+    assert expect_frame_id == result_frame_id
+
+
+def test_buffer_esta_cheio_e_colocando_mais_1_elemento(buffer):
+    expect_frame_id = 24
+    [buffer.put(frame) for frame in lote(25, 0, -1)]
+    [buffer.put(frame) for frame in lote(0, -1, -1)]
+    result_frame_id, _ = buffer._primary[-1]
+    assert expect_frame_id == result_frame_id
+
+
+def test_buffer_lendo_1_valor_do_buffer(buffer):
+    expect_frame_id = 0
+    [buffer.put(frame) for frame in lote(0, 1, 1)]
+    result_frame_id, _ = buffer.get()
+    assert expect_frame_id == result_frame_id
+
+
+def test_buffer_lendo_todos_os_valores_do_buffer(buffer):
+    expect = list(range(25))
+    [buffer.put(frame) for frame in lote(24, -1, -1)]
+    result = [buffer.get()[0] for frame in range(25)]
+    assert expect == result
+
+
+def test_buffer_nao_esta_bloqueado_para_task(buffer):
+    expect = True
+    result = buffer.block_task()
+    assert expect == result
+
+
+def test_buffer_bloquando_a_task_ao_colocar_valor_no_buffer_manualmente(buffer):
+    expect = False
+    [buffer.put(frame) for frame in lote(0, 1, 1)]
+    result = buffer.block_task()
+    assert expect == result
+
+
+def test_buffer_bloquando_a_task_manualmente(buffer):
+    expect = False
+    result = buffer.block_task(False)
+    assert expect == result
+
+
+def test_buffer_desbloquando_a_task_manualmente(buffer):
+    expect = True
+    [buffer.put(frame) for frame in lote(0, 1, 1)]
+    result = buffer.block_task(True)
+    assert expect == result
+
+
+def test_buffer_desbloquando_a_task_ao_ler_o_buffer(buffer):
+    expect = True
+    [buffer.put(frame) for frame in lote(0, 1, 1)]
+    buffer.get()
+    result = buffer.block_task()
+    assert expect == result
+
