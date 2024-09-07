@@ -7,13 +7,13 @@ class Buffer:
     -_primary: É um deque que define o buffer primario.
     -_secondary: É uma Queue que define o buffer segundario.
 
-    +no_block_task() bool: Método para bloquear a task 
+    +no_block_task() bool: Método para bloquear a task
     +clear() bool: Método para se chamado dentro da task para liberar os recursos de controle do Buffer.
     +empty() bool: Retorna True se o buffer primario estiver vazio.
     +full() bool: Retorna True se o buffer primario estiver cheio.
     +get() any: Retorna o valor armazenado no Buffer
     +put() None: Coloca um dado no buffer primario manualmente.
-    +sempty() bool: Retorna True se o buffer segundario estiver vazio.
+    +secondary_empty() bool: Retorna True se o buffer segundario estiver vazio.
     +set() bool: Método para ser chamado dentro da task, seta recurso para o controle do Buffer.
     +sput() bool: Método para armazenar o dado no buffer segundaroi.
     +task_is_done() bool: Verifica se a tarefa esta concluida.
@@ -41,10 +41,10 @@ from collections import deque
 from queue import Queue
 from src.channel import Channel1
 from threading import Lock, Semaphore
-import ipdb
+
 
 class Buffer(ABC, Channel1):
-    def __init__(self, semaphore: Semaphore, *,maxsize: int=15, log: bool=False):
+    def __init__(self, semaphore: Semaphore, *, maxsize: int=15, log: bool = False):
         # Criando um deque e uma Queue onde os frames serão armazenados
         self.maxsize = maxsize
         self.log = log
@@ -57,13 +57,22 @@ class Buffer(ABC, Channel1):
         # Queue para o envio de possíveis erros que venham a ocorrer na thread
         self._error = Queue()
 
-        self.__task= Queue(maxsize=1)
+        self.__task = Queue(maxsize=1)
         self.__task.put_nowait(True)
 
     def __getitem__(self, var):
         return self._primary[var]
 
-    def no_block_task(self, value: bool= None) -> bool:
+    def do_task(self):
+        """
+        Método usado para determinar se o Buffer está pronto para iniciar uma task
+
+        Returns:
+            bool
+        """
+        return self.secondary_empty() and self.no_block_task() and self.task_is_done()
+
+    def no_block_task(self, value: bool = None) -> bool:
         """
         Usado para verificar se a task deve ser feita (se nenhum argumento for passado), passe bool como 
         argumento para bloquear ou liberar a task.
@@ -110,7 +119,7 @@ class Buffer(ABC, Channel1):
         self.semaphore.release()
         self.task_is_done(True)
 
-    def task_is_done(self, value: bool=None) -> bool:
+    def task_is_done(self, value: bool = None) -> bool:
         """
         Verifica se o ciclo para encher o buffer secundary foi concluido.
 
@@ -125,7 +134,7 @@ class Buffer(ABC, Channel1):
                 self.__task.put_nowait(task_is_done)
         return task_is_done
 
-    def sempty(self) -> bool:
+    def secondary_empty(self) -> bool:
         """
         Verifica se o buffer segundario está vazio.
 
@@ -170,7 +179,7 @@ class Buffer(ABC, Channel1):
         # Devemos colocar o máximo de dados que pudermos no buffer primario
         # pois o buffer segundario será limpo, caso haja valores no mesmo.
         self.unqueue()
-        if self.sempty() is False:
+        if self.secondary_empty() is False:
             self._secondary = Queue(maxsize=self.maxsize)
 
         # Atributo para bloqueia da task enquanto o usuario colocar valores
@@ -193,7 +202,7 @@ class Buffer(ABC, Channel1):
 
 
 class FakeBuffer(Buffer):
-    def __init__(self, semaphore: Semaphore, *, maxsize: int=25, log: bool=False):
+    def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool = False):
         super().__init__(semaphore, maxsize=maxsize, log=log)
 
     def unqueue(self):
@@ -201,9 +210,8 @@ class FakeBuffer(Buffer):
 
 
 class BufferRight(Buffer):
-    def __init__(self, semaphore: Semaphore, *, maxsize: int=25, log: bool=False):
+    def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool = False):
         super().__init__(semaphore, maxsize=maxsize, log=log)
-
 
     def unqueue(self) -> None:
         """
@@ -214,15 +222,14 @@ class BufferRight(Buffer):
         """
 
         if self.task_is_done():
-            while not self.sempty():
+            while not self.secondary_empty():
                 value = self._secondary.get()
                 self._primary.append(value)
 
 
 class BufferLeft(Buffer):
-    def __init__(self, semaphore: Semaphore, *, maxsize: int=25, log: bool=False):
+    def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool=False):
         super().__init__(semaphore, maxsize=maxsize, log=log)
-
 
     def unqueue(self) -> None:
         """
@@ -233,6 +240,6 @@ class BufferLeft(Buffer):
         """
 
         if self.task_is_done():
-            while not self.sempty():
+            while not self.secondary_empty():
                 value = self._secondary.get()
                 self._primary.appendleft(value)
