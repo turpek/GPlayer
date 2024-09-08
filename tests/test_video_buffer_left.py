@@ -1,6 +1,7 @@
 from pytest import fixture
 from src.buffer_left import VideoBufferLeft
 from unittest.mock import patch
+from threading import Semaphore
 
 
 import cv2
@@ -77,24 +78,10 @@ def seq_60():
 def myvideo(mycap, request):
     lote, buffersize = request.param
     cap = mycap.return_value
-    buffer = VideoBufferLeft(cap, lote, buffersize=buffersize)
+    semaphore = Semaphore()
+    buffer = VideoBufferLeft(cap, lote, semaphore, buffersize=buffersize)
     return buffer
 
-
-@pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
-def test_buffer_VideoBufferLeft_first_frame(myvideo):
-    expect = 0
-    buffer = myvideo
-    result = buffer.first_frame()
-    assert result == expect
-
-
-@pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
-def test_buffer_VideoBufferLeft_last_frame(myvideo):
-    expect = 199
-    buffer = myvideo
-    result = buffer.last_frame()
-    assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
