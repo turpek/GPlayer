@@ -2,3 +2,6 @@ app.py
 model.mp4
 src/__pycache__/
 tests/__pycache__/
+.env
+prog.py
+lixo

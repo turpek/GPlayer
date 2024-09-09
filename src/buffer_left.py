@@ -19,26 +19,20 @@ módulo da opencv, a mesma tem a seguinte estrutura:
 """
 
 
-from abc import ABC, abstractmethod
 from array import array
 from cv2 import VideoCapture
 from numpy import ndarray
-from src.buffer import Buffer, BufferLeft, BufferRight
-from src.buffer_error import VideoBufferError
-from src.reader import reader
-from threading import Semaphore, Thread
-from time import sleep
+from src.buffer import BufferLeft
+from threading import Semaphore
 import bisect
-import ipdb
 
 
-
-class VideoBufferLeft(ABC):
+class VideoBufferLeft:
 
     def __init__(self,
                  cap: VideoCapture,
                  sequence_frames: list[int],
-                 semaphore: Semaphore,*,
+                 semaphore: Semaphore, *,
                  buffersize=25,
                  bufferlog=False,
                  name='buffer'):
@@ -73,7 +67,6 @@ class VideoBufferLeft(ABC):
         self.lot = array('l', sorted(lot))
         self.lot_mapping = set(lot)
 
-
     def set(self, frame_id: int) -> None:
         """
         Coloco o frame_id como start_frame no próximo ciclo de leitura dos frames.
@@ -96,7 +89,6 @@ class VideoBufferLeft(ABC):
         else:
             frame_id = self.lot[0]
         self._set_frame = frame_id
-
 
     def start_frame(self):
         if isinstance(self._set_frame, int):
