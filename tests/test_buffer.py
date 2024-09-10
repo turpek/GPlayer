@@ -2,7 +2,6 @@ from pytest import fixture
 from src.buffer import FakeBuffer as Buffer
 from threading import Semaphore
 import numpy as np
-import pytest
 import ipdb
 
 
@@ -12,9 +11,9 @@ def buffer():
     bf = Buffer(semaphore, maxsize=25)
     yield bf
 
-def lote(start, end, step):
-    return [(frame_id, np.ones((2,2))) for frame_id in range(start, end, step)]
 
+def lote(start, end, step=1):
+    return [(frame_id, np.ones((2, 2))) for frame_id in range(start, end, step)]
 
 
 def test_buffer_secondary_vazio(buffer):
@@ -233,6 +232,7 @@ def test_buffer_do_task_no_block_task_eh_task_is_done_sao_false(buffer):
     expect_task_is_done = False
 
     buffer.set()
+    buffer._wait_task.put(True)  # Para não bloquear os testes
     [buffer.put(frame) for frame in lote(0, 1, 1)]
     result = buffer.do_task()
     result_secondary = buffer.secondary_empty()
@@ -247,7 +247,7 @@ def test_buffer_do_task_no_block_task_eh_task_is_done_sao_false(buffer):
 
 def test_buffer_do_task_secondary_eh_no_block_task_eh_sao_false(buffer):
     expect = False
-    expect_secondary =  False
+    expect_secondary = False
     expect_no_block_task = False
     expect_task_is_done = True
 
@@ -266,7 +266,7 @@ def test_buffer_do_task_secondary_eh_no_block_task_eh_sao_false(buffer):
 
 def test_buffer_do_task_todos_sao_false(buffer):
     expect = False
-    expect_secondary =  False
+    expect_secondary = False
     expect_no_block_task = False
     expect_task_is_done = False
 
@@ -282,3 +282,47 @@ def test_buffer_do_task_todos_sao_false(buffer):
     assert expect_secondary == result_secondary
     assert expect_no_block_task == result_no_block_task
     assert expect_task_is_done == result_task_is_done
+
+
+def test_buffer_clear_queue_com_ela_vazia(buffer):
+    expect = True
+
+    buffer.clear_queue()
+    result = buffer.secondary_empty()
+    assert expect == result
+
+
+def test_buffer_clear_queue_com_ela_cheia(buffer):
+    expect = True
+
+    [buffer.sput(frame) for frame in lote(0, 25, 1)]
+    buffer.clear_queue()
+    result = buffer.secondary_empty()
+    assert expect == result
+
+
+def test_buffer_clear_buffer_com_ele_vazio(buffer):
+    expect_primary = True
+    expect_secondary = True
+
+    buffer.clear_buffer()
+    result_primary = buffer.empty()
+    result_secondary = buffer.secondary_empty()
+
+    assert expect_primary == result_primary
+    assert expect_secondary == result_secondary
+
+
+def test_buffer_clear_buffer_com_ele_cheio(buffer):
+    expect_primary = True
+    expect_secondary = True
+
+    [buffer.sput(frame) for frame in lote(0, 25, 1)]
+    buffer.unqueue()
+    [buffer.sput(frame) for frame in lote(25, 50, 1)]
+    buffer.clear_buffer()
+    result_primary = buffer.empty()
+    result_secondary = buffer.secondary_empty()
+
+    assert expect_primary == result_primary
+    assert expect_secondary == result_secondary
