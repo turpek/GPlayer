@@ -44,7 +44,7 @@ from threading import Lock, Semaphore
 
 
 class Buffer(ABC, Channel1):
-    def __init__(self, semaphore: Semaphore, *, maxsize: int=15, log: bool = False):
+    def __init__(self, semaphore: Semaphore, *, maxsize: int = 15, log: bool = False):
         # Criando um deque e uma Queue onde os frames serão armazenados
         self.maxsize = maxsize
         self.log = log
@@ -58,10 +58,50 @@ class Buffer(ABC, Channel1):
         self._error = Queue()
 
         self.__task = Queue(maxsize=1)
+        self._wait_task = Queue(maxsize=1)
         self.__task.put_nowait(True)
+        self._wait_task.put_nowait(True)
 
     def __getitem__(self, var):
         return self._primary[var]
+
+    def __len__(self):
+        return len(self._primary)
+
+    def clear_buffer(self) -> None:
+        """
+        Método usado para limpar o Buffer de maneira segura.
+
+        Returns:
+            None
+        """
+        self.clear_queue()
+        self._primary.clear()
+
+    def clear_queue(self) -> None:
+        """
+        Removendo todos os elementos da Queue secondary.
+
+        Returns:
+            None
+        """
+
+        # Devemos descarregar o buffer secondary no primary antes de limpa-lo
+        self.unqueue()
+        self.wait_task()
+        while self.secondary_empty() is False:
+            self._secondary.get_nowait()
+
+    def wait_task(self):
+        """
+        Espera até que a tarefa esteja concluida
+
+        Returns:
+            None
+        """
+        if self.task_is_done() is False:
+            value = self._wait_task.get()
+            self._wait_task.put(value)
 
     def do_task(self):
         """
@@ -74,7 +114,7 @@ class Buffer(ABC, Channel1):
 
     def no_block_task(self, value: bool = None) -> bool:
         """
-        Usado para verificar se a task deve ser feita (se nenhum argumento for passado), passe bool como 
+        Usado para verificar se a task deve ser feita (se nenhum argumento for passado), passe bool como
         argumento para bloquear ou liberar a task.
 
         Args:
@@ -108,6 +148,7 @@ class Buffer(ABC, Channel1):
         """
         self.semaphore.acquire()
         self.task_is_done(False)
+        self._wait_task.get()
 
     def clear(self) -> None:
         """
@@ -118,6 +159,7 @@ class Buffer(ABC, Channel1):
         """
         self.semaphore.release()
         self.task_is_done(True)
+        self._wait_task.put(True)
 
     def task_is_done(self, value: bool = None) -> bool:
         """
@@ -167,7 +209,7 @@ class Buffer(ABC, Channel1):
 
     def put(self, value: any) -> None:
         """
-        Coloca um valor no Buffer.
+        Coloca um valor no Buffer, risco de ficar bloqueada até que a task esteja concluida.
 
         Args:
             value (any): valor a ser armazenado no Buffer.
@@ -176,12 +218,7 @@ class Buffer(ABC, Channel1):
             None
         """
 
-        # Devemos colocar o máximo de dados que pudermos no buffer primario
-        # pois o buffer segundario será limpo, caso haja valores no mesmo.
-        self.unqueue()
-        if self.secondary_empty() is False:
-            self._secondary = Queue(maxsize=self.maxsize)
-
+        self.clear_queue()
         # Atributo para bloqueia da task enquanto o usuario colocar valores
         # manualmente, o bloqueio será desfeito somente quando um valor for lido
         # do Buffer
@@ -199,14 +236,6 @@ class Buffer(ABC, Channel1):
         # Desbloquando a task
         self.no_block_task(True)
         return self._primary.popleft()
-
-
-class FakeBuffer(Buffer):
-    def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool = False):
-        super().__init__(semaphore, maxsize=maxsize, log=log)
-
-    def unqueue(self):
-        ...
 
 
 class BufferRight(Buffer):
@@ -228,7 +257,7 @@ class BufferRight(Buffer):
 
 
 class BufferLeft(Buffer):
-    def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool=False):
+    def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool = False):
         super().__init__(semaphore, maxsize=maxsize, log=log)
 
     def unqueue(self) -> None:
@@ -243,3 +272,8 @@ class BufferLeft(Buffer):
             while not self.secondary_empty():
                 value = self._secondary.get()
                 self._primary.appendleft(value)
+
+
+class FakeBuffer(BufferRight):
+    def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool = False):
+        super().__init__(semaphore, maxsize=maxsize, log=log)
