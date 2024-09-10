@@ -57,6 +57,9 @@ class VideoBufferLeft:
     def __del__(self):
         ...
 
+    def __len__(self):
+        return len(self.buffer)
+
     def set_lot(self, lot: list[int]) -> None:
         """
         Cria o mapping dos frames a serem lidos
@@ -80,7 +83,7 @@ class VideoBufferLeft:
             raise TypeError('frame_id must be an integer')
         elif frame_id < 0:
             raise Exception('frame_id deve ser maior que 0.')
-        temp_idx = bisect.bisect_left(self.lot, frame_id) - 1
+        temp_idx = bisect.bisect_left(self.lot, frame_id)
         if (idx := temp_idx - self.buffersize) > 0:
             try:
                 frame_id = self.lot[idx]
@@ -89,12 +92,13 @@ class VideoBufferLeft:
         else:
             frame_id = self.lot[0]
         self._set_frame = frame_id
+        self.buffer.clear_buffer()
 
     def start_frame(self):
         if isinstance(self._set_frame, int):
             return self._set_frame
-        elif self.buffer.empty is False:
-            return self.buffer[-1]
+        elif self.buffer.empty() is False:
+            return self.buffer[-1][0]
         else:
             return self.lot[0]
 
@@ -106,9 +110,16 @@ class VideoBufferLeft:
             frame_id (int): frame_id do frame a ser colocado no buffer.
             frame (ndarray): frame a ser colocado no buffer.
         """
-        if self._set_frame is not None:
-            raise Exception('operação bloqueada até que um novo ciclo ocorra')
-        elif isinstance(self.frame_id, int):
-            if self.frame_id < frame_id and self.qsize() > 0:
+        if self.buffer.empty() is False:
+            if self._set_frame is not None:
+                raise Exception('operação bloqueada até que um novo ciclo ocorra')
+            if self.buffer[-1][0] > frame_id and len(self.buffer._primary) > 0:
                 raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual ')
 
+        self.buffer.put((frame_id, frame))
+
+    def get(self) -> None:
+
+        frame_id, frame = self.buffer.get()
+        self.__frame_id = frame_id
+        return True, frame
