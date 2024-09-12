@@ -28,6 +28,9 @@ import bisect
 
 
 class VideoBufferLeft:
+    """
+    O VideoBufferLeft começa
+    """
 
     def __init__(self,
                  cap: VideoCapture,
@@ -47,7 +50,6 @@ class VideoBufferLeft:
         self.__frame_id = None
         self._set_frame = None
         self.__set_frame_end = None
-        self.__is_done = False
 
         # Atributos usados para determinar os frames que serao armazenados no buffer
         self.lot = list()
@@ -82,7 +84,7 @@ class VideoBufferLeft:
             frame_id = self.lot[0]
 
         # calculo para o metodo end_frame
-        idx = temp_idx - 1
+        idx = temp_idx
         if idx < 0:
             self.__set_frame_end = self.lot[0]
         else:
@@ -90,22 +92,28 @@ class VideoBufferLeft:
 
         return frame_id
 
-    def is_done(self) -> bool | None:
+    def is_task_complete(self) -> bool:
+        """
+        Checa se todos os frames do lotes foram consumidos.
+
+        Returns:
+            bool
+        """
+        return self.__frame_id == self.lot[0]
+
+    def is_done(self) -> bool:
         """
         Verifica se todos os frames do lote foram processados.
 
         Returns:
-            bool | None
+            bool
         """
-        import ipdb
-        ipdb.set_trace()
-        if self.__is_done:
-            return True
-        elif isinstance(self._set_frame, int):
+        if isinstance(self._set_frame, int):
             return self.__set_frame_end == self._set_frame
-        elif self._buffer.empty():
-            return False
-        return self._buffer[-1][0] == self.lot[0]
+        elif not self._buffer.empty():
+            return self._buffer[-1][0] == self.lot[0]
+        else:
+            return self.is_task_complete()
 
     def do_task(self) -> bool:
         """
@@ -126,9 +134,11 @@ class VideoBufferLeft:
         self.lot = array('l', sorted(lot))
         self.lot_mapping = set(lot)
 
+        self.__frame_id = self.lot[0]
+
     def set(self, frame_id: int) -> None:
         """
-        Coloco o frame_id como start_frame no próximo ciclo de leitura dos frames.
+        Coloco o frame a esquerda de frame_id como start_frame no próximo ciclo de leitura dos frames.
         O ínicio de um novo ciclo ocorre quando o buffer esta vazio! se o frame_id não
         estiver no lote o valor setado será o valor a esquerda mais próximo do mesmo.
 
@@ -141,7 +151,6 @@ class VideoBufferLeft:
             raise Exception('frame_id deve ser maior que 0.')
         self._set_frame = self.__calc_frame(frame_id)
         self._buffer.clear_buffer()
-        self.__is_done = False
 
     def end_frame(self) -> int:
         if isinstance(self._set_frame, int):
@@ -182,6 +191,5 @@ class VideoBufferLeft:
     def get(self) -> None:
 
         frame_id, frame = self._buffer.get()
-        if frame_id == self.lot[0]:
-            self.__is_done = True
+        self.__frame_id = frame_id
         return True, frame
