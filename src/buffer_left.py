@@ -41,11 +41,13 @@ class VideoBufferLeft:
         self.cap = cap
         self.name = name
         self.buffersize = buffersize
-        self.buffer = BufferLeft(semaphore, maxsize=buffersize, log=bufferlog)
+        self._buffer = BufferLeft(semaphore, maxsize=buffersize, log=bufferlog)
 
         # Definições das variaveis responsavel pela criação do buffer
         self.__frame_id = None
         self._set_frame = None
+        self.__set_frame_end = None
+        self.__is_done = False
 
         # Atributos usados para determinar os frames que serao armazenados no buffer
         self.lot = list()
@@ -58,7 +60,61 @@ class VideoBufferLeft:
         ...
 
     def __len__(self):
-        return len(self.buffer)
+        return len(self._buffer)
+
+    def __calc_frame(self, frame_id: int) -> int:
+        """
+        Calcula o start_frame dado um frame_id
+
+        Args:
+            frame_id int: Identificador do frame.
+
+        Returns:
+            int
+        """
+        temp_idx = bisect.bisect_left(self.lot, frame_id)
+        if (idx := temp_idx - self.buffersize) > 0:
+            try:
+                frame_id = self.lot[idx]
+            except IndexError:
+                raise IndexError('frame_id does not belong to the lot range.')
+        else:
+            frame_id = self.lot[0]
+
+        # calculo para o metodo end_frame
+        idx = temp_idx - 1
+        if idx < 0:
+            self.__set_frame_end = self.lot[0]
+        else:
+            self.__set_frame_end = self.lot[idx]
+
+        return frame_id
+
+    def is_done(self) -> bool | None:
+        """
+        Verifica se todos os frames do lote foram processados.
+
+        Returns:
+            bool | None
+        """
+        import ipdb
+        ipdb.set_trace()
+        if self.__is_done:
+            return True
+        elif isinstance(self._set_frame, int):
+            return self.__set_frame_end == self._set_frame
+        elif self._buffer.empty():
+            return False
+        return self._buffer[-1][0] == self.lot[0]
+
+    def do_task(self) -> bool:
+        """
+        Verifica se uma task pode ser iniciada.
+
+        Returns:
+            bool
+        """
+        return self._buffer.do_task() and self.is_done() is False
 
     def set_lot(self, lot: list[int]) -> None:
         """
@@ -83,22 +139,27 @@ class VideoBufferLeft:
             raise TypeError('frame_id must be an integer')
         elif frame_id < 0:
             raise Exception('frame_id deve ser maior que 0.')
-        temp_idx = bisect.bisect_left(self.lot, frame_id)
-        if (idx := temp_idx - self.buffersize) > 0:
-            try:
-                frame_id = self.lot[idx]
-            except IndexError:
-                raise IndexError('frame_id does not belong to the lot range.')
-        else:
-            frame_id = self.lot[0]
-        self._set_frame = frame_id
-        self.buffer.clear_buffer()
+        self._set_frame = self.__calc_frame(frame_id)
+        self._buffer.clear_buffer()
+        self.__is_done = False
 
-    def start_frame(self):
+    def end_frame(self) -> int:
+        if isinstance(self._set_frame, int):
+            return self.__set_frame_end
+        elif self._buffer.empty() is False:
+            idx = bisect.bisect_left(self.lot, self._buffer[-1][0]) - 1
+            if idx < 0:
+                return self.lot[0]
+            else:
+                return self.lot[idx]
+        else:
+            return self.lot[0]
+
+    def start_frame(self) -> int:
         if isinstance(self._set_frame, int):
             return self._set_frame
-        elif self.buffer.empty() is False:
-            return self.buffer[-1][0]
+        elif self._buffer.empty() is False:
+            return self.__calc_frame(self._buffer[-1][0])
         else:
             return self.lot[0]
 
@@ -110,16 +171,17 @@ class VideoBufferLeft:
             frame_id (int): frame_id do frame a ser colocado no buffer.
             frame (ndarray): frame a ser colocado no buffer.
         """
-        if self.buffer.empty() is False:
+        if self._buffer.empty() is False:
             if self._set_frame is not None:
                 raise Exception('operação bloqueada até que um novo ciclo ocorra')
-            if self.buffer[-1][0] > frame_id and len(self.buffer._primary) > 0:
+            if self._buffer[-1][0] > frame_id and len(self._buffer._primary) > 0:
                 raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual ')
 
-        self.buffer.put((frame_id, frame))
+        self._buffer.put((frame_id, frame))
 
     def get(self) -> None:
 
-        frame_id, frame = self.buffer.get()
-        self.__frame_id = frame_id
+        frame_id, frame = self._buffer.get()
+        if frame_id == self.lot[0]:
+            self.__is_done = True
         return True, frame
