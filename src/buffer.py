@@ -41,13 +41,15 @@ from collections import deque
 from queue import Queue
 from src.channel import Channel1
 from threading import Lock, Semaphore
+from time import sleep
 
 
 class Buffer(ABC, Channel1):
     def __init__(self, semaphore: Semaphore, *, maxsize: int = 15, log: bool = False):
         # Criando um deque e uma Queue onde os frames serão armazenados
+        super().__init__()
         self.maxsize = maxsize
-        self.log = log
+        self.log = True
         self._primary = deque(list(), maxlen=maxsize)
         self._secondary = Queue(maxsize=maxsize)
         self.__block_task = True
@@ -110,7 +112,7 @@ class Buffer(ABC, Channel1):
         Returns:
             bool
         """
-        return self.secondary_empty() and self.no_block_task() and self.task_is_done()
+        return self.secondary_empty() and self.no_block_task() and self.task_is_done() and self.poll() is False
 
     def no_block_task(self, value: bool = None) -> bool:
         """
@@ -250,7 +252,7 @@ class BufferRight(Buffer):
             None
         """
 
-        if self.task_is_done():
+        if self.task_is_done() and self.empty():
             while not self.secondary_empty():
                 value = self._secondary.get()
                 self._primary.append(value)
@@ -267,8 +269,10 @@ class BufferLeft(Buffer):
         Returns:
             None
         """
+        while not self.task_is_done() and self.empty():
+            sleep(0.001)
 
-        if self.task_is_done():
+        if self.task_is_done() and self.empty():
             while not self.secondary_empty():
                 value = self._secondary.get()
                 self._primary.appendleft(value)
