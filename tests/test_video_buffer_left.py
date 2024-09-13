@@ -1,6 +1,7 @@
 from pytest import fixture
 from src.buffer_left import VideoBufferLeft
 from unittest.mock import patch
+from time import sleep
 from threading import Semaphore
 
 
@@ -83,7 +84,7 @@ def myvideo(mycap, request):
     lote, buffersize = request.param
     cap = mycap.return_value
     semaphore = Semaphore()
-    buffer = VideoBufferLeft(cap, lote, semaphore, buffersize=buffersize)
+    buffer = VideoBufferLeft(cap, lote, semaphore, bufferlog=True, buffersize=buffersize)
     return buffer
 
 
@@ -370,4 +371,59 @@ def test_buffer_VideoBufferLeft_is_task_complete_colocando_manualmente_de_0_25_c
     [myvideo._buffer.put(frame) for frame in lote(0, 25, 1)]
     [myvideo.get() for x in range(25)]
     result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_run_sem_set_e_vazio(myvideo, seq):
+    expect = True
+    myvideo.run()
+    result = myvideo._buffer.empty()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_run_set_50(myvideo, seq):
+    expect = False
+    myvideo.set(50)
+    myvideo.run()
+    sleep(0.001)
+    result = myvideo._buffer.secondary_empty()
+    myvideo.join()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_run_2vezes_set_50(myvideo, seq):
+    expect = False
+    myvideo.set(50)
+    myvideo.run()
+    sleep(0.001)
+    myvideo.get()
+    sleep(0.001)
+    result = myvideo._buffer.secondary_empty()
+    myvideo.join()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_put_e_run(myvideo, seq):
+    expect = False
+    [myvideo.put(*frame) for frame in lote(50, 75, 1)]
+    myvideo.get()
+    sleep(0.001)
+    result = myvideo._buffer.secondary_empty()
+    myvideo.join()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_put_e_run_consumindo_tudo_com_get(myvideo, seq):
+    expect = False
+    [myvideo.put(*frame) for frame in lote(50, 75, 1)]
+    values = [myvideo.get()[0] for _ in range(75)]
+    sleep(0.001)
+    ipdb.set_trace()
+    result = myvideo._buffer.secondary_empty()
+    myvideo.join()
     assert result == expect
