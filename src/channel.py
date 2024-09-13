@@ -63,41 +63,40 @@ class Channel:
 
 class Channel1:
     """
-    Classe para comunicação em uma direção entre o programa e a threads 
+    Classe para comunicação em uma direção entre o programa e a threads
     """
     def __init__(self):
-    
-        self.__conn = Queue(maxsize)
+        self.__conn = Queue()
 
-        def send(self, data: any) -> None:
-            """
-            Método para enviar dados para a thread, como a queue onde é armazenado os dados tem tamanho 1,
-            verifique com o método poll sé a dados ainda a serem lidos, antes de colocar mais dados e assim
-            não travar o fluxo do programa
+    def send(self, data: any) -> None:
+        """
+        Método para enviar dados para a thread, como a queue onde é armazenado os dados tem tamanho 1,
+        verifique com o método poll sé a dados ainda a serem lidos, antes de colocar mais dados e assim
+        não travar o fluxo do programa
 
 
-            Args:
-                data any: os dados a serem enviados.
+        Args:
+            data any: os dados a serem enviados.
 
-            Returns:
-                None
-            """
-            self.__conn.put(data)
+        Returns:
+            None
+        """
+        self.__conn.put(data)
 
-        def recv(self) -> any:
-            """
-            Método para receber os dados envidos pelo método send
+    def recv(self) -> any:
+        """
+        Método para receber os dados envidos pelo método send
 
-            Returns:
-                any
-            """
-            return self.__conn.get()
+        Returns:
+            any
+        """
+        return self.__conn.get()
 
-        def poll(self) -> bool:
-            """
-            Verifica se a dados a serem lidos
+    def poll(self) -> bool:
+        """
+        Verifica se a dados a serem lidos
 
-            Returns:
-                bool
-            """
-            return self.__conn.qsize() == 1
+        Returns:
+            bool
+        """
+        return self.__conn.qsize() >= 1
