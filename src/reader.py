@@ -1,6 +1,5 @@
 from src.buffer_error import VideoOpenError
 from cv2 import VideoCapture
-from threading import Event
 from time import time
 from src.buffer import Buffer
 
@@ -9,19 +8,12 @@ import traceback
 # import ipdb
 
 
-def buffer_block(buffer: Buffer, flag: bool) -> None:
-    with buffer.lock:
-        buffer._task.get()
-        buffer._task.put(flag)
-
-
 def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
     """Função responsável por ler os frames através do modulo da Opencv.
 
         Args:
             cap (VideoCapture): objeto usado para gerar os frames.
             buffer (Buffer): objeto onde os frames serão armazenados.
-            event (Event): objeto para permitir que somente 1 thread trabalhe em cima do cap por vez.
             data (tuple[int, int, set]): deve passar como parametro (start_frame, last_frame, lot)
 
         Returns:
@@ -31,10 +23,10 @@ def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
 
     # O fluxo principal do programa deve passar o frame_id "start_frame" que
     # define o  frame incial, ja lot é um set contendo todos os frames a serem lidos.
+    buffer.set()
     start_frame, last_frame, lot = data
     frame_id, qsize = start_frame, 0
     start = time()
-    buffer_block(buffer, False)
 
     # Verificando se cap já esta no frame inicial e se o frame_start
     # é menor que o último frame do vídeo
@@ -51,36 +43,35 @@ def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
         if frame_id in lot:
             ret, frame = cap.read()
             if ret:
-                buffer.put((frame_id, frame))
+                buffer.sput((frame_id, frame))
                 qsize += 1
         else:
             cap.grab()
 
-        if buffer.bufferlog:
+        if buffer.log:
             print(qsize, qsize, frame_id)
         if frame_id == last_frame:
             break
-        elif qsize == buffer.buffersize:
+        elif qsize == buffer.maxsize:
             break
         elif frame_id == frame_count:
             raise IndexError('o video acabou')
         frame_id += 1
 
-    buffer_block(buffer, True)
-    if buffer.bufferlog:
+    buffer.clear()
+    if buffer.log:
         end = time()
         count = frame_id - start_frame
         print(f'\nLidos {count} em {end - start}s')
         print(f'{count / (end - start):.2f} FPS')
 
 
-def reader(cap: VideoCapture, buffer: Buffer, event: Event) -> None:
+def reader(cap: VideoCapture, buffer: Buffer) -> None:
     """Um invólucro que chama a função responsável por ler os frames através do modulo da Opencv.
 
         Args:
             cap (str): instancia de VideoCapture.
             buffer (Buffer): objeto onde os frames serão armazenados.
-            event (Event): objeto para permitir que somente 1 thread trabalhe em cima do cap por vez.
     """
 
     try:
@@ -93,9 +84,7 @@ def reader(cap: VideoCapture, buffer: Buffer, event: Event) -> None:
 
             data = buffer.recv()
             if hasattr(data, '__contains__'):
-                event.wait()
                 reader_task(cap, buffer, data)
-                event.clear()
             else:
                 break
 
