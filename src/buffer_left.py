@@ -23,7 +23,9 @@ from array import array
 from cv2 import VideoCapture
 from numpy import ndarray
 from src.buffer import BufferLeft
-from threading import Semaphore
+from src.reader import reader
+from threading import Semaphore, Thread
+from time import sleep
 import bisect
 
 
@@ -57,12 +59,25 @@ class VideoBufferLeft:
         self.set_lot(sequence_frames)
 
         self.thread = None
+        self.__start()
 
     def __del__(self):
-        ...
+        self._buffer.send(False)
 
     def __len__(self):
         return len(self._buffer)
+
+    def __start(self) -> None:
+        """
+        Inicia a thread
+
+        Returns:
+            None
+        """
+        if self.thread is None:
+            args = (self.cap, self._buffer)
+            self.thread = Thread(target=reader, args=args)
+            self.thread.start()
 
     def __calc_frame(self, frame_id: int) -> int:
         """
@@ -151,6 +166,7 @@ class VideoBufferLeft:
             raise Exception('frame_id deve ser maior que 0.')
         self._set_frame = self.__calc_frame(frame_id)
         self._buffer.clear_buffer()
+        self.__frame_id = self._set_frame
 
     def end_frame(self) -> int:
         if isinstance(self._set_frame, int):
@@ -172,6 +188,15 @@ class VideoBufferLeft:
         else:
             return self.lot[0]
 
+    def run(self):
+        if self.do_task():
+            values = (self.start_frame(), self.end_frame(), self.lot_mapping)
+            self._buffer.send(values)
+            self._set_frame = None
+
+    def join(self):
+        self._buffer.send(False)
+
     def put(self, frame_id: int, frame: ndarray) -> None:
         """
         Método usado para encher o buffer de maneira manual e de forma segura.
@@ -190,6 +215,8 @@ class VideoBufferLeft:
 
     def get(self) -> None:
 
+        self._buffer.unqueue()
         frame_id, frame = self._buffer.get()
         self.__frame_id = frame_id
-        return True, frame
+        self.run()
+        return frame_id, frame
