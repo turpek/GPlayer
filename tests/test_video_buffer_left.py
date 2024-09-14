@@ -84,7 +84,7 @@ def myvideo(mycap, request):
     lote, buffersize = request.param
     cap = mycap.return_value
     semaphore = Semaphore()
-    buffer = VideoBufferLeft(cap, lote, semaphore, bufferlog=True, buffersize=buffersize)
+    buffer = VideoBufferLeft(cap, lote, semaphore, bufferlog=False, buffersize=buffersize)
     return buffer
 
 
@@ -398,9 +398,7 @@ def test_buffer_VideoBufferLeft_run_2vezes_set_50(myvideo, seq):
     expect = False
     myvideo.set(50)
     myvideo.run()
-    sleep(0.001)
     myvideo.get()
-    sleep(0.001)
     result = myvideo._buffer.secondary_empty()
     myvideo.join()
     assert result == expect
@@ -411,19 +409,15 @@ def test_buffer_VideoBufferLeft_put_e_run(myvideo, seq):
     expect = False
     [myvideo.put(*frame) for frame in lote(50, 75, 1)]
     myvideo.get()
-    sleep(0.001)
     result = myvideo._buffer.secondary_empty()
     myvideo.join()
     assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_put_e_run_consumindo_tudo_com_get(myvideo, seq):
-    expect = False
+def test_buffer_VideoBufferLeft_put_e_run_consumindo_tudo_com_get_checando_os_frames_id(myvideo, seq):
+    expect = list(range(74, -1, -1))
     [myvideo.put(*frame) for frame in lote(50, 75, 1)]
-    values = [myvideo.get()[0] for _ in range(75)]
-    sleep(0.001)
-    ipdb.set_trace()
-    result = myvideo._buffer.secondary_empty()
+    result = [myvideo.get()[0] for _ in range(75)]
     myvideo.join()
     assert result == expect
