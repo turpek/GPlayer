@@ -6,23 +6,12 @@ from threading import Semaphore
 
 
 import cv2
-import ipdb
 import numpy as np
 import pytest
-
-FILE = 'model.mp4'
 
 
 def lote(start, end, step=1):
     return [(frame_id, np.ones((2, 2))) for frame_id in range(start, end, step)]
-
-
-def consumidor(buffer):
-    frames_id = list()
-    while not buffer.empty():
-        frame_id, _ = buffer.read()
-        frames_id.append(frame_id)
-    return frames_id
 
 
 class MyVideoCapture():
@@ -68,24 +57,14 @@ def mycap():
 
 
 @fixture
-def seq():
-    sequence = [(frame_id, np.zeros((2, 2))) for frame_id in range(10)]
-    return sequence
-
-
-@fixture
-def seq_60():
-    sequence = [(frame_id, np.zeros((2, 2))) for frame_id in range(60, 65)]
-    return sequence
-
-
-@fixture
 def myvideo(mycap, request):
     lote, buffersize = request.param
     cap = mycap.return_value
     semaphore = Semaphore()
     buffer = VideoBufferLeft(cap, lote, semaphore, bufferlog=False, buffersize=buffersize)
-    return buffer
+    yield buffer
+
+    buffer.join()
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
@@ -228,22 +207,22 @@ def test_buffer_VideoBufferLeft_metodo_set_frame_com_lote_nao_linear_penultimo_f
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_enchendo_o_buffer_manualmente(myvideo, seq):
+def test_buffer_VideoBufferLeft_enchendo_o_buffer_manualmente(myvideo):
     expect = 10
-    [myvideo.put(*seq.pop(0)) for _ in range(10)]
+    [myvideo.put(*frame) for frame in lote(0, 10, 1)]
     result = len(myvideo)
     assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_is_done_eh_true_com_o_buffer_vazio(myvideo, seq):
+def test_buffer_VideoBufferLeft_is_done_eh_true_com_o_buffer_vazio(myvideo):
     expect = True
     result = myvideo.is_done()
     assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_is_done_eh_false_com_o_buffer_cheio(myvideo, seq):
+def test_buffer_VideoBufferLeft_is_done_eh_false_com_o_buffer_cheio(myvideo):
     expect = False
     [myvideo._buffer.put(frame) for frame in lote(25, 50, 1)]
     result = myvideo.is_done()
@@ -251,7 +230,7 @@ def test_buffer_VideoBufferLeft_is_done_eh_false_com_o_buffer_cheio(myvideo, seq
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_is_done_eh_true(myvideo, seq):
+def test_buffer_VideoBufferLeft_is_done_eh_true(myvideo):
     expect = True
     [myvideo._buffer.put(frame) for frame in lote(0, 25, 1)]
     result = myvideo.is_done()
@@ -259,14 +238,14 @@ def test_buffer_VideoBufferLeft_is_done_eh_true(myvideo, seq):
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_do_task_buffer_vazio_sem_set(myvideo, seq):
+def test_buffer_VideoBufferLeft_do_task_buffer_vazio_sem_set(myvideo):
     expect = False
     result = myvideo.do_task()
     assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_do_task_buffer_vazio_set_0(myvideo, seq):
+def test_buffer_VideoBufferLeft_do_task_buffer_vazio_set_0(myvideo):
     expect = False
     myvideo.set(0)
     result = myvideo.do_task()
@@ -274,7 +253,7 @@ def test_buffer_VideoBufferLeft_do_task_buffer_vazio_set_0(myvideo, seq):
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_do_task_buffer_vazio_set_1(myvideo, seq):
+def test_buffer_VideoBufferLeft_do_task_buffer_vazio_set_1(myvideo):
     expect = True
     myvideo.set(1)
     result = myvideo.do_task()
@@ -282,7 +261,7 @@ def test_buffer_VideoBufferLeft_do_task_buffer_vazio_set_1(myvideo, seq):
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_do_task_buffer_vazio_com_set_50(myvideo, seq):
+def test_buffer_VideoBufferLeft_do_task_buffer_vazio_com_set_50(myvideo):
     expect = True
     myvideo.set(50)
     result = myvideo.do_task()
@@ -290,7 +269,7 @@ def test_buffer_VideoBufferLeft_do_task_buffer_vazio_com_set_50(myvideo, seq):
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_do_task_buffer_cheio(myvideo, seq):
+def test_buffer_VideoBufferLeft_do_task_buffer_cheio(myvideo):
     expect = True
     [myvideo._buffer.sput(frame) for frame in lote(50, 75, 1)]
     myvideo._buffer.unqueue()
@@ -299,7 +278,7 @@ def test_buffer_VideoBufferLeft_do_task_buffer_cheio(myvideo, seq):
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_do_task_buffer_cheio_com_frame_id_no_final(myvideo, seq):
+def test_buffer_VideoBufferLeft_do_task_buffer_cheio_com_frame_id_no_final(myvideo):
     expect = False
     [myvideo._buffer.sput(frame) for frame in lote(0, 15, 1)]
     myvideo._buffer.unqueue()
@@ -308,7 +287,7 @@ def test_buffer_VideoBufferLeft_do_task_buffer_cheio_com_frame_id_no_final(myvid
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_do_task_colocando_dados_manualmente(myvideo, seq):
+def test_buffer_VideoBufferLeft_do_task_colocando_dados_manualmente(myvideo):
     expect = False
     [myvideo.put(*frame) for frame in lote(5, 15, 1)]
     result = myvideo.do_task()
@@ -316,7 +295,7 @@ def test_buffer_VideoBufferLeft_do_task_colocando_dados_manualmente(myvideo, seq
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_do_task_com_set_0(myvideo, seq):
+def test_buffer_VideoBufferLeft_do_task_com_set_0(myvideo):
     expect = False
     myvideo.set(0)
     result = myvideo.do_task()
@@ -325,7 +304,7 @@ def test_buffer_VideoBufferLeft_do_task_com_set_0(myvideo, seq):
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_do_task_com_set_1(myvideo, seq):
+def test_buffer_VideoBufferLeft_do_task_com_set_1(myvideo):
     expect = True
     myvideo.set(1)
     result = myvideo.do_task()
@@ -334,7 +313,7 @@ def test_buffer_VideoBufferLeft_do_task_com_set_1(myvideo, seq):
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_do_task_com_set_33(myvideo, seq):
+def test_buffer_VideoBufferLeft_do_task_com_set_33(myvideo):
     expect = True
     myvideo.set(33)
     result = myvideo.do_task()
@@ -342,14 +321,14 @@ def test_buffer_VideoBufferLeft_do_task_com_set_33(myvideo, seq):
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_is_task_complete_sem_set(myvideo, seq):
+def test_buffer_VideoBufferLeft_is_task_complete_sem_set(myvideo):
     expect = True
     result = myvideo.is_task_complete()
     assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_is_task_complete_set_0(myvideo, seq):
+def test_buffer_VideoBufferLeft_is_task_complete_set_0(myvideo):
     expect = True
     myvideo.set(0)
     result = myvideo.is_task_complete()
@@ -357,7 +336,7 @@ def test_buffer_VideoBufferLeft_is_task_complete_set_0(myvideo, seq):
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_is_task_complete_colocando_manualmente_de_30_55(myvideo, seq):
+def test_buffer_VideoBufferLeft_is_task_complete_colocando_manualmente_de_30_55(myvideo):
     expect = False
     [myvideo._buffer.put(frame) for frame in lote(30, 55, 1)]
     myvideo.get()
@@ -366,7 +345,7 @@ def test_buffer_VideoBufferLeft_is_task_complete_colocando_manualmente_de_30_55(
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_is_task_complete_colocando_manualmente_de_0_25_consumindo_tudo(myvideo, seq):
+def test_buffer_VideoBufferLeft_is_task_complete_colocando_manualmente_de_0_25_consumindo_tudo(myvideo):
     expect = True
     [myvideo._buffer.put(frame) for frame in lote(0, 25, 1)]
     [myvideo.get() for x in range(25)]
@@ -375,49 +354,47 @@ def test_buffer_VideoBufferLeft_is_task_complete_colocando_manualmente_de_0_25_c
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_run_sem_set_e_vazio(myvideo, seq):
-    expect = True
+def test_buffer_VideoBufferLeft_run_sem_set_e_vazio(myvideo):
+    expect = False
     myvideo.run()
-    result = myvideo._buffer.empty()
+    result = myvideo.do_task()
     assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_run_set_50(myvideo, seq):
+def test_buffer_VideoBufferLeft_run_set_50(myvideo):
     expect = False
     myvideo.set(50)
     myvideo.run()
     sleep(0.001)
     result = myvideo._buffer.secondary_empty()
-    myvideo.join()
     assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_run_2vezes_set_50(myvideo, seq):
+def test_buffer_VideoBufferLeft_run_2vezes_set_50(myvideo):
     expect = False
     myvideo.set(50)
     myvideo.run()
+
+    # run é chamado dentro de get
     myvideo.get()
     result = myvideo._buffer.secondary_empty()
-    myvideo.join()
     assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_put_e_run(myvideo, seq):
+def test_buffer_VideoBufferLeft_put_e_run(myvideo):
     expect = False
     [myvideo.put(*frame) for frame in lote(50, 75, 1)]
     myvideo.get()
     result = myvideo._buffer.secondary_empty()
-    myvideo.join()
     assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_put_e_run_consumindo_tudo_com_get_checando_os_frames_id(myvideo, seq):
+def test_buffer_VideoBufferLeft_put_e_run_consumindo_tudo_com_get_checando_os_frames_id(myvideo):
     expect = list(range(74, -1, -1))
     [myvideo.put(*frame) for frame in lote(50, 75, 1)]
     result = [myvideo.get()[0] for _ in range(75)]
-    myvideo.join()
     assert result == expect
