@@ -1,6 +1,7 @@
 from pytest import fixture
 from src.buffer import FakeBuffer as Buffer
-from threading import Semaphore
+from threading import Semaphore, Thread
+from time import sleep
 import numpy as np
 import ipdb
 
@@ -326,3 +327,19 @@ def test_buffer_clear_buffer_com_ele_cheio(buffer):
 
     assert expect_primary == result_primary
     assert expect_secondary == result_secondary
+
+
+def test_buffer_synchronizing_main_thread(buffer):
+    expect = False
+
+    def task(buffer):
+        # Função que simula uma task
+        buffer.set()
+        sleep(0.001)
+        buffer.clear()
+    th = Thread(target=task, args=(buffer,))
+    th.start()
+    buffer.synchronizing_main_thread()
+    result = buffer.task_is_done()
+    th.join()
+    assert expect == result
