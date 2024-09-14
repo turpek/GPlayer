@@ -191,7 +191,18 @@ class VideoBufferLeft:
     def run(self):
         if self.do_task():
             values = (self.start_frame(), self.end_frame(), self.lot_mapping)
+
+            # O método send deve ser usado somente em 2 casos:
+            #   1o. Para enviar os dados para a thread
+            #   2o. Para encerrar o thread
+            # Peço que usem o send somente para o 2o caso e certifique-se usando
+            # _buffer.task_id_done que a task está "parada"!
             self._buffer.send(values)
+
+            # Devemos sincronizar a thread principal com o inicio da task
+            # para não corrermos o risco de acessar váriaveis que ainda não foram
+            # atualizadas.
+            self._buffer.synchronizing_main_thread()
             self._set_frame = None
 
     def join(self):
@@ -214,7 +225,6 @@ class VideoBufferLeft:
         self._buffer.put((frame_id, frame))
 
     def get(self) -> None:
-
         self._buffer.unqueue()
         frame_id, frame = self._buffer.get()
         self.__frame_id = frame_id
