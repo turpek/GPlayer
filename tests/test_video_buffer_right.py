@@ -1,25 +1,17 @@
 from pytest import fixture
-from pathlib3x import Path
-from queue import Queue
 from src.buffer_right import VideoBufferRight
-from time import sleep
-from unittest.mock import MagicMock, patch
-
+from threading import Semaphore
+# from time import sleep
+from unittest.mock import patch
 
 import cv2
 import ipdb
 import numpy as np
 import pytest
 
-FILE = 'model.mp4'
 
-
-def consumidor(buffer):
-    frames_id = list()
-    while not buffer.empty():
-        frame_id, _ = buffer.read()
-        frames_id.append(frame_id)
-    return frames_id
+def lote(start, end, step=1):
+    return [(frame_id, np.ones((2, 2))) for frame_id in range(start, end, step)]
 
 
 class MyVideoCapture():
@@ -65,48 +57,66 @@ def mycap():
 
 
 @fixture
-def seq():
-    sequence = [(frame_id, np.zeros((2, 2))) for frame_id in range(10, -1, -1)]
-    return sequence
-
-
-@fixture
 def myvideo(mycap, request):
     lote, buffersize = request.param
     cap = mycap.return_value
-    buffer = VideoBufferRight(cap, lote, buffersize=buffersize)
+    semaphore = Semaphore()
+    buffer = VideoBufferRight(cap, lote, semaphore, buffersize=buffersize)
     yield buffer
 
-
-@pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
-def test_buffer_VideoBufferRight_first_frame(myvideo):
-    expect = 0
-    buffer = myvideo
-    result = buffer.first_frame()
-    assert result == expect
-
-
-@pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
-def test_buffer_VideoBufferRight_last_frame(myvideo):
-    expect = 199
-    buffer = myvideo
-    result = buffer.last_frame()
-    assert result == expect
+    buffer.join()
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
 def test_buffer_VideoBufferRight_start_frame_0(myvideo):
     expect = 0
-    buffer = myvideo
-    result = buffer.start_frame()
+    result = myvideo.start_frame()
     assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(15, 20)), 5)], indirect=True)
 def test_buffer_VideoBufferRight_start_frame_15(myvideo):
     expect = 15
-    buffer = myvideo
-    result = buffer.start_frame()
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(200)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_start_frame_set_sequencia_linear(myvideo):
+    expect = 75
+    myvideo.set(75)
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(0, 200, 7)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_start_frame_set_sequencia_nao_linear(myvideo):
+    expect = 196
+    myvideo.set(195)
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(200)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_start_frame_buffer_vazio(myvideo):
+    expect = 0
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(200)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_start_frame_buffer_nao_vazio(myvideo):
+    expect = 55
+    [myvideo._buffer.put(frame) for frame in lote(54, 29, -1)]
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(0, 500, 7)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_start_frame_buffer_nao_vazio_e_nao_linear(myvideo):
+    expect = 392
+    [myvideo._buffer.put(frame) for frame in lote(385, 215, -7)]
+    result = myvideo.start_frame()
     assert result == expect
 
 
@@ -114,93 +124,290 @@ def test_buffer_VideoBufferRight_start_frame_15(myvideo):
 def test_buffer_VideoBufferRight_sequence_linear(myvideo):
     lote = list(range(0, 20))
     expect = {key for key in lote}
-    buffer = myvideo
-    result = buffer.lot_mapping
+    result = myvideo.lot_mapping
     assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(150)), 25)], indirect=True)
 def test_buffer_VideoBufferRight_metodo_set_frame(myvideo):
     expect_start_frame = 25
-    buffer = myvideo
-    buffer.set(25)
-    buffer._checkout()
-    result_start_frame = buffer.start_frame()
+    myvideo.set(25)
+    result_start_frame = myvideo.start_frame()
     assert result_start_frame == expect_start_frame
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_com_buffer_vazio_0(myvideo):
+    expect = 5
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(15, 200)), 5)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_com_buffer_vazio_15(myvideo):
+    expect = 20
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(15, 200)), 5)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_com_set_25(myvideo):
+    expect = 30
+    myvideo.set(25)
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_com_set_0(myvideo):
+    expect = 5
+    myvideo.set(0)
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(200)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_com_buffer_nao_vazio(myvideo):
+    expect = 79
+    [myvideo._buffer.put(frame) for frame in lote(54, 29, -1)]
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(200)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_com_end_frame_0(myvideo):
+    expect = 49
+    [myvideo._buffer.put(frame) for frame in lote(24, -1, -1)]
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(0, 500, 7)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_buffer_nao_vazio_e_nao_linear_atingindo_o_limite(myvideo):
+    expect = 497
+    [myvideo._buffer.put(frame) for frame in lote(385, 215, -7)]
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(0, 500, 7)), 5)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_buffer_nao_vazio_e_nao_linear(myvideo):
+    expect = 420
+    [myvideo._buffer.put(frame) for frame in lote(385, 355, -7)]
+    result = myvideo.end_frame()
+    assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(0, 200, 7)), 25)], indirect=True)
 def test_buffer_VideoBufferRight_metodo_set_frame_com_lote_nao_linear(myvideo):
-    expect_start_frame = 28
-    buffer = myvideo
-    buffer.set(25)
-    buffer._checkout()
-    result_start_frame = buffer.start_frame()
-    assert result_start_frame == expect_start_frame
-
-
-@pytest.mark.parametrize('myvideo', [(list(range(0, 200, 7)), 25)], indirect=True)
-def test_buffer_VideoBufferRight_metodo_set_frame_com_lote_nao_linear_ultimo_frame(myvideo):
     expect_start_frame = 196
-    buffer = myvideo
-    buffer.set(196)
-    buffer._checkout()
-    result_start_frame = buffer.start_frame()
+    myvideo.set(195)
+    result_start_frame = myvideo.start_frame()
+    assert result_start_frame == expect_start_frame
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(0, 212, 7)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_metodo_set_frame_com_lote_nao_linear_penultimo_frame(myvideo):
+    expect_start_frame = 196
+    myvideo.set(195)
+    result_start_frame = myvideo.start_frame()
     assert result_start_frame == expect_start_frame
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente(myvideo, seq):
-    expect_start_frame = False
-    expect_qsize = 10
-    buffer = myvideo
-    [buffer.put(*seq.pop(0)) for _ in range(10)]
-    result_start_frame = buffer.start_frame()
-    result_qsize = buffer.qsize()
-    assert result_start_frame == expect_start_frame
-    assert result_qsize == expect_qsize
+def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente(myvideo):
+    expect = 10
+    [myvideo._buffer.put(frame) for frame in lote(10, 0, -1)]
+    result = len(myvideo)
+    assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente_com_o_buffer_lotado(myvideo, seq):
-    expect_start_frame = False
-    buffer = myvideo
-    buffer.bufferlog = True
-    [buffer.queue.append((frame_id, np.zeros((2, 2)))) for frame_id in range(25, 50)]
-    buffer._old_frame = 25
-    [buffer.put(*seq.pop(0)) for _ in range(3)]
-    result_start_frame = buffer.start_frame()
-    assert result_start_frame == expect_start_frame
-
-    # Consumindo os frames para testar se start_frame() deixa de estar bloqueado
-    expect_start_frame = 47
-    [buffer.read() for _ in range(25)]
-    try:
-        buffer.read()
-    except TimeoutError:
-        ...
-    result_start_frame = buffer.start_frame()
-    assert result_start_frame == expect_start_frame
+def test_buffer_VideoBufferRight_is_done_eh_true_com_o_buffer_vazio(myvideo):
+    expect = False
+    result = myvideo.is_done()
+    assert result == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferRight_lendo_todo_o_video(myvideo, seq):
-    expect = 99
-    buffer = myvideo
-    buffer.bufferlog = True
-    buffer.start()
-    result = None
+def test_buffer_VideoBufferRight_is_done_eh_false_com_o_buffer_cheio(myvideo):
+    expect = False
+    [myvideo._buffer.put(frame) for frame in lote(49, 24, -1)]
+    result = myvideo.is_done()
+    assert result == expect
 
-    while True:
-        if buffer.finish():
-            break
-        try:
-            ret = buffer.read()
-            if isinstance(ret, tuple):
-                frame_id, frame = ret
-                print('video', frame_id)
-                result = frame_id
-        except TimeoutError:
-            print(TimeoutError)
-            break
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_is_done_eh_true(myvideo):
+    expect = True
+    [myvideo._buffer.put(frame) for frame in lote(100, 74, -1)]
+    result = myvideo.is_done()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_do_task_buffer_vazio_sem_set(myvideo):
+    expect = True
+    result = myvideo.do_task()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_do_task_buffer_vazio_set_0(myvideo):
+    expect = True
+    myvideo.set(0)
+    result = myvideo.do_task()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_do_task_buffer_vazio_set_1(myvideo):
+    expect = True
+    myvideo.set(1)
+    result = myvideo.do_task()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_do_task_buffer_vazio_com_set_50(myvideo):
+    expect = True
+    myvideo.set(50)
+    result = myvideo.do_task()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_do_task_buffer_cheio(myvideo):
+    expect = True
+    [myvideo._buffer.sput(frame) for frame in lote(50, 75, 1)]
+    myvideo._buffer.unqueue()
+    result = myvideo.do_task()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_do_task_buffer_cheio_com_frame_id_no_final(myvideo):
+    expect = False
+    [myvideo._buffer.sput(frame) for frame in lote(75, 100, 1)]
+    myvideo._buffer.unqueue()
+    result = myvideo.do_task()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_do_task_colocando_dados_manualmente(myvideo):
+    expect = False
+    [myvideo.put(*frame) for frame in lote(99, 74, -1)]
+    result = myvideo.do_task()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_do_task_com_set_0(myvideo):
+    expect = True
+    myvideo.set(0)
+    result = myvideo.do_task()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_do_task_com_set_1(myvideo):
+    expect = True
+    myvideo.set(1)
+    result = myvideo.do_task()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_do_task_com_set_33(myvideo):
+    expect = True
+    myvideo.set(33)
+    result = myvideo.do_task()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_sem_set(myvideo):
+    expect = False
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_set_0(myvideo):
+    expect = False
+    myvideo.set(0)
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_set_99(myvideo):
+    expect = True
+    myvideo.set(99)
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_colocando_manualmente_de_30_55(myvideo):
+    expect = False
+    [myvideo._buffer.put(frame) for frame in lote(55, 29, -1)]
+    myvideo.get()
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_colocando_manualmente_de_75_99_consumindo_tudo(myvideo):
+    expect = True
+    [myvideo._buffer.put(frame) for frame in lote(99, 74, -1)]
+    [myvideo.get() for x in range(25)]
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_run_sem_set_e_vazio(myvideo):
+    expect = False
+    myvideo.run()
+    result = myvideo.do_task()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_run_set_50(myvideo):
+    expect = False
+    myvideo.set(50)
+    myvideo.run()
+    result = myvideo._buffer.secondary_empty()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_run_2vezes_set_50(myvideo):
+    expect = False
+    myvideo.set(50)
+    myvideo.run()
+
+    # run é chamado dentro de get
+    myvideo.get()
+    result = myvideo._buffer.secondary_empty()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_put_e_run(myvideo):
+    expect = False
+    [myvideo.put(*frame) for frame in lote(75, 49, -1)]
+    myvideo.get()
+    result = myvideo._buffer.secondary_empty()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_put_e_run_consumindo_tudo_com_get_checando_os_frames_id(myvideo):
+    expect = list(range(50, 100, 1))
+    [myvideo.put(*frame) for frame in lote(75, 49, -1)]
+    result = [myvideo.get()[0] for _ in range(50)]
     assert result == expect
