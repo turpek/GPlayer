@@ -22,18 +22,12 @@ módulo da opencv, a mesma tem a seguinte estrutura:
 from array import array
 from cv2 import VideoCapture
 from numpy import ndarray
-from queue import Queue
-from src.buffer_error import VideoBufferError
-from src.checkout import Checkout
-from src.my_structure import MyQueue
-from src.channel import Channel
-from src.utils import reader, BUFFER_RIGHT
-from threading import Event, Thread, Lock
-from time import sleep, time
-
+from src.buffer import BufferRight
+from src.reader import reader
+from threading import Semaphore, Thread
+from time import sleep
 import bisect
 import ipdb
-
 
 
 class VideoBufferRight():
@@ -41,24 +35,23 @@ class VideoBufferRight():
 
     def __init__(self,
                  cap: VideoCapture,
-                 sequence_frames: list[int], *,
+                 sequence_frames: list[int],
+                 semaphore: Semaphore, *,
                  buffersize=25,
                  bufferlog=False,
                  name='buffer',
                  timeout: int = 1):
 
-
-        self.lock = Lock()
-
         # Definições das variaveis que lidam com o Thread
         self.cap = cap
         self.name = name
         self.buffersize = buffersize
-        self.bufferlog = bufferlog
+        self._buffer = BufferRight(semaphore, maxsize=buffersize, log=bufferlog)
 
         # Definições das variaveis responsavel pela criação do buffer
-        self._frame_id = None
+        self.__frame_id = None
         self._set_frame = None
+        self.__set_frame_end = None
 
         # Atributos usados para determinar os frames que serao armazenados no buffer
         self.lot = list()
@@ -66,21 +59,82 @@ class VideoBufferRight():
         self.set_lot(sequence_frames)
 
         self.thread = None
+        self.__start()
 
     def __del__(self):
         ...
 
-    def frame_id(self) -> int | None:
-        """Metod que retorna o id do ultimo frame lido pelo metodo read.
+    def __len__(self):
+        return len(self._buffer)
 
-            Returns:
-                int|None: id do último frame lido, caso seja None, nenhum frame foi lido ainda
+    def __start(self) -> None:
         """
-        return self._frame_id
+        Inicia a thread.
 
+        Returns:
+            None
+        """
+        if self.thread is None:
+            args = (self.cap, self._buffer)
+            self.thread = Thread(target=reader, args=args)
+            self.thread.start()
 
-    def start_frame(self) -> int:
-        ...
+    def __calc_frame(self, frame_id: int) -> int:
+        """
+        Calcula o start_fame dado um frame_id
+
+        Args:
+            frame_id int: Identificador do frame.
+
+        Returns:
+            int
+        """
+        idx = bisect.bisect_left(self.lot, frame_id)
+        try:
+            frame_id = self.lot[idx]
+        except IndexError:
+            frame_id = self.lot[-1]
+
+        # calculo para o metodo end_frame
+        idx += self.buffersize
+        try:
+            self.__set_frame_end = self.lot[idx]
+        except IndexError:
+            self.__set_frame_end = self.lot[-1]
+
+        return frame_id
+
+    def is_task_complete(self) -> bool:
+        """
+        Checa se todos os frames do mapping foram consumidos
+
+        Returns:
+            bool
+        """
+        return self.__frame_id == self.lot[-1]
+
+    def is_done(self) -> bool:
+        """
+        Verifica se todos os frames do lote foram processados.
+
+        Returns:
+            bool
+        """
+        if isinstance(self._set_frame, int):
+            return self.__set_frame_end == self._set_frame
+        elif not self._buffer.empty():
+            return self._buffer[-1][0] == self.lot[-1]
+        else:
+            return self.is_task_complete()
+
+    def do_task(self) -> bool:
+        """
+        Verifica se uma task pode ser iniciada.
+
+        Returns:
+            bool
+        """
+        return self._buffer.do_task() and self.is_done() is False
 
     def set_lot(self, lot: list[int]) -> None:
         """
@@ -106,15 +160,52 @@ class VideoBufferRight():
             raise TypeError('frame_id must be an integer.')
         elif frame_id < 0:
             raise Exception('frame_id deve ser maior que 0.')
-        if frame_id not in self.lot_mapping:
-            idx = bisect.bisect_right(self.lot, frame_id)
+        self._set_frame = self.__calc_frame(frame_id)
+        self._buffer.clear_buffer()
+        self.__frame_id = self._set_frame
+
+    def end_frame(self) -> int:
+        if isinstance(self._set_frame, int):
+            return self.__set_frame_end
+        elif self._buffer.empty() is False:
+            idx = bisect.bisect_left(self.lot, self._buffer[-1][0]) + self.buffersize
             try:
-                frame_id = self.lot[idx]
+                return self.lot[idx]
             except IndexError:
-                raise IndexError('frame_id does not belong to the lot range.')
+                return self.lot[-1]
+        else:
+            idx = self.buffersize
+            try:
+                return self.lot[idx]
+            except IndexError:
+                return self.lot[-1]
 
-        self._set_frame = frame_id
+    def start_frame(self) -> int:
+        if isinstance(self._set_frame, int):
+            return self._set_frame
+        elif self._buffer.empty() is False:
+            return self.__calc_frame(self._buffer[-1][0] + 1)
+        return self.lot[0]
 
+    def run(self):
+        if self.do_task():
+            values = (self.start_frame(), self.end_frame(), self.lot_mapping)
+
+            # O método send deve ser usado somente em 2 casos:
+            #   1o. Para enviar os dados para a thread
+            #   2o. Para encerrar o thread
+            # Peço que usem o send somente para o 2o caso e certifique-se usando
+            # _buffer.task_id_done que a task está "parada"!
+            self._buffer.send(values)
+
+            # Devemos sincronizar a thread principal com o inicio da task
+            # para não corrermos o risco de acessar váriaveis que ainda não foram
+            # atualizadas.
+            self._buffer.synchronizing_main_thread()
+            self._set_frame = None
+
+    def join(self) -> None:
+        self._buffer.send(False)
 
     def put(self, frame_id: int, frame: ndarray) -> None:
         """Método usado para encher o buffer de maneira manual e de forma segura.
@@ -123,26 +214,17 @@ class VideoBufferRight():
                 frame_id (int): frame_id do frame a ser colocado no buffer.
                 frame (ndarray): frame a ser colocado no buffer.
         """
-        ...
+        if self._buffer.empty() is False:
+            if self._set_frame is not None:
+                raise Exception('operação bloqueada até que um novo ciclo ocorra')
+            elif self._buffer[0][0] < frame_id and self._buffer.empty() is False:
+                raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual.')
 
+        self._buffer.put((frame_id, frame))
 
-    def start(self):
-
-        if not self.empty():
-            raise VideoBufferError('buffer is not empty')
-        elif self.thread is None:
-            # Argumentos para a função reader
-            args = (self.cap,
-                    self.tqueue,
-                    self.child_conn,
-                    self.event,
-                    self.buffersize,
-                    self.bufferlog)
-            thread = Thread(target=reader, name=self.name, args=args)
-            thread.start()
-            self.thread = thread
-            # ipdb.set_trace()
-        self._checkout()
-
-    def read(self):
-        ...
+    def get(self) -> any:
+        self._buffer.unqueue()
+        frame_id, frame = self._buffer.get()
+        self.__frame_id = frame_id
+        self.run()
+        return frame_id, frame
