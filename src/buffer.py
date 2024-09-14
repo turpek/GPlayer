@@ -40,7 +40,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 from queue import Queue
 from src.channel import Channel1
-from threading import Lock, Semaphore
+from threading import Event, Lock, Semaphore
 from time import sleep
 
 
@@ -49,12 +49,13 @@ class Buffer(ABC, Channel1):
         # Criando um deque e uma Queue onde os frames serão armazenados
         super().__init__()
         self.maxsize = maxsize
-        self.log = True
+        self.log = log
         self._primary = deque(list(), maxlen=maxsize)
         self._secondary = Queue(maxsize=maxsize)
         self.__block_task = True
         self.lock = Lock()
         self.semaphore = semaphore
+        self.event = Event()
 
         # Queue para o envio de possíveis erros que venham a ocorrer na thread
         self._error = Queue()
@@ -151,6 +152,7 @@ class Buffer(ABC, Channel1):
         self.semaphore.acquire()
         self.task_is_done(False)
         self._wait_task.get()
+        self.event.set()
 
     def clear(self) -> None:
         """
@@ -162,6 +164,25 @@ class Buffer(ABC, Channel1):
         self.semaphore.release()
         self.task_is_done(True)
         self._wait_task.put(True)
+        self.event.clear()
+
+    def synchronizing_main_thread(self) -> None:
+        """
+        Sincroniza a thread principal com a thread responsável pela task.
+
+        Quando uma task é iniciada via `send`, há um pequeno intervalo de tempo até que as
+        variáveis de controle do buffer sejam atualizadas. Nesse intervalo, a thread principal
+        pode tentar acessar essas variáveis antes de serem devidamente configuradas, o que pode
+        resultar em um comportamento inesperado no programa.
+
+        O método `synchronizing_main_thread` usa um evento (`Event`) para forçar a thread principal
+        a aguardar até que a atualização das variáveis de controle esteja concluída, garantindo
+        a consistência do estado do buffer.
+
+        Returns:
+            None
+        """
+        self.event.wait()
 
     def task_is_done(self, value: bool = None) -> bool:
         """
@@ -269,8 +290,9 @@ class BufferLeft(Buffer):
         Returns:
             None
         """
-        while not self.task_is_done() and self.empty():
-            sleep(0.001)
+        # while not self.task_is_done() and self.empty():
+        #    sleep(0.001)
+        self.wait_task()
 
         if self.task_is_done() and self.empty():
             while not self.secondary_empty():
