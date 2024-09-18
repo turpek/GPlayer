@@ -71,6 +71,11 @@ class Buffer(ABC, Channel1):
     def __len__(self):
         return len(self._primary)
 
+    def _wait_until_fill(self) -> None:
+        # Espera a task ser concluida no caso em que o buffer estiver vazio!
+        if self.empty():
+            self.wait_task()
+
     def clear_buffer(self) -> None:
         """
         Método usado para limpar o Buffer de maneira segura.
@@ -272,7 +277,7 @@ class BufferRight(Buffer):
         Returns:
             None
         """
-
+        self._wait_until_fill()
         if self.task_is_done() and self.empty():
             while not self.secondary_empty():
                 value = self._secondary.get()
@@ -283,11 +288,6 @@ class BufferLeft(Buffer):
     def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool = False):
         super().__init__(semaphore, maxsize=maxsize, log=log)
 
-    def __wait_until_fill(self) -> None:
-        # Espera a task ser concluida no caso em que o buffer estiver vazio!
-        if self.empty():
-            self.wait_task()
-
     def unqueue(self) -> None:
         """
         Método para passar os frames do buffer segundario para o primario.
@@ -295,7 +295,7 @@ class BufferLeft(Buffer):
         Returns:
             None
         """
-        self.__wait_until_fill()
+        self._wait_until_fill()
         if self.task_is_done() and self.empty():
             while not self.secondary_empty():
                 value = self._secondary.get()
