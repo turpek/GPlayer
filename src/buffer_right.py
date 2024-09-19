@@ -120,9 +120,7 @@ class VideoBufferRight():
         Returns:
             bool
         """
-        if isinstance(self._set_frame, int):
-            return self.__set_frame_end == self._set_frame
-        elif not self._buffer.empty():
+        if not self._buffer.empty():
             return self._buffer[-1][0] == self.lot[-1]
         else:
             return self.is_task_complete()
@@ -162,7 +160,8 @@ class VideoBufferRight():
             raise Exception('frame_id deve ser maior que 0.')
         self._set_frame = self.__calc_frame(frame_id)
         self._buffer.clear_buffer()
-        self.__frame_id = self._set_frame
+        # self.__frame_id = self._set_frame
+        self.__frame_id = None
 
     def end_frame(self) -> int:
         if isinstance(self._set_frame, int):
