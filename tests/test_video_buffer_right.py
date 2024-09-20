@@ -343,14 +343,6 @@ def test_buffer_VideoBufferRight_is_task_complete_set_0(myvideo):
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferRight_is_task_complete_set_99(myvideo):
-    expect = True
-    myvideo.set(99)
-    result = myvideo.is_task_complete()
-    assert result == expect
-
-
-@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
 def test_buffer_VideoBufferRight_is_task_complete_colocando_manualmente_de_30_55(myvideo):
     expect = False
     [myvideo._buffer.put(frame) for frame in lote(55, 29, -1)]
@@ -411,4 +403,72 @@ def test_buffer_VideoBufferRight_put_e_run_consumindo_tudo_com_get_checando_os_f
     expect = list(range(50, 100, 1))
     [myvideo.put(*frame) for frame in lote(75, 49, -1)]
     result = [myvideo.get()[0] for _ in range(50)]
+    assert result == expect
+
+# ##################### NOVOS TESTES #############################################
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_set_99_sem_ler_do_buffer(myvideo):
+    expect = False
+    myvideo.set(99)
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_set_99_lendo_do_buffer(myvideo):
+    expect = True
+    myvideo.set(99)
+    myvideo.run()  # Deve-se usar run apos o set
+    myvideo.get()
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_set_99_lendo_do_buffer(myvideo):
+    expect = True
+    myvideo.set(99)
+    myvideo.run()  # Deve-se usar run apos o set
+    myvideo.get()
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_is_done_com_set_no_ultimo_frame(myvideo):
+    expect = True
+    myvideo.set(99)
+    myvideo.run()  # Deve-se usar run apos o set
+    myvideo._buffer.unqueue()  # Movendo o frame para o buffer primario
+    result = myvideo.is_done()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_is_done_com_set_no_ultimo_frame(myvideo):
+    expect = True
+    myvideo.set(99)
+    myvideo.run()  # Deve-se usar run apos o set
+    myvideo._buffer.unqueue()  # Movendo o frame para o buffer primario
+    result = myvideo.is_done()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_get_com_o_set_no_ultimo_frame(myvideo):
+    expect = 99
+    myvideo.set(99)
+    myvideo.run()  # Deve-se usar run apos o set
+    result, _ = myvideo.get()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_do_task_com_set_no_ultimo_frame(myvideo):
+    expect = True
+    myvideo.set(99)
+    result = myvideo.do_task()
     assert result == expect
