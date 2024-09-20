@@ -67,6 +67,24 @@ class VideoBufferLeft:
     def __len__(self):
         return len(self._buffer)
 
+    def __getitem__(self, index: int) -> int:
+        """
+        Retorna os frame_id do buffer, caso o mesmo esteja vazio -1 é retornado.
+
+        Args:
+            index (int): Indice do frame na qual se deseja conhecer o frame_id
+                se o mesmo não for inteiro, -1 é retornado.
+
+        Returns:
+            int
+                - Em caso de sucesso um número inteiro maior que zero é retornado.
+                - Em caso de falha -1 é retornado.
+
+        """
+        if self._buffer.empty() or not isinstance(index, int):
+            return -1
+        return self._buffer[index][0]
+
     def __start(self) -> None:
         """
         Inicia a thread
@@ -222,6 +240,7 @@ class VideoBufferLeft:
             if self._buffer[-1][0] > frame_id and len(self._buffer._primary) > 0:
                 raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual ')
 
+        self.__frame_id = None
         self._buffer.put((frame_id, frame))
 
     def get(self) -> None:
