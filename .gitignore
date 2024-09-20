@@ -1,7 +1,9 @@
 app.py
 model.mp4
+model2.mkv
 src/__pycache__/
 tests/__pycache__/
 .env
 prog.py
+pytest.ini
 lixo
