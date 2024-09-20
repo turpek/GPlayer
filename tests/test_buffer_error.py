@@ -1,3 +1,4 @@
+"""
 from src.buffer import VideoBufferLeft, VideoBufferRight
 from src.buffer_error import VideoBufferError
 from pytest import fixture, raises
@@ -97,7 +98,6 @@ def test_buffer_mount_sequence_VideoBufferRight_preencher_o_buffer_com_a_fila_na
     assert excinfo.value.message == 'buffer is not empty'
 
 
-"""
 def test_buffer_VideoBufferRight_metodo_end_frame_com_start_frame_mais_buffer_maior_que_o_tamanho_do_lote(mycap):
     lote = list(range(0, 20))
     expect = 19
@@ -105,9 +105,7 @@ def test_buffer_VideoBufferRight_metodo_end_frame_com_start_frame_mais_buffer_ma
     buffer.set(16)
     result = buffer.end_frame()
     assert result == expect
-"""
 
-"""
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
 def test_buffer_VideoBufferRight_enchendo_o_buffer_manualmente_com_o_buffer_lotado(myvideo, seq):
     expect_start_frame = False
