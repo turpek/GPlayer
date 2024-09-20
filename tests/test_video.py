@@ -1,0 +1,157 @@
+from pytest import fixture
+from src.video import Video
+from unittest.mock import patch
+from time import sleep
+
+import cv2
+import ipdb
+import numpy as np
+
+
+class MyVideoCapture():
+    def __init__(self):
+        self.frames = [np.zeros((2, 2)) for x in range(300)]
+        self.index = 0
+        self.isopened = True
+
+    def read(self):
+        if self.index < len(self.frames):
+            frame = self.frames[self.index]
+            self.index += 1
+            return True, frame
+        return False, None
+
+    def set(self, flag, value):
+        if cv2.CAP_PROP_POS_FRAMES == flag:
+            if len(self.frames) >= value and value >= 0:
+                self.index = value
+                return True
+            else:
+                return False
+        return False
+
+    def get(self, flag):
+        if cv2.CAP_PROP_FRAME_COUNT == flag:
+            return len(self.frames)
+        elif cv2.CAP_PROP_POS_FRAMES == flag:
+            return self.index
+        return False
+
+    def isOpened(self):
+        return self.isopened
+
+    def release(self):
+        ...
+
+
+@fixture
+def mycap():
+    with patch('src.video.cv2.VideoCapture', return_value=MyVideoCapture()) as mock:
+        yield mock
+
+
+@fixture
+def myvideo(mycap):
+    video = Video('model.mp4')
+    yield video
+    video.join()
+
+
+def test_Video_set_mapping(myvideo):
+    expect = 300
+    result = len(myvideo._mapping)
+    assert result == expect
+
+
+def test_Video_set_mapping_manualmente(myvideo):
+    expect = [0, 1, 2, 3, 4]
+    myvideo.set_mapping([1, 2, 0, 3, 4])
+    resultd = myvideo._mapping
+    assert resultd == expect
+
+
+def test_Video_read_verificando_se_a_leitura_foi_bem_sucedida(myvideo):
+    expect = True
+    result, _ = myvideo.read()
+    assert result == expect
+
+
+def test_Video_read_frame_0(myvideo):
+    expect_frame_id = 0
+    myvideo.read()
+    result_frame_id = myvideo.frame_id
+    assert result_frame_id == expect_frame_id
+
+
+def test_Video_read_60_frames(myvideo):
+    expect_frames_id = list(range(60))
+    result_frames_id = []
+    for _ in range(60):
+        myvideo.read()
+        result_frames_id.append(myvideo.frame_id)
+    assert result_frames_id == expect_frames_id
+
+
+def test_Video_read_300_frames(myvideo):
+    expect_frames_id = list(range(300))
+    result_frames_id = []
+    for _ in range(300):
+        myvideo.read()
+        result_frames_id.append(myvideo.frame_id)
+    assert result_frames_id == expect_frames_id
+
+
+def test_Video_read_verificando_se_a_leitura_resume_foi_bem_sucedida_e_falhando(myvideo):
+    expect = False
+    for _ in range(300):
+        myvideo.read()
+    result, _ = myvideo.read()
+    assert result == expect
+
+
+def test_Video_read_300_frames_e_voltando_1(myvideo):
+    expect = 298
+    for _ in range(300):
+        myvideo.read()
+    myvideo.rewind()
+    myvideo.read()
+    result = myvideo.frame_id
+    assert result == expect
+
+
+def test_Video_read_300_frames_e_voltando_tudo(myvideo):
+    expect = 0
+    for _ in range(300):
+        myvideo.read()
+    myvideo.rewind()
+    for _ in range(300):
+        myvideo.read()
+    result = myvideo.frame_id
+    assert result == expect
+
+
+def test_Video_read_verificando_se_a_leitura_rewind_foi_bem_sucedida_e_falhando(myvideo):
+    expect = False
+    myvideo.rewind()
+    result, _ = myvideo.read()
+    assert result == expect
+
+
+def test_Video_read_300_frames_e_voltando_tudo_teste_se_foi_bem_sucedida_e_falhando(myvideo):
+    expect = False
+    for _ in range(300):
+        myvideo.read()
+    myvideo.rewind()
+    for _ in range(300):
+        myvideo.read()
+    result, _ = myvideo.read()
+    assert result == expect
+
+
+def test_Video_set_150_e_read_tudo(myvideo):
+    expect = 299
+    myvideo.set(150)
+    for _ in range(150):
+        myvideo.read()
+    result = myvideo.frame_id
+    assert result == expect
