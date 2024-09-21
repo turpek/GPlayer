@@ -94,9 +94,12 @@ class Buffer(ABC, Channel1):
             None
         """
 
+            # Matamos a task antes de limpar a queue, para isso enviamos False
+        if not self.task_is_done():
+            self.send(False)
+
         # Devemos descarregar o buffer secondary no primary antes de limpa-lo
         self.unqueue()
-        self.wait_task()
         while self.secondary_empty() is False:
             self._secondary.get_nowait()
 
