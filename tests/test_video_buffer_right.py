@@ -248,7 +248,6 @@ def test_buffer_VideoBufferRight_is_done_eh_true(myvideo):
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
 def test_buffer_VideoBufferRight_do_task_buffer_vazio_sem_set(myvideo):
     expect = True
-    ipdb.set_trace()
     result = myvideo.do_task()
     assert result == expect
 
