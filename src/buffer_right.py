@@ -233,7 +233,8 @@ class VideoBufferRight():
         """
         if self._buffer.empty() is False:
             if self._set_frame is not None:
-                raise Exception('operação bloqueada até que um novo ciclo ocorra')
+                # raise Exception('operação bloqueada até que um novo ciclo ocorra')
+                self._set_frame = None
             elif self._buffer[0][0] < frame_id and self._buffer.empty() is False:
                 raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual.')
 
@@ -242,6 +243,7 @@ class VideoBufferRight():
         self._buffer.put((frame_id, frame))
 
     def get(self) -> any:
+        self.run()
         self._buffer.unqueue()
         frame_id, frame = self._buffer.get()
         self.__frame_id = frame_id
