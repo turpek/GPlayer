@@ -10,11 +10,14 @@ import cv2
 import ipdb
 
 
-class VideaCon:
+class VideoCon:
     def __init__(self, file_name: str, *, mapping: list = None, buffersize: int = 60, log: bool = False):
 
         self.__path = Path(file_name)
         self.__cap = cv2.VideoCapture(str(self.__path))
+
+        cv2.namedWindow('video', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('video', 720, 420)
 
         self._mapping = None
         self.set_mapping()
@@ -32,9 +35,14 @@ class VideaCon:
 
         self.__frame_id = None
         self.frame = None
+        self.__paused = False
+        self.__quit = False
+        self._delay = 1
 
     def join(self):
+        self._master._buffer.wait_task()
         self._master.join()
+        self._master._buffer.wait_task()
         self._slave.join()
 
     def set_mapping(self, mapping: list = None) -> None:
@@ -51,7 +59,7 @@ class VideaCon:
         elif self._mapping is None:
             # Checar depois esse limite!
             num_frames = self.__cap.get(cv2.CAP_PROP_FRAME_COUNT)
-            self._mapping = list(range(num_frames))
+            self._mapping = list(range(int(num_frames)))
 
     @property
     def frame_id(self) -> int:
@@ -81,6 +89,8 @@ class VideaCon:
         if isinstance(self._slave, VideoBufferRight):
             self._slave.set(frame_id)
             self._master.set(frame_id - 1)
+            # self._slave.run()
+            # ipdb.set_trace()
 
     def read(self) -> tuple[bool, ndarray | None]:
         """
@@ -95,7 +105,7 @@ class VideaCon:
                 - O primeiro valor é um `bool` indicando se a operação foi bem-sucedida (`True`) ou não (`False`).
                 - O segundo valor é um `ndarray` representando o frame lido, ou `None` se a operação falhar.
         """
-        if self._slave.is_task_complete():
+        if self._slave.is_task_complete() or self.pause():
             return False, None
         frame_id, frame = self._slave.get()
         self._master.put(frame_id, frame)
@@ -135,7 +145,7 @@ class VideaCon:
                 - Retorna True se a operação teve sucesso.
                 - Retorna False se a operação falhou.
         """
-        if isinstance(self._slave, VideoBufferRight):
+        if isinstance(self._slave, VideoBufferLeft):
             # Devemos retirar o frame do master e verificar se ele é igual
             # ao frame atual, se ele for
             self._slave, self._master = self._master, self._slave
@@ -143,3 +153,39 @@ class VideaCon:
                 self.read()
             return True
         return False
+
+    def pause(self):
+        return self.__paused
+
+    def quit(self):
+        return self.__quit
+
+    def _show(self, frame):
+        cv2.imshow('video', frame)
+
+    def show(self, flag, frame):
+        if flag is True:
+            self._show(frame)
+        return cv2.waitKeyEx(self._delay)
+
+    def control(self, key):
+        if key == ord('d'):
+            print('Resumir')
+            self.resume()
+        elif key == ord('a'):
+            print('Voltar')
+            self.rewind()
+        elif key == ord('p'):
+            self.__paused = not self.__paused
+        elif key == ord('q'):
+            self.__quit = True
+
+    def loop(self):
+        # self.rewind()
+        while self.quit() is False:
+            ret, frame = self.read()
+            key = self.show(ret, frame)
+            self.control(key)
+        sleep(1)
+        self.join()
+        cv2.destroyAllWindows()
