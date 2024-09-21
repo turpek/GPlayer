@@ -184,7 +184,7 @@ class VideoBufferLeft:
             raise Exception('frame_id deve ser maior que 0.')
         self._set_frame = self.__calc_frame(frame_id)
         self._buffer.clear_buffer()
-        self.__frame_id = self._set_frame
+        self.__frame_id = None
 
     def end_frame(self) -> int:
         if isinstance(self._set_frame, int):
@@ -236,7 +236,8 @@ class VideoBufferLeft:
         """
         if self._buffer.empty() is False:
             if self._set_frame is not None:
-                raise Exception('operação bloqueada até que um novo ciclo ocorra')
+                # raise Exception('operação bloqueada até que um novo ciclo ocorra')
+                self._set_frame = None
             if self._buffer[-1][0] > frame_id and len(self._buffer._primary) > 0:
                 raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual ')
 
@@ -244,6 +245,7 @@ class VideoBufferLeft:
         self._buffer.put((frame_id, frame))
 
     def get(self) -> None:
+        self.run()
         self._buffer.unqueue()
         frame_id, frame = self._buffer.get()
         self.__frame_id = frame_id
