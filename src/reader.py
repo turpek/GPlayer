@@ -56,6 +56,8 @@ def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
             break
         elif frame_id == frame_count:
             raise IndexError('o video acabou')
+        elif buffer.poll():
+            break
         frame_id += 1
 
     buffer.clear()
