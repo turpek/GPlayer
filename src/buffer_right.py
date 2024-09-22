@@ -51,7 +51,7 @@ class VideoBufferRight():
         # Definições das variaveis responsavel pela criação do buffer
         self.__frame_id = None
         self._set_frame = None
-        self.__set_frame_end = None
+        self._set_frame_end = None
 
         # Atributos usados para determinar os frames que serao armazenados no buffer
         self.lot = list()
@@ -83,7 +83,7 @@ class VideoBufferRight():
         """
         if self._buffer.empty() or not isinstance(index, int):
             return -1
-        return self._buffer[index][0]
+        return self._buffer[index]
 
     def __start(self) -> None:
         """
@@ -116,9 +116,9 @@ class VideoBufferRight():
         # calculo para o metodo end_frame
         idx += self.buffersize
         try:
-            self.__set_frame_end = self.lot[idx]
+            self._set_frame_end = self.lot[idx]
         except IndexError:
-            self.__set_frame_end = self.lot[-1]
+            self._set_frame_end = self.lot[-1]
 
         return frame_id
 
@@ -183,7 +183,7 @@ class VideoBufferRight():
 
     def end_frame(self) -> int:
         if isinstance(self._set_frame, int):
-            return self.__set_frame_end
+            return self._set_frame_end
         elif self._buffer.empty() is False:
             idx = bisect.bisect_left(self.lot, self._buffer[-1]) + self.buffersize
             try:
@@ -242,7 +242,7 @@ class VideoBufferRight():
         # O método put tem prioriade sobre o set, portanto devemos
         # setar ambos os atributos relacionados ao set como None.
         self._set_frame = None
-        self.__set_frame_end = None
+        self._set_frame_end = None
 
         # O frame_id deve ser setado com None pois ...
         self.__frame_id = None

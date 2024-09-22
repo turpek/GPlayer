@@ -83,7 +83,7 @@ class VideoBufferLeft:
         """
         if self._buffer.empty() or not isinstance(index, int):
             return -1
-        return self._buffer[index][0]
+        return self._buffer[index]
 
     def __start(self) -> None:
         """
