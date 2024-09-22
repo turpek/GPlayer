@@ -471,3 +471,20 @@ def test_buffer_VideoBufferRight_set_lot_com_mapping_maior_que_frame_count(myvid
     expect = set(range(500))
     result = myvideo.lot_mapping
     assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(300)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_colocando_manualmente_o_primeiro_frame(myvideo):
+    expect_end_frame = 25
+    [myvideo.put(*frame) for frame in lote(0, 1, 1)]
+    result_end_frame = myvideo.end_frame()
+    assert result_end_frame == expect_end_frame
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(300)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_colocando_manualmente_o_primeiro_frame_e_usando_get(myvideo):
+    expect_end_frame = 25
+    [myvideo.put(*frame) for frame in lote(0, 1, 1)]
+    myvideo.get()
+    result_end_frame = myvideo.end_frame()
+    assert result_end_frame == expect_end_frame
