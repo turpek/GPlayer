@@ -206,6 +206,23 @@ def test_buffer_VideoBufferLeft_metodo_set_frame_com_lote_nao_linear_penultimo_f
     assert result_start_frame == expect_start_frame
 
 
+@pytest.mark.parametrize('myvideo', [(list(range(0, 200, 1)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_metodo_set_frame_com_lote_linear_ultimo_frame(myvideo):
+    expect_start_frame = 174
+    myvideo.set(199)
+    result_start_frame = myvideo.start_frame()
+    assert result_start_frame == expect_start_frame
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(0, 200, 1)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_metodo_set_frame_com_lote_linear_penultimo_frame(myvideo):
+    expect_start_frame = 173
+    myvideo.set(198)
+    result_start_frame = myvideo.start_frame()
+    assert result_start_frame == expect_start_frame
+
+
+
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
 def test_buffer_VideoBufferLeft_enchendo_o_buffer_manualmente(myvideo):
     expect = 10
@@ -420,3 +437,20 @@ def test_buffer_VideoBufferLeft_set_lot_com_mapping_maior_que_frame_count(myvide
     expect = set(range(300))
     result = myvideo.lot_mapping
     assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(300)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_colocando_manualmente_o_ultimo_frame(myvideo):
+    expect_start_frame = 274
+    [myvideo.put(*frame) for frame in lote(299, 300, 1)]
+    result_start_frame = myvideo.start_frame()
+    assert result_start_frame == expect_start_frame
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(300)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_colocando_manualmente_o_ultimo_frame_usando_get(myvideo):
+    expect_start_frame = 274
+    [myvideo.put(*frame) for frame in lote(299, 300, 1)]
+    myvideo.get()
+    result_start_frame = myvideo.start_frame()
+    assert result_start_frame == expect_start_frame
