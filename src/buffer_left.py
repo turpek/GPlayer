@@ -223,7 +223,17 @@ class VideoBufferLeft:
             self._buffer.synchronizing_main_thread()
             self._set_frame = None
 
-    def join(self):
+    def join(self) -> None:
+        """
+        Encerra a thread
+
+        Returns:
+            None
+        """
+
+        # Caso a thread esteja fazendo uma task, devemos encerrá-la
+        if not self._buffer.task_is_done():
+            self._buffer.send(False)
         self._buffer.send(False)
 
     def put(self, frame_id: int, frame: ndarray) -> None:
@@ -235,11 +245,13 @@ class VideoBufferLeft:
             frame (ndarray): frame a ser colocado no buffer.
         """
         if self._buffer.empty() is False:
-            if self._set_frame is not None:
-                # raise Exception('operação bloqueada até que um novo ciclo ocorra')
-                self._set_frame = None
             if self._buffer[-1][0] > frame_id and len(self._buffer._primary) > 0:
                 raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual ')
+
+        # O método put tem prioriade sobre o set, portanto devemos
+        # setar ambos os atributos relacionados ao set como None.
+        self._set_frame = None
+        self.__set_frame_end = None
 
         self.__frame_id = None
         self._buffer.put((frame_id, frame))
