@@ -2,7 +2,6 @@
 buffers internos que farão a gestão do objeto, de maneira ao Buffer
 estár sempre cheio, para isso temos os seguintes atributos e métodos.
 
-
 class Buffer:
     -_primary: É um deque que define o buffer primario.
     -_secondary: É uma Queue que define o buffer segundario.
