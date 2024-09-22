@@ -131,7 +131,6 @@ class VideoBufferRight():
         Returns:
             bool
         """
-        print('id:', self.__frame_id)
         return self.__frame_id == self.lot[-1]
 
     def is_done(self) -> bool:
@@ -207,6 +206,8 @@ class VideoBufferRight():
             return self._set_frame
         elif self._buffer.empty() is False:
             return self.__calc_frame(self._buffer[-1] + 1)
+        elif isinstance(self.__frame_id, int):
+            return self.__calc_frame(self.__frame_id + 1)
         return self.lot[0]
 
     def run(self):
