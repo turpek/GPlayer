@@ -42,14 +42,13 @@ def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
 
         if frame_id in lot:
             ret, frame = cap.read()
-            if ret:
-                buffer.sput((frame_id, frame))
-                qsize += 1
+            buffer.sput((frame_id, frame))
+            qsize += 1
         else:
             cap.grab()
 
         if buffer.log:
-            print(qsize, qsize, frame_id)
+            print(qsize, qsize, frame_id, ret)
         if frame_id == last_frame:
             break
         elif qsize == buffer.maxsize:
