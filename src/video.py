@@ -37,7 +37,7 @@ class VideoCon:
         self.frame = None
         self.__paused = False
         self.__quit = False
-        self._delay = 1
+        self._delay = 35
 
     def join(self):
         self._master._buffer.wait_task()
@@ -90,7 +90,6 @@ class VideoCon:
             self._slave.set(frame_id)
             self._master.set(frame_id - 1)
             # self._slave.run()
-            # ipdb.set_trace()
 
     def read(self) -> tuple[bool, ndarray | None]:
         """
@@ -107,10 +106,13 @@ class VideoCon:
         """
         if self._slave.is_task_complete() or self.pause():
             return False, None
+
         frame_id, frame = self._slave.get()
-        self._master.put(frame_id, frame)
-        self.__frame_id = frame_id
-        return True, frame
+        if isinstance(frame, ndarray):
+            self._master.put(frame_id, frame)
+            self.__frame_id = frame_id
+            return True, frame
+        return False, None
 
     def rewind(self) -> bool:
         """
