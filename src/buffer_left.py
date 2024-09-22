@@ -144,7 +144,7 @@ class VideoBufferLeft:
         if isinstance(self._set_frame, int):
             return self.__set_frame_end == self._set_frame
         elif not self._buffer.empty():
-            return self._buffer[-1][0] == self.lot[0]
+            return self._buffer[-1] == self.lot[0]
         else:
             return self.is_task_complete()
 
@@ -190,7 +190,7 @@ class VideoBufferLeft:
         if isinstance(self._set_frame, int):
             return self.__set_frame_end
         elif self._buffer.empty() is False:
-            idx = bisect.bisect_left(self.lot, self._buffer[-1][0]) - 1
+            idx = bisect.bisect_left(self.lot, self._buffer[-1]) - 1
             if idx < 0:
                 return self.lot[0]
             else:
@@ -202,7 +202,7 @@ class VideoBufferLeft:
         if isinstance(self._set_frame, int):
             return self._set_frame
         elif self._buffer.empty() is False:
-            return self.__calc_frame(self._buffer[-1][0])
+            return self.__calc_frame(self._buffer[-1])
         else:
             return self.lot[0]
 
@@ -214,7 +214,8 @@ class VideoBufferLeft:
             #   1o. Para enviar os dados para a thread
             #   2o. Para encerrar o thread
             # Peço que usem o send somente para o 2o caso e certifique-se usando
-            # _buffer.task_id_done que a task está "parada"!
+            # _buffer.task_id_done que a task está "parada"! caso contrário o mesmo
+            # causara o encerramento do task.
             self._buffer.send(values)
 
             # Devemos sincronizar a thread principal com o inicio da task
@@ -245,7 +246,7 @@ class VideoBufferLeft:
             frame (ndarray): frame a ser colocado no buffer.
         """
         if self._buffer.empty() is False:
-            if self._buffer[-1][0] > frame_id and len(self._buffer._primary) > 0:
+            if self._buffer[-1] > frame_id and len(self._buffer._primary) > 0:
                 raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual ')
 
         # O método put tem prioriade sobre o set, portanto devemos
