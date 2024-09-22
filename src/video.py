@@ -15,9 +15,7 @@ class VideoCon:
 
         self.__path = Path(file_name)
         self.__cap = cv2.VideoCapture(str(self.__path))
-
-        cv2.namedWindow('video', cv2.WINDOW_NORMAL)
-        cv2.resizeWindow('video', 720, 420)
+        self.__creating_window()
 
         self._mapping = None
         self.set_mapping()
@@ -37,7 +35,17 @@ class VideoCon:
         self.frame = None
         self.__paused = False
         self.__quit = False
-        self._delay = 35
+        self._delay = 1
+
+    def __creating_window(self) -> None:
+        """
+        Cria a janela onde os frames serão exibidos.
+
+        Returns:
+            None
+        """
+        cv2.namedWindow('video', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('video', 720, 420)
 
     def join(self):
         self._master._buffer.wait_task()
