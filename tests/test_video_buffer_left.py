@@ -399,3 +399,24 @@ def test_buffer_VideoBufferLeft_put_e_run_consumindo_tudo_com_get_checando_os_fr
     [myvideo.put(*frame) for frame in lote(50, 75, 1)]
     result = [myvideo.get()[0] for _ in range(75)]
     assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(300)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_set_lot_com_mapping_do_tamanho_do_frame_count(myvideo):
+    expect = set(range(300))
+    result = myvideo.lot_mapping
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_set_lot_com_mapping_menor_que_frame_count(myvideo):
+    expect = set(range(100))
+    result = myvideo.lot_mapping
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(500)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_set_lot_com_mapping_maior_que_frame_count(myvideo):
+    expect = set(range(300))
+    result = myvideo.lot_mapping
+    assert result == expect
