@@ -208,6 +208,8 @@ class VideoBufferLeft:
             return self._set_frame
         elif self._buffer.empty() is False:
             return self.__calc_frame(self._buffer[-1])
+        elif isinstance(self.__frame_id, int):
+            return self.__calc_frame(self.__frame_id)
         else:
             return self.lot[0]
 
@@ -263,6 +265,15 @@ class VideoBufferLeft:
         self._buffer.put((frame_id, frame))
 
     def get(self) -> tuple[int, ndarray | None]:
+        """
+        Usado para consumir os frames do buffer.
+
+        Returns:
+            tuple[int, ndarray|None]
+                - (int): indica o frame_id do frame
+                - (ndarray): retorno do frame se a leitura do frame for bem sucedida
+                - (None): retorna None caso a leitura tenha sido má sucedida
+        """
         self.run()
         self._buffer.unqueue()
         frame_id, frame = self._buffer.get()
