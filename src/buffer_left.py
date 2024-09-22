@@ -25,7 +25,7 @@ from numpy import ndarray
 from src.buffer import BufferLeft
 from src.reader import reader
 from threading import Semaphore, Thread
-from time import sleep
+import cv2
 import bisect
 
 
@@ -44,6 +44,7 @@ class VideoBufferLeft:
 
         # Definições das variaveis que lidam com o Thread
         self.cap = cap
+        self._frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
         self.name = name
         self.buffersize = buffersize
         self._buffer = BufferLeft(semaphore, maxsize=buffersize, log=bufferlog)
@@ -164,8 +165,12 @@ class VideoBufferLeft:
         Args:
             lot (list): Lista que contem os frames_id a serem lidos
         """
-        self.lot = array('l', sorted(lot))
-        self.lot_mapping = set(lot)
+
+        # Para encontrar o último frame_id, devemos descontar 1 do _frame_count.
+        tmp_mapping = array('l', sorted(lot))
+        index = bisect.bisect_right(tmp_mapping, self._frame_count - 1)
+        self.lot = tmp_mapping[:index]
+        self.lot_mapping = set(self.lot)
 
         self.__frame_id = self.lot[0]
 
@@ -257,7 +262,7 @@ class VideoBufferLeft:
         self.__frame_id = None
         self._buffer.put((frame_id, frame))
 
-    def get(self) -> None:
+    def get(self) -> tuple[int, ndarray | None]:
         self.run()
         self._buffer.unqueue()
         frame_id, frame = self._buffer.get()

@@ -27,6 +27,7 @@ from src.reader import reader
 from threading import Semaphore, Thread
 from time import sleep
 import bisect
+import cv2
 import ipdb
 
 
@@ -44,6 +45,7 @@ class VideoBufferRight():
 
         # Definições das variaveis que lidam com o Thread
         self.cap = cap
+        self._frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
         self.name = name
         self.buffersize = buffersize
         self._buffer = BufferRight(semaphore, maxsize=buffersize, log=bufferlog)
@@ -129,6 +131,7 @@ class VideoBufferRight():
         Returns:
             bool
         """
+        print('id:', self.__frame_id)
         return self.__frame_id == self.lot[-1]
 
     def is_done(self) -> bool:
@@ -159,8 +162,10 @@ class VideoBufferRight():
         Args:
             lot (list): Lista que contem os frames_id a serem lidos
         """
-        self.lot = array('l', sorted(lot))
-        self.lot_mapping = set(lot)
+        tmp_mapping = array('l', sorted(lot))
+        index = bisect.bisect_right(tmp_mapping, self._frame_count - 1)
+        self.lot = tmp_mapping[:index]
+        self.lot_mapping = set(self.lot)
 
     def set(self, frame_id: int) -> None:
         """
@@ -248,7 +253,7 @@ class VideoBufferRight():
         self.__frame_id = None
         self._buffer.put((frame_id, frame))
 
-    def get(self) -> any:
+    def get(self) -> tuple[int, ndarray | None]:
         self.run()
         self._buffer.unqueue()
         frame_id, frame = self._buffer.get()
