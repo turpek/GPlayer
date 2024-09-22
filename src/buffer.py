@@ -65,8 +65,10 @@ class Buffer(ABC, Channel1):
         self.__task.put_nowait(True)
         self._wait_task.put_nowait(True)
 
-    def __getitem__(self, var):
-        return self._primary[var]
+    def __getitem__(self, index: int) -> int:
+        if not isinstance(index, int):
+            raise TypeError(f'O método __getitem__ espera um `int`, mas recebeu um `{type(index)}`!')
+        return self._primary[index][0]
 
     def __len__(self):
         return len(self._primary)
