@@ -12,8 +12,9 @@ def buffer():
     bf = BufferRight(semaphore, maxsize=25)
     yield bf
 
+
 def lote(start, end, step):
-    return [(frame_id, np.ones((2,2))) for frame_id in range(start, end, step)]
+    return [(frame_id, np.ones((2, 2))) for frame_id in range(start, end, step)]
 
 
 def test_buffer_right_unqueue_de_1_elemento(buffer):
