@@ -14,7 +14,7 @@ def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
         Args:
             cap (VideoCapture): objeto usado para gerar os frames.
             buffer (Buffer): objeto onde os frames serão armazenados.
-            data (tuple[int, int, set]): deve passar como parametro (start_frame, last_frame, lot)
+            data (tuple[int, int, set]): deve passar como parametro (start_frame, last_frame, mapping_frames)
 
         Returns:
             None
@@ -22,9 +22,9 @@ def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
     """
 
     # O fluxo principal do programa deve passar o frame_id "start_frame" que
-    # define o  frame incial, ja lot é um set contendo todos os frames a serem lidos.
+    # define o  frame incial, ja mapping_frames é um set contendo todos os frames a serem lidos.
     buffer.set()
-    start_frame, last_frame, lot = data
+    start_frame, last_frame, mapping_frames = data
     frame_id, qsize = start_frame, 0
     start = time()
 
@@ -40,7 +40,7 @@ def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
     # Bloco onde os frames são lidos e armazenados na fila
     while True:
 
-        if frame_id in lot:
+        if frame_id in mapping_frames:
             ret, frame = cap.read()
             buffer.sput((frame_id, frame))
             qsize += 1
