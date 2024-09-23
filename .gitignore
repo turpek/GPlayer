@@ -7,3 +7,5 @@ tests/__pycache__/
 prog.py
 pytest.ini
 lixo
+main.py
+__pycache__/
