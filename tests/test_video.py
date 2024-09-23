@@ -52,7 +52,13 @@ def mycap():
 
 
 @fixture
-def myvideo(mycap):
+def creating_window():
+    with patch('src.video.VideoCon._VideoCon__creating_window', return_value=None) as mock:
+        yield mock
+
+
+@fixture
+def myvideo(mycap, creating_window):
     video = VideoCon('model.mp4')
     yield video
     video.join()
