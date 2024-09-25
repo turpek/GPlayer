@@ -1,5 +1,6 @@
 from pytest import fixture
 from src.buffer_right import VideoBufferRight
+from src.frame_mapper import FrameMapper
 from threading import Semaphore
 from unittest.mock import patch
 
@@ -59,8 +60,23 @@ def myvideo(mycap, request):
     lote, buffersize = request.param
     cap = mycap.return_value
     semaphore = Semaphore()
-    buffer = VideoBufferRight(cap, lote, semaphore, buffersize=buffersize)
+    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    mapping = FrameMapper(lote, frame_count)
+    buffer = VideoBufferRight(cap, mapping, semaphore, buffersize=buffersize)
     yield buffer
+
+    buffer.join()
+
+
+@fixture
+def myvideo_mapping(mycap, request):
+    lote, buffersize = request.param
+    cap = mycap.return_value
+    semaphore = Semaphore()
+    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    mapping = FrameMapper(lote, frame_count)
+    buffer = VideoBufferRight(cap, mapping, semaphore, buffersize=buffersize)
+    yield (buffer, mapping)
 
     buffer.join()
 
@@ -118,11 +134,12 @@ def test_buffer_VideoBufferRight_start_frame_buffer_nao_vazio_e_nao_linear(myvid
     assert result == expect
 
 
-@pytest.mark.parametrize('myvideo', [(list(range(20)), 5)], indirect=True)
-def test_buffer_VideoBufferRight_sequence_linear(myvideo):
+@pytest.mark.parametrize('myvideo_mapping', [(list(range(20)), 5)], indirect=True)
+def test_buffer_VideoBufferRight_sequence_linear(myvideo_mapping):
+    myvideo, mapping = myvideo_mapping
     lote = list(range(0, 20))
     expect = {key for key in lote}
-    result = myvideo.lot_mapping
+    result = mapping.get_mapping()
     assert result == expect
 
 
@@ -452,24 +469,27 @@ def test_buffer_VideoBufferRight_do_task_com_set_no_ultimo_frame(myvideo):
 # ################### TESTES SOBRE O SET_MAPPING ###############################
 
 
-@pytest.mark.parametrize('myvideo', [(list(range(500)), 25)], indirect=True)
-def test_buffer_VideoBufferRight_set_lot_com_mapping_do_tamanho_do_frame_count(myvideo):
+@pytest.mark.parametrize('myvideo_mapping', [(list(range(500)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_set_lot_com_mapping_do_tamanho_do_frame_count(myvideo_mapping):
+    myvideo, mapping = myvideo_mapping
     expect = set(range(500))
-    result = myvideo.lot_mapping
+    result = mapping.get_mapping()
     assert result == expect
 
 
-@pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
-def test_buffer_VideoBufferRight_set_lot_com_mapping_menor_que_frame_count(myvideo):
+@pytest.mark.parametrize('myvideo_mapping', [(list(range(100)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_set_lot_com_mapping_menor_que_frame_count(myvideo_mapping):
+    myvideo, mapping = myvideo_mapping
     expect = set(range(100))
-    result = myvideo.lot_mapping
+    result = mapping.get_mapping()
     assert result == expect
 
 
-@pytest.mark.parametrize('myvideo', [(list(range(900)), 25)], indirect=True)
-def test_buffer_VideoBufferRight_set_lot_com_mapping_maior_que_frame_count(myvideo):
+@pytest.mark.parametrize('myvideo_mapping', [(list(range(900)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_set_lot_com_mapping_maior_que_frame_count(myvideo_mapping):
+    myvideo, mapping = myvideo_mapping
     expect = set(range(500))
-    result = myvideo.lot_mapping
+    result = mapping.get_mapping()
     assert result == expect
 
 
