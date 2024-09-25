@@ -89,6 +89,16 @@ class FrameMapper:
         """
         return self.__mapping.copy()
 
+    @property
+    def frame_ids(self) -> array:
+        """
+        Property que retorna o array contendo todos os id dos frames.
+
+        Returns:
+            array: id's dos frames de um vídeo.
+        """
+        return self.__frame_ids
+
     def add(self, frame_id: int) -> None:
         """
         Adiciona um novo frame_id no `FrameMapper`, desde que o mesmo seja menor que
