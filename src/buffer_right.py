@@ -23,6 +23,7 @@ from array import array
 from cv2 import VideoCapture
 from numpy import ndarray
 from src.buffer import BufferRight
+from src.frame_mapper import FrameMapper
 from src.reader import reader
 from threading import Semaphore, Thread
 from time import sleep
@@ -36,7 +37,7 @@ class VideoBufferRight():
 
     def __init__(self,
                  cap: VideoCapture,
-                 sequence_frames: list[int],
+                 frame_mapping: FrameMapper,
                  semaphore: Semaphore, *,
                  buffersize=25,
                  bufferlog=False,
@@ -56,9 +57,7 @@ class VideoBufferRight():
         self._set_frame_end = None
 
         # Atributos usados para determinar os frames que serao armazenados no buffer
-        self.lot = list()
-        self.lot_mapping = set()
-        self.set_lot(sequence_frames)
+        self.__mapping = frame_mapping
 
         self.thread = None
         self.__start()
@@ -109,18 +108,19 @@ class VideoBufferRight():
         Returns:
             int
         """
-        idx = bisect.bisect_left(self.lot, frame_id)
+        frame_ids = self.__mapping.frame_ids
+        idx = bisect.bisect_left(frame_ids, frame_id)
         try:
-            frame_id = self.lot[idx]
+            frame_id = frame_ids[idx]
         except IndexError:
-            frame_id = self.lot[-1]
+            frame_id = frame_ids[-1]
 
         # calculo para o metodo end_frame
         idx += self.buffersize
         try:
-            self._set_frame_end = self.lot[idx]
+            self._set_frame_end = frame_ids[idx]
         except IndexError:
-            self._set_frame_end = self.lot[-1]
+            self._set_frame_end = frame_ids[-1]
 
         return frame_id
 
@@ -131,7 +131,7 @@ class VideoBufferRight():
         Returns:
             bool
         """
-        return self.__frame_id == self.lot[-1]
+        return self.__frame_id == self.__mapping[-1]
 
     def is_done(self) -> bool:
         """
@@ -141,7 +141,7 @@ class VideoBufferRight():
             bool
         """
         if not self._buffer.empty():
-            return self._buffer[-1] == self.lot[-1]
+            return self._buffer[-1] == self.__mapping[-1]
         else:
             return self.is_task_complete()
 
@@ -153,18 +153,6 @@ class VideoBufferRight():
             bool
         """
         return self._buffer.do_task() and self.is_done() is False
-
-    def set_lot(self, lot: list[int]) -> None:
-        """
-        Cria o mapping dos frames a serem lidos
-
-        Args:
-            lot (list): Lista que contem os frames_id a serem lidos
-        """
-        tmp_mapping = array('l', sorted(lot))
-        index = bisect.bisect_right(tmp_mapping, self._frame_count - 1)
-        self.lot = tmp_mapping[:index]
-        self.lot_mapping = set(self.lot)
 
     def set(self, frame_id: int) -> None:
         """
@@ -189,17 +177,19 @@ class VideoBufferRight():
         if isinstance(self._set_frame, int):
             return self._set_frame_end
         elif self._buffer.empty() is False:
-            idx = bisect.bisect_left(self.lot, self._buffer[-1]) + self.buffersize
+            frame_ids = self.__mapping.frame_ids
+            idx = bisect.bisect_left(frame_ids, self._buffer[-1]) + self.buffersize
             try:
-                return self.lot[idx]
+                return frame_ids[idx]
             except IndexError:
-                return self.lot[-1]
+                return frame_ids[-1]
         else:
             idx = self.buffersize
+            frame_ids = self.__mapping.frame_ids
             try:
-                return self.lot[idx]
+                return frame_ids[idx]
             except IndexError:
-                return self.lot[-1]
+                return frame_ids[-1]
 
     def start_frame(self) -> int:
         if isinstance(self._set_frame, int):
@@ -208,11 +198,14 @@ class VideoBufferRight():
             return self.__calc_frame(self._buffer[-1] + 1)
         elif isinstance(self.__frame_id, int):
             return self.__calc_frame(self.__frame_id + 1)
-        return self.lot[0]
+        return self.__mapping[0]
 
     def run(self):
         if self.do_task():
-            values = (self.start_frame(), self.end_frame(), self.lot_mapping)
+            start_frame = self.start_frame()
+            end_frame = self.end_frame()
+            mapping = self.__mapping.get_mapping()
+            values = (start_frame, end_frame, mapping)
 
             # O método send deve ser usado somente em 2 casos:
             #   1o. Para enviar os dados para a thread
