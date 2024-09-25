@@ -266,7 +266,8 @@ class VideoBufferLeft:
 
     def get(self) -> tuple[int, ndarray | None]:
         """
-        Usado para consumir os frames do buffer.
+        Usado para consumir os frames do buffer e gerenciar paralelamento o fluxo
+        do buffer.
 
         Returns:
             tuple[int, ndarray|None]
