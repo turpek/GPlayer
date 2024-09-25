@@ -1,4 +1,4 @@
-from src.buffer_error import VideoOpenError
+from src.custom_exceptions import VideoOpenError
 from cv2 import VideoCapture
 from time import time
 from src.buffer import Buffer
