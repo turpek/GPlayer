@@ -25,6 +25,7 @@ from numpy import ndarray
 from src.buffer import BufferRight
 from src.frame_mapper import FrameMapper
 from src.reader import reader
+from src.video_buffer import IVideoBuffer
 from threading import Semaphore, Thread
 from time import sleep
 import bisect
@@ -32,7 +33,7 @@ import cv2
 import ipdb
 
 
-class VideoBufferRight():
+class VideoBufferRight(IVideoBuffer):
     """Classe que implementa o buffer dos frames a serem lidos"""
 
     def __init__(self,
@@ -153,6 +154,9 @@ class VideoBufferRight():
             bool
         """
         return self._buffer.do_task() and self.is_done() is False
+
+    def set_frame_id(self):
+        ...
 
     def set(self, frame_id: int) -> None:
         """
