@@ -1,3 +1,4 @@
+from array import array
 from pytest import fixture
 from src.video import VideoCon
 from unittest.mock import patch
@@ -33,7 +34,7 @@ class MyVideoCapture():
 
     def get(self, flag):
         if cv2.CAP_PROP_FRAME_COUNT == flag:
-            return len(self.frames)
+            return float(len(self.frames))
         elif cv2.CAP_PROP_POS_FRAMES == flag:
             return self.index
         return False
@@ -66,14 +67,14 @@ def myvideo(mycap, creating_window):
 
 def test_Video_set_mapping(myvideo):
     expect = 300
-    result = len(myvideo._mapping)
+    result = len(myvideo._mapping.get_mapping())
     assert result == expect
 
 
 def test_Video_set_mapping_manualmente(myvideo):
-    expect = [0, 1, 2, 3, 4]
+    expect = array('l', [0, 1, 2, 3, 4])
     myvideo.set_mapping([1, 2, 0, 3, 4])
-    resultd = myvideo._mapping
+    resultd = myvideo._mapping.frame_ids
     assert resultd == expect
 
 

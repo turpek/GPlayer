@@ -1,6 +1,7 @@
 from pytest import fixture, raises
 from src.custom_exceptions import InvalidFrameIdError
 from src.frame_mapper import FrameMapper
+from src.video_buffer import IFakeVideoBuffer
 import pytest
 
 
@@ -41,7 +42,7 @@ def test_FrameMapper_com_lista_maior_que_count_frame(frame_map):
 @pytest.mark.parametrize('frame_map', [(list(range(100)), 300)], indirect=True)
 def test_FrameMapper_set_mapping_com_lista_igual_ao_count_frame(frame_map):
     expect = set(range(200))
-    frame_map.set_mapping(list(range(200)), 200)
+    frame_map.set_mapping(list(range(200)), 200, [IFakeVideoBuffer()])
     result = frame_map.get_mapping()
     assert result == expect
 
@@ -49,7 +50,7 @@ def test_FrameMapper_set_mapping_com_lista_igual_ao_count_frame(frame_map):
 @pytest.mark.parametrize('frame_map', [(list(range(300)), 300)], indirect=True)
 def test_FrameMapper_set_mapping_com_lista_igual_ao_count_frame_checando_ultimo_frame(frame_map):
     expect = 199
-    frame_map.set_mapping(list(range(200)), 200)
+    frame_map.set_mapping(list(range(200)), 200, [IFakeVideoBuffer()])
     result = frame_map[-1]
     assert result == expect
 
@@ -57,7 +58,7 @@ def test_FrameMapper_set_mapping_com_lista_igual_ao_count_frame_checando_ultimo_
 @pytest.mark.parametrize('frame_map', [(list(range(150)), 300)], indirect=True)
 def test_FrameMapper_set_mapping_com_lista_menor_que_count_frame(frame_map):
     expect = 99
-    frame_map.set_mapping(list(range(100)), 200)
+    frame_map.set_mapping(list(range(100)), 200, [IFakeVideoBuffer()])
     result = frame_map[-1]
     assert result == expect
 
@@ -65,7 +66,7 @@ def test_FrameMapper_set_mapping_com_lista_menor_que_count_frame(frame_map):
 @pytest.mark.parametrize('frame_map', [(list(range(600)), 300)], indirect=True)
 def test_FrameMapper_set_mapping_com_lista_maior_que_count_frame(frame_map):
     expect = 199
-    frame_map.set_mapping(list(range(600)), 200)
+    frame_map.set_mapping(list(range(600)), 200, [IFakeVideoBuffer()])
     result = frame_map[-1]
     assert result == expect
 
