@@ -9,3 +9,5 @@ pytest.ini
 lixo
 main.py
 __pycache__/
+.coverage
+.coveragerc
