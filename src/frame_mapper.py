@@ -1,6 +1,6 @@
 from array import array
-from copy import copy
 from src.custom_exceptions import InvalidFrameIdError
+from src.video_buffer import IVideoBuffer
 import bisect
 
 
@@ -11,7 +11,7 @@ class FrameMapper:
         self.__frame_count = None
         self.__frame_ids = None
         self.__mapping = None
-        self.set_mapping(frame_ids, frame_count)
+        self.__set_mapping(frame_ids, frame_count)
 
     def __getitem__(self, index: int | slice) -> int | array:
         """
@@ -64,7 +64,23 @@ class FrameMapper:
         index = self.__get_last_frame_index(frame_array)
         self.__frame_ids = frame_array[:index]
 
-    def set_mapping(self, frame_ids: list[int], frame_count: int) -> None:
+    def __set_mapping(self, frame_ids: list[int], frame_count: int) -> None:
+        """Método interno para setar o mapping."""
+        self.__frame_count = frame_count
+        self.__set_frame_indexes(frame_ids)
+        self.__mapping = set(self.__frame_ids)
+
+    def __set_buffers(self, vbuffers: list[IVideoBuffer]) -> None:
+        """Método interno para setar o __frame_id nos vbuffers."""
+        if len(vbuffers) == 0:
+            raise ValueError('vbuffers list must not be empty.')
+        for vbuffer in vbuffers:
+            if isinstance(vbuffer, IVideoBuffer):
+                vbuffer.set_frame_id()
+            else:
+                raise TypeError('vbuffers must be an instance of IVideoBuffer')
+
+    def set_mapping(self, frame_ids: list[int], frame_count: int, vbuffers: list[IVideoBuffer]) -> None:
         """
         Define um novo conjunto para mapear os frame_ids.
 
@@ -75,10 +91,12 @@ class FrameMapper:
 
         Returns:
             None
+
+        Raises:
+            TypeError: Se vbuffers não forem instancia de IVideoBuffer.
         """
-        self.__frame_count = frame_count
-        self.__set_frame_indexes(frame_ids)
-        self.__mapping = set(self.__frame_ids)
+        self.__set_mapping(frame_ids, frame_count)
+        self.__set_buffers(vbuffers)
 
     def get_mapping(self) -> set:
         """
