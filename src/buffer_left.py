@@ -23,20 +23,22 @@ from array import array
 from cv2 import VideoCapture
 from numpy import ndarray
 from src.buffer import BufferLeft
+from src.frame_mapper import FrameMapper
 from src.reader import reader
+from src.video_buffer import IVideoBuffer
 from threading import Semaphore, Thread
 import cv2
 import bisect
 
 
-class VideoBufferLeft:
+class VideoBufferLeft(IVideoBuffer):
     """
     O VideoBufferLeft começa
     """
 
     def __init__(self,
                  cap: VideoCapture,
-                 sequence_frames: list[int],
+                 frame_mapping: FrameMapper,
                  semaphore: Semaphore, *,
                  buffersize=25,
                  bufferlog=False,
@@ -50,14 +52,12 @@ class VideoBufferLeft:
         self._buffer = BufferLeft(semaphore, maxsize=buffersize, log=bufferlog)
 
         # Definições das variaveis responsavel pela criação do buffer
-        self.__frame_id = None
+        self.__frame_id = frame_mapping[0]
         self._set_frame = None
         self.__set_frame_end = None
 
         # Atributos usados para determinar os frames que serao armazenados no buffer
-        self.lot = list()
-        self.lot_mapping = set()
-        self.set_lot(sequence_frames)
+        self.__mapping = frame_mapping
 
         self.thread = None
         self.__start()
@@ -108,21 +108,22 @@ class VideoBufferLeft:
         Returns:
             int
         """
-        temp_idx = bisect.bisect_left(self.lot, frame_id)
+        frame_ids = self.__mapping.frame_ids
+        temp_idx = bisect.bisect_left(frame_ids, frame_id)
         if (idx := temp_idx - self.buffersize) > 0:
             try:
-                frame_id = self.lot[idx]
+                frame_id = frame_ids[idx]
             except IndexError:
                 raise IndexError('frame_id does not belong to the lot range.')
         else:
-            frame_id = self.lot[0]
+            frame_id = frame_ids[0]
 
         # calculo para o metodo end_frame
         idx = temp_idx
         if idx < 0:
-            self.__set_frame_end = self.lot[0]
+            self.__set_frame_end = frame_ids[0]
         else:
-            self.__set_frame_end = self.lot[idx]
+            self.__set_frame_end = frame_ids[idx]
 
         return frame_id
 
@@ -133,7 +134,7 @@ class VideoBufferLeft:
         Returns:
             bool
         """
-        return self.__frame_id == self.lot[0]
+        return self.__frame_id == self.__mapping[0]
 
     def is_done(self) -> bool:
         """
@@ -145,7 +146,7 @@ class VideoBufferLeft:
         if isinstance(self._set_frame, int):
             return self.__set_frame_end == self._set_frame
         elif not self._buffer.empty():
-            return self._buffer[-1] == self.lot[0]
+            return self._buffer[-1] == self.__mapping[0]
         else:
             return self.is_task_complete()
 
@@ -158,21 +159,15 @@ class VideoBufferLeft:
         """
         return self._buffer.do_task() and self.is_done() is False
 
-    def set_lot(self, lot: list[int]) -> None:
+    def set_frame_id(self) -> None:
         """
-        Cria o mapping dos frames a serem lidos
+        Método usado dentro de `FrameMapper` para setar o __frame_id usando o
+        novo mapping.
 
-        Args:
-            lot (list): Lista que contem os frames_id a serem lidos
+        Returns:
+            None
         """
-
-        # Para encontrar o último frame_id, devemos descontar 1 do _frame_count.
-        tmp_mapping = array('l', sorted(lot))
-        index = bisect.bisect_right(tmp_mapping, self._frame_count - 1)
-        self.lot = tmp_mapping[:index]
-        self.lot_mapping = set(self.lot)
-
-        self.__frame_id = self.lot[0]
+        self.__frame_id = self.__mapping[0]
 
     def set(self, frame_id: int) -> None:
         """
@@ -195,13 +190,14 @@ class VideoBufferLeft:
         if isinstance(self._set_frame, int):
             return self.__set_frame_end
         elif self._buffer.empty() is False:
-            idx = bisect.bisect_left(self.lot, self._buffer[-1]) - 1
+            frame_ids = self.__mapping.frame_ids
+            idx = bisect.bisect_left(frame_ids, self._buffer[-1]) - 1
             if idx < 0:
-                return self.lot[0]
+                return frame_ids[0]
             else:
-                return self.lot[idx]
+                return frame_ids[idx]
         else:
-            return self.lot[0]
+            return self.__mapping[0]
 
     def start_frame(self) -> int:
         if isinstance(self._set_frame, int):
@@ -211,11 +207,14 @@ class VideoBufferLeft:
         elif isinstance(self.__frame_id, int):
             return self.__calc_frame(self.__frame_id)
         else:
-            return self.lot[0]
+            return self.__mapping[0]
 
     def run(self):
         if self.do_task():
-            values = (self.start_frame(), self.end_frame(), self.lot_mapping)
+            start_frame = self.start_frame()
+            end_frame = self.end_frame()
+            mapping = self.__mapping.get_mapping()
+            values = (start_frame, end_frame, mapping)
 
             # O método send deve ser usado somente em 2 casos:
             #   1o. Para enviar os dados para a thread
