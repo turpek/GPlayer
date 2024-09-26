@@ -2,23 +2,23 @@ from array import array
 from numpy import ndarray
 from src.buffer_left import VideoBufferLeft
 from src.buffer_right import VideoBufferRight
+from src.frame_mapper import FrameMapper
+from src.video_buffer import IVideoBuffer
 from pathlib3x import Path
 from time import sleep
 from threading import Semaphore
 import cv2
-
 import ipdb
 
 
 class VideoCon:
-    def __init__(self, file_name: str, *, mapping: list = None, buffersize: int = 60, log: bool = False):
+    def __init__(self, file_name: str, *, frames_mapping: list[int] = None, buffersize: int = 60, log: bool = False):
 
         self.__path = Path(file_name)
         self.__cap = cv2.VideoCapture(str(self.__path))
         self.__creating_window()
 
-        self._mapping = None
-        self.set_mapping()
+        self._mapping = self.set_mapping(frames_mapping)
 
         self.__semaphore = Semaphore()
 
@@ -53,21 +53,21 @@ class VideoCon:
         self._master._buffer.wait_task()
         self._slave.join()
 
-    def set_mapping(self, mapping: list = None) -> None:
+    def set_mapping(self, frame_ids: list = None) -> None:
         """
         Define o mapping de frames que serão lidos e armazenados no buffer.
 
         Returns:
             None
         """
-        if isinstance(mapping, list):
-            self._mapping = sorted(mapping)
-            self._slave.set_lot(self._mapping)
-            self._master.set_lot(self._mapping)
-        elif self._mapping is None:
-            # Checar depois esse limite!
-            num_frames = self.__cap.get(cv2.CAP_PROP_FRAME_COUNT)
-            self._mapping = list(range(int(num_frames)))
+        frame_count = int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_ids = frame_ids if isinstance(frame_ids, (list, tuple, array)) else list(range(frame_count))
+        if hasattr(self, '_slave') and hasattr(self, '_master'):
+            vbuffers = [self._slave, self._master]
+            self._mapping.set_mapping(frame_ids, frame_count, vbuffers)
+            return self._mapping
+        else:
+            return FrameMapper(frame_ids, frame_count)
 
     @property
     def frame_id(self) -> int:
