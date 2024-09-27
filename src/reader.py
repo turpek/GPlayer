@@ -94,5 +94,7 @@ def reader(cap: VideoCapture, buffer: Buffer) -> None:
         exc_info = traceback.format_exc()
         buffer._error.put(e, exc_info)
     finally:
+        buffer.set()
         if cap is not None:
             cap.release()
+        buffer.clear()
