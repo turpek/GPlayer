@@ -228,7 +228,7 @@ class VideoBufferRight(IVideoBuffer):
     def join(self) -> None:
         # Caso a thread esteja fazendo uma task, devemos encerrá-la
         if not self._buffer.task_is_done():
-            self._buffer.send(False)
+            self._buffer.end_task.set()
         self._buffer.send(False)
 
     def put(self, frame_id: int, frame: ndarray) -> None:
