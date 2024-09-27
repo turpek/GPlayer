@@ -39,14 +39,14 @@ from abc import ABC, abstractmethod
 from collections import deque
 from queue import Queue
 from src.channel import Channel1
-from threading import Event, Lock, Semaphore
 from time import sleep
+from threading import Event, Lock, Semaphore
 
 
 class Buffer(ABC, Channel1):
-    def __init__(self, semaphore: Semaphore, *, maxsize: int = 15, log: bool = False):
+    def __init__(self, semaphore: Semaphore, *, maxsize: int = 15, log: bool = False, ch_name='ch1'):
         # Criando um deque e uma Queue onde os frames serão armazenados
-        super().__init__()
+        super().__init__(ch_name)
         self.maxsize = maxsize
         self.log = log
         self._primary = deque(list(), maxlen=maxsize)
@@ -55,12 +55,14 @@ class Buffer(ABC, Channel1):
         self.lock = Lock()
         self.semaphore = semaphore
         self.event = Event()
+        self.end_task = Event()
 
         # Queue para o envio de possíveis erros que venham a ocorrer na thread
         self._error = Queue()
 
         self.__task = Queue(maxsize=1)
         self._wait_task = Queue(maxsize=1)
+        self._end_task = Queue(maxsize=1)
         self.__task.put_nowait(True)
         self._wait_task.put_nowait(True)
 
@@ -95,9 +97,9 @@ class Buffer(ABC, Channel1):
             None
         """
 
-            # Matamos a task antes de limpar a queue, para isso enviamos False
+        # Matamos a task antes de limpar a queue, para isso enviamos False
         if not self.task_is_done():
-            self.send(False)
+            self.end_task.set()
 
         # Devemos descarregar o buffer secondary no primary antes de limpa-lo
         self.unqueue()
@@ -162,6 +164,7 @@ class Buffer(ABC, Channel1):
         self.task_is_done(False)
         self._wait_task.get()
         self.event.set()
+        self.end_task.clear()
 
     def clear(self) -> None:
         """
@@ -174,6 +177,7 @@ class Buffer(ABC, Channel1):
         self.task_is_done(True)
         self._wait_task.put(True)
         self.event.clear()
+        self.end_task.set()
 
     def synchronizing_main_thread(self) -> None:
         """
@@ -272,7 +276,7 @@ class Buffer(ABC, Channel1):
 
 class BufferRight(Buffer):
     def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool = False):
-        super().__init__(semaphore, maxsize=maxsize, log=log)
+        super().__init__(semaphore, maxsize=maxsize, log=log, ch_name='Right')
 
     def unqueue(self) -> None:
         """
@@ -290,7 +294,7 @@ class BufferRight(Buffer):
 
 class BufferLeft(Buffer):
     def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool = False):
-        super().__init__(semaphore, maxsize=maxsize, log=log)
+        super().__init__(semaphore, maxsize=maxsize, log=log, ch_name='Left')
 
     def unqueue(self) -> None:
         """

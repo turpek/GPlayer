@@ -1,6 +1,6 @@
 from src.custom_exceptions import VideoOpenError
 from cv2 import VideoCapture
-from time import time
+from time import time, sleep
 from src.buffer import Buffer
 
 import cv2
@@ -56,7 +56,7 @@ def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
         elif frame_id == frame_count:
             # raise IndexError('o video acabou')
             break
-        elif buffer.poll():
+        elif buffer.end_task.is_set():
             break
         frame_id += 1
 
