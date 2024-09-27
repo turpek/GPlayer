@@ -44,9 +44,9 @@ from threading import Event, Lock, Semaphore
 
 
 class Buffer(ABC, Channel1):
-    def __init__(self, semaphore: Semaphore, *, maxsize: int = 15, log: bool = False, ch_name='ch1'):
+    def __init__(self, semaphore: Semaphore, *, maxsize: int = 15, log: bool = False):
         # Criando um deque e uma Queue onde os frames serão armazenados
-        super().__init__(ch_name)
+        super().__init__()
         self.maxsize = maxsize
         self.log = log
         self._primary = deque(list(), maxlen=maxsize)
@@ -276,7 +276,7 @@ class Buffer(ABC, Channel1):
 
 class BufferRight(Buffer):
     def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool = False):
-        super().__init__(semaphore, maxsize=maxsize, log=log, ch_name='Right')
+        super().__init__(semaphore, maxsize=maxsize, log=log)
 
     def unqueue(self) -> None:
         """
@@ -294,7 +294,7 @@ class BufferRight(Buffer):
 
 class BufferLeft(Buffer):
     def __init__(self, semaphore: Semaphore, *, maxsize: int = 25, log: bool = False):
-        super().__init__(semaphore, maxsize=maxsize, log=log, ch_name='Left')
+        super().__init__(semaphore, maxsize=maxsize, log=log)
 
     def unqueue(self) -> None:
         """
