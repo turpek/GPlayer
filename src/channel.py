@@ -60,7 +60,6 @@ class Channel:
         return self.pipe1, self.pipe2
 
 
-
 class Channel1:
     """
     Classe para comunicação em uma direção entre o programa e a threads
