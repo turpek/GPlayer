@@ -19,7 +19,6 @@ módulo da opencv, a mesma tem a seguinte estrutura:
 """
 
 
-from array import array
 from cv2 import VideoCapture
 from numpy import ndarray
 from src.buffer import BufferLeft
