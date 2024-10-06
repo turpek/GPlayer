@@ -3,12 +3,12 @@ from numpy import ndarray
 from src.buffer_left import VideoBufferLeft
 from src.buffer_right import VideoBufferRight
 from src.frame_mapper import FrameMapper
-from src.player import PlayerControl
-from src.video_command import Invoker, PlayerControlReceiver
+from src.player_control import PlayerControl
+from src.video_command import Invoker
 from src.video_command import RewindCommand, PauseCommand, ProceesCommand, QuitCommand
 from src.video_command import DecreaseSpeedCommand, IncreaseSpeedCommand, PauseDelayCommand
 from pathlib3x import Path
-from time import sleep
+from time import sleep, time
 from threading import Semaphore
 import cv2
 
@@ -36,8 +36,6 @@ class VideoCon:
         # Iniciando a task e esperando que a mesma esteja concluida.
         self._slave.run()
         self._slave._buffer.wait_task()
-
-        self._delay = 15
 
     def __creating_window(self) -> None:
         """

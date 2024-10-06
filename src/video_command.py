@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from src.player import PlayerControl
+from src.player_control import PlayerControl
 
 
 class Command(ABC):
