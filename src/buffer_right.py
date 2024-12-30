@@ -132,6 +132,8 @@ class VideoBufferRight(IVideoBuffer):
         Returns:
             bool
         """
+        if self.__mapping.empty():
+            return True
         return self.__frame_id == self.__mapping[-1]
 
     def is_done(self) -> bool:
