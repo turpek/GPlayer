@@ -22,7 +22,7 @@ class PlayerControl:
         Returns:
             None
         """
-        if isinstance(self.__frame, ndarray):
+        if isinstance(self.__frame, ndarray) and not self.servant.is_task_complete():
             self.master.put(self.frame_id, self.__frame)
 
     def __opencv_format(self, frame_id: int, frame: ndarray) -> tuple[bool, ndarray | None]:
@@ -56,7 +56,6 @@ class PlayerControl:
                 - O segundo valor é um `ndarray` representando o frame lido, ou `None` se a operação falhar.
         """
         self.collect_frame()
-
         if self.servant.is_task_complete() or self.pause():
             return False, None
         return self.__opencv_format(*self.servant.get())
@@ -119,3 +118,11 @@ class PlayerControl:
     @property
     def delay(self) -> int:
         return self.__delay
+
+    def remove_frame(self) -> tuple[int | None, ndarray | None]:
+        if isinstance(self.__frame, ndarray) and not self.pause():
+            frame_id, frame = self.frame_id, self.__frame
+            self.__frame = None
+            self.frame_id = None
+            return frame_id, frame
+        return None, None
