@@ -60,7 +60,7 @@ def trash(mycap):
     semaphore = Semaphore()
     _trash = Trash(cap, semaphore, frame_count=3000, buffersize=5)
     yield _trash
-    _trash._join()
+    _trash.join()
 
 
 def test_trash_empty(trash):
