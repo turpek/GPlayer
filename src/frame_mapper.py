@@ -80,6 +80,9 @@ class FrameMapper:
             else:
                 raise TypeError('vbuffers must be an instance of IVideoBuffer')
 
+    def empty(self):
+        return len(self.__mapping) == 0
+
     def set_mapping(self, frame_ids: list[int], frame_count: int, vbuffers: list[IVideoBuffer]) -> None:
         """
         Define um novo conjunto para mapear os frame_ids.
