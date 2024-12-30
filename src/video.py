@@ -4,11 +4,12 @@ from src.buffer_left import VideoBufferLeft
 from src.buffer_right import VideoBufferRight
 from src.frame_mapper import FrameMapper
 from src.player_control import PlayerControl
-from src.video_command import Invoker
-from src.video_command import RewindCommand, PauseCommand, ProceesCommand, QuitCommand
+from src.trash import Trash
+from src.video_command import Invoker, FrameRemoveOrchestrator
+from src.video_command import RemoveFrameCommand, RewindCommand, PauseCommand, ProceesCommand, QuitCommand
 from src.video_command import DecreaseSpeedCommand, IncreaseSpeedCommand, PauseDelayCommand
 from pathlib3x import Path
-from time import sleep, time
+from time import sleep, time, perf_counter
 from threading import Semaphore
 import cv2
 
@@ -30,8 +31,9 @@ class VideoCon:
         self._master = VideoBufferLeft(*args, buffersize=buffersize, bufferlog=log)
         self.command = Invoker()
         self.__player = PlayerControl(self._slave, self._master)
+        self.__trash = Trash(self.__cap, self.__semaphore, int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT)))
         # receiver = PlayerControlReceiver(self.__player)
-        self.set_commands(self.__player)
+        self.set_commands(self.__player, self._mapping, self.__trash)
 
         # Iniciando a task e esperando que a mesma esteja concluida.
         self._slave.run()
@@ -50,6 +52,7 @@ class VideoCon:
     def join(self):
         self._master.join()
         self._slave.join()
+        self.__trash.join()
 
     def set_mapping(self, frame_ids: list = None) -> None:
         """
@@ -95,7 +98,8 @@ class VideoCon:
             self._show(frame)
         return cv2.waitKeyEx(self.__player.delay)
 
-    def set_commands(self, player: PlayerControl) -> None:
+    def set_commands(self, player: PlayerControl, frame_mapper: FrameMapper, trash: Trash) -> None:
+        frame_orchestrator = FrameRemoveOrchestrator(player, frame_mapper, trash)
         command = self.command
         command.set_command(ord('p'), PauseCommand(player))
         command.set_command(ord('q'), QuitCommand(player))
@@ -104,6 +108,7 @@ class VideoCon:
         command.set_command(ord(']'), IncreaseSpeedCommand(player))
         command.set_command(ord('['), DecreaseSpeedCommand(player))
         command.set_command(ord(' '), PauseDelayCommand(player))
+        command.set_command(ord('x'), RemoveFrameCommand(frame_orchestrator))
 
     def control(self, key):
         self.command.executor_command(key)
