@@ -20,7 +20,7 @@ class Trash():
         self.__caretaker = Caretaker()
         self.__originator = TrashOriginator(self._mapping)
 
-    def _join(self):
+    def join(self):
         self._buffer.join()
 
     def __memento_save(self, frame_id: int) -> None:
@@ -37,7 +37,9 @@ class Trash():
         return len(self._stack) == self._stack.maxlen
 
     def move(self, frame_id, frame) -> None:
-        if len(self._stack) == self._stack.maxlen:
+        if not isinstance(frame, ndarray):
+            return None
+        elif len(self._stack) == self._stack.maxlen:
             fid = self._stack.popleft()
             del self._dframes[fid]
             self.__memento_save(fid)
