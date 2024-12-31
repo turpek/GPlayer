@@ -86,7 +86,7 @@ class VideoCon:
         """
         if isinstance(self._slave, VideoBufferRight):
             self._slave.set(frame_id)
-            self._master.set(frame_id - 1)
+            self._master.set(frame_id)
             # self._slave.run()
 
     def _show(self, frame):
