@@ -53,7 +53,8 @@ class VideoBufferLeft(IVideoBuffer):
         # Definições das variaveis responsavel pela criação do buffer
         self.__frame_id = frame_mapping[0]
         self._set_frame = None
-        self.__set_frame_end = None
+        self.__set_end_frame = None
+        self.__special_case = None
 
         # Atributos usados para determinar os frames que serao armazenados no buffer
         self.__mapping = frame_mapping
@@ -119,10 +120,20 @@ class VideoBufferLeft(IVideoBuffer):
 
         # calculo para o metodo end_frame
         idx = temp_idx
-        if idx < 0:
-            self.__set_frame_end = frame_ids[0]
+        if idx < 1:
+            self.__set_end_frame = frame_ids[0]
+        elif idx < self.buffersize:
+            # Por padrão o VideoBufferLeft é aberto para end_frame, para
+            # manter tal caracteristica devemos tirar 1 do índice, para os
+            # casos onde o conjuto de frames é menor que o tamanho do buffer
+            self.__set_end_frame = frame_ids[idx - 1]
+
+            # Caso Especial onde idx = 1 com isso idx - 1 == 0, fazendo com que
+            # end_frame == start_frame, com isso nenhum frame sera lido, nesse caso
+            # precisamos tratar esse caso de modo diferente no método run
+            self.__special_case = frame_ids[idx]
         else:
-            self.__set_frame_end = frame_ids[idx]
+            self.__set_end_frame = frame_ids[idx]
 
         return frame_id
 
@@ -145,7 +156,9 @@ class VideoBufferLeft(IVideoBuffer):
             bool
         """
         if isinstance(self._set_frame, int):
-            return self.__set_frame_end == self._set_frame
+            # Devemos considerar o caso especial, para saber mais, veja o método __calc_frame
+            set_end_frame = self.__set_end_frame if self.__special_case is None else self.__special_case
+            return set_end_frame == self._set_frame
         elif not self._buffer.empty():
             return self._buffer[-1] == self.__mapping[0]
         else:
@@ -174,7 +187,9 @@ class VideoBufferLeft(IVideoBuffer):
         """
         Coloco o frame a esquerda de frame_id como start_frame no próximo ciclo de leitura dos frames.
         O ínicio de um novo ciclo ocorre quando o buffer esta vazio! se o frame_id não
-        estiver no lote o valor setado será o valor a esquerda mais próximo do mesmo.
+        estiver no lote o valor setado será o valor a esquerda mais próximo do mesmo. Esse método exclui
+        os valores extremos definidos no `FrameMapper`, deve-se usar o em conjunto com `VideoBufferRight`
+        para obter tais frames!
 
         Args:
             frame_id (int): id do frame a ser lido no próximo ciclo, ou seja, qu
@@ -189,7 +204,7 @@ class VideoBufferLeft(IVideoBuffer):
 
     def end_frame(self) -> int:
         if isinstance(self._set_frame, int):
-            return self.__set_frame_end
+            return self.__set_end_frame
         elif self._buffer.empty() is False:
             frame_ids = self.__mapping.frame_ids
             idx = bisect.bisect_left(frame_ids, self._buffer[-1]) - 1
@@ -214,6 +229,19 @@ class VideoBufferLeft(IVideoBuffer):
         if self.do_task():
             start_frame = self.start_frame()
             end_frame = self.end_frame()
+
+            # O VideoBufferLeft é aberto para end_frame, então o 1o.
+            # frame valído para end_frame seria o de índice 1, no caso
+            # de setar para um frame_id de 1, o VideoBufferLeft leria até
+            # o frame_id=0, mas como o start_frame mínimo é 0,s teriamos
+            # start_frame == end_frame, ou seja, nenhum frame seria lido,
+            # então nesse caso, e somente nele, devemos íncluir o end_frame
+            # nos frames lidos, com isso, teriamos os frames_id=[0, 1], então
+            # após a task da thread devemos, remover o frame_id=1, para manter
+            # a compatibilidade com o padrão de leitura da classe!
+            if isinstance(self.__special_case, int):
+                end_frame = self.__special_case
+
             mapping = self.__mapping.get_mapping()
             values = (start_frame, end_frame, mapping)
 
@@ -230,6 +258,12 @@ class VideoBufferLeft(IVideoBuffer):
             # atualizadas.
             self._buffer.synchronizing_main_thread()
             self._set_frame = None
+
+            # Removendo o frame_id ínvalido do caso especial!
+            if isinstance(self.__special_case, int):
+                self.__special_case = None
+                self._buffer.unqueue()
+                _ = self._buffer.get()
 
     def join(self) -> None:
         """
@@ -259,7 +293,7 @@ class VideoBufferLeft(IVideoBuffer):
         # O método put tem prioriade sobre o set, portanto devemos
         # setar ambos os atributos relacionados ao set como None.
         self._set_frame = None
-        self.__set_frame_end = None
+        self.__set_end_frame = None
 
         self.__frame_id = None
         self._buffer.put((frame_id, frame))
