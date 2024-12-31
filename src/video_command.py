@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
+from numpy import ndarray
 from src.player_control import PlayerControl
 from src.frame_mapper import FrameMapper
+from src.video_buffer import IVideoBuffer
+from src.buffer_left import VideoBufferLeft
+from src.buffer_right import VideoBufferRight
 from src.trash import Trash
 import ipdb
 
@@ -13,18 +17,20 @@ class FrameRemoveOrchestrator:
 
     def remove(self):
         player_control = self.player_control
-        swap_buffer = player_control.servant.is_task_complete()
-        frame_id, frame = player_control.remove_frame()
-        self.frame_mapper.remove(frame_id)
-        self.trash.move(frame_id, frame)
+        if isinstance(player_control.frame_id, int):
+            swap_buffer = player_control.servant.is_task_complete()
+            frame_id, frame = player_control.remove_frame()
+            print(f'frame_id {frame_id}')
+            self.frame_mapper.remove(frame_id)
+            self.trash.move(frame_id, frame)
 
-        # O swap do buffer deve ocorrer quando o frame a ser removido estiver em alguma das
-        # extremidades (inicio ou final do vídeo) e o buffer estiver na direção da extremidade
-        # em questão, pois ao remover tal frame, o servant passa a ficar vazio, e sua task deve,
-        # ser iniciada na proxima leitura, onde start_frame == end_frame, que no caso é igual ao
-        # primeiro frame_id no buffer master, assim ocorrendo um duplicação de frames.
-        if swap_buffer:
-            player_control.servant, player_control.master = player_control.master, player_control.servant
+            # O swap do buffer deve ocorrer quando o frame a ser removido estiver em alguma das
+            # extremidades (inicio ou final do vídeo) e o buffer estiver na direção da extremidade
+            # em questão, pois ao remover tal frame, o servant passa a ficar vazio, e sua task deve,
+            # ser iniciada na proxima leitura, onde start_frame == end_frame, que no caso é igual ao
+            # primeiro frame_id no buffer master, assim ocorrendo um duplicação de frames.
+            if swap_buffer:
+                player_control.servant, player_control.master = player_control.master, player_control.servant
 
 
 class FrameUndoOrchestrator:
@@ -33,9 +39,20 @@ class FrameUndoOrchestrator:
         self.frame_mapper = frame_mapper
         self.trash = trash
 
+    def _goto_frame(self, frame_id: int, player: PlayerControl, buffer: IVideoBuffer) -> None:
+        if isinstance(buffer, VideoBufferRight):
+            while frame_id > player.frame_id:
+                player.read()
+
     def undo(self):
-
-
+        ipdb.set_trace()
+        frame_id, frame = self.trash.undo()
+        if isinstance(frame, ndarray):
+            servant = self.player_control.servant
+            master = self.player_control.master
+            # if farme_id > servant._buffer[0]
+            self._goto_frame(frame_id, self.player_control, servant)
+            master
 
 
 class Command(ABC):
