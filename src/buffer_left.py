@@ -131,7 +131,8 @@ class VideoBufferLeft(IVideoBuffer):
             # Caso Especial onde idx = 1 com isso idx - 1 == 0, fazendo com que
             # end_frame == start_frame, com isso nenhum frame sera lido, nesse caso
             # precisamos tratar esse caso de modo diferente no método run
-            self.__special_case = frame_ids[idx]
+            if (idx - 1) == 0:
+                self.__special_case = frame_ids[idx]
         else:
             self.__set_end_frame = frame_ids[idx]
 
