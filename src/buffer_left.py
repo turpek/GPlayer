@@ -22,10 +22,12 @@ módulo da opencv, a mesma tem a seguinte estrutura:
 from cv2 import VideoCapture
 from numpy import ndarray
 from src.buffer import BufferLeft
+from src.custom_exceptions import VideoBufferError
 from src.frame_mapper import FrameMapper
 from src.reader import reader
 from src.video_buffer import IVideoBuffer
 from threading import Semaphore, Thread
+from loguru import logger
 import cv2
 import bisect
 
@@ -44,6 +46,7 @@ class VideoBufferLeft(IVideoBuffer):
                  name='buffer'):
 
         # Definições das variaveis que lidam com o Thread
+        logger.debug("iniciando a classe")
         self.cap = cap
         self._frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
         self.name = name
@@ -83,7 +86,7 @@ class VideoBufferLeft(IVideoBuffer):
 
         """
         if self._buffer.empty() or not isinstance(index, int):
-            return -1
+            return None
         return self._buffer[index]
 
     def __start(self) -> None:
@@ -94,6 +97,7 @@ class VideoBufferLeft(IVideoBuffer):
             None
         """
         if self.thread is None:
+            logger.debug('iniciando a Thread')
             args = (self.cap, self._buffer)
             self.thread = Thread(target=reader, args=args)
             self.thread.start()
@@ -108,6 +112,7 @@ class VideoBufferLeft(IVideoBuffer):
         Returns:
             int
         """
+        logger.debug('calculo do VideoBufferLeft.__set_end_frame')
         frame_ids = self.__mapping.frame_ids
         temp_idx = bisect.bisect_left(frame_ids, frame_id)
         if (idx := temp_idx - self.buffersize) > 0:
@@ -132,9 +137,10 @@ class VideoBufferLeft(IVideoBuffer):
             # end_frame == start_frame, com isso nenhum frame sera lido, nesse caso
             # precisamos tratar esse caso de modo diferente no método run
             if (idx - 1) == 0:
+                logger.debug('setando a variável para o caso epsecial')
                 self.__special_case = frame_ids[idx]
         else:
-            self.__set_end_frame = frame_ids[idx]
+            self.__set_end_frame = frame_ids[idx - 1]
 
         return frame_id
 
@@ -195,20 +201,24 @@ class VideoBufferLeft(IVideoBuffer):
         Args:
             frame_id (int): id do frame a ser lido no próximo ciclo, ou seja, qu
         """
+        logger.debug(f"setando o frame de id '{frame_id}'")
         if not isinstance(frame_id, int):
+            logger.error('o frame_id deve ser um número inteiro')
             raise TypeError('frame_id must be an integer')
         elif frame_id < 0:
-            raise Exception('frame_id deve ser maior que 0.')
+            raise VideoBufferError(f"frame_id '{frame_id}' must be greater than 0.")
         self._set_frame = self.__calc_frame(frame_id)
         self._buffer.clear_buffer()
         self.__frame_id = None
 
     def end_frame(self) -> int:
+        logger.debug("obtendo o end_frame")
         if isinstance(self._set_frame, int):
             return self.__set_end_frame
         elif self._buffer.empty() is False:
             frame_ids = self.__mapping.frame_ids
             idx = bisect.bisect_left(frame_ids, self._buffer[-1]) - 1
+            logger.info(f'idx {idx} {frame_ids[idx]}')
             if idx < 0:
                 return frame_ids[0]
             else:
@@ -217,6 +227,7 @@ class VideoBufferLeft(IVideoBuffer):
             return self.__mapping[0]
 
     def start_frame(self) -> int:
+        logger.debug("obtendo o start_frame")
         if isinstance(self._set_frame, int):
             return self._set_frame
         elif self._buffer.empty() is False:
@@ -228,6 +239,7 @@ class VideoBufferLeft(IVideoBuffer):
 
     def run(self):
         if self.do_task():
+            logger.debug("tentativa de inicializar a task na thread")
             start_frame = self.start_frame()
             end_frame = self.end_frame()
 
@@ -262,6 +274,7 @@ class VideoBufferLeft(IVideoBuffer):
 
             # Removendo o frame_id ínvalido do caso especial!
             if isinstance(self.__special_case, int):
+                logger.debug("resetando a variável de controle para o caso especial")
                 self.__special_case = None
                 self._buffer.unqueue()
                 _ = self._buffer.get()
@@ -287,9 +300,12 @@ class VideoBufferLeft(IVideoBuffer):
             frame_id (int): frame_id do frame a ser colocado no buffer.
             frame (ndarray): frame a ser colocado no buffer.
         """
+        logger.debug(f"colocando '{frame_id}' no vbuffer")
         if self._buffer.empty() is False:
             if self._buffer[-1] > frame_id and len(self._buffer._primary) > 0:
-                raise Exception('inconsistencia na operação, onde frame_id é maior que o frame atual ')
+                raise VideoBufferError(f"Inconsistency in operation: 'frame_id' '{frame_id}' is less than the current frame.")
+            elif frame_id in self._buffer:
+                raise VideoBufferError(f"The frame_id '{frame_id}' is already present in VideoBufferLeft.")
 
         # O método put tem prioriade sobre o set, portanto devemos
         # setar ambos os atributos relacionados ao set como None.
@@ -310,9 +326,12 @@ class VideoBufferLeft(IVideoBuffer):
                 - (ndarray): retorno do frame se a leitura do frame for bem sucedida
                 - (None): retorna None caso a leitura tenha sido má sucedida
         """
+        logger.debug("VideoBufferLeft: iniciativa de obtenção do frame")
         self.run()
         self._buffer.unqueue()
         frame_id, frame = self._buffer.get()
         self.__frame_id = frame_id
+
+        logger.debug(f"VideoBufferLeft: frame de id '{frame_id}' lido com sucesso!")
         self.run()
         return frame_id, frame
