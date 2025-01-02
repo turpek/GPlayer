@@ -30,7 +30,11 @@ class FrameRemoveOrchestrator:
             # ser iniciada na proxima leitura, onde start_frame == end_frame, que no caso é igual ao
             # primeiro frame_id no buffer master, assim ocorrendo um duplicação de frames.
             if swap_buffer:
+                ipdb.set_trace()
                 player_control.servant, player_control.master = player_control.master, player_control.servant
+        else:
+            # Criar um erro personalizado aqui
+            ...
 
 
 class FrameUndoOrchestrator:
@@ -45,7 +49,6 @@ class FrameUndoOrchestrator:
                 player.read()
 
     def undo(self):
-        ipdb.set_trace()
         frame_id, frame = self.trash.undo()
         if isinstance(frame, ndarray):
             servant = self.player_control.servant
