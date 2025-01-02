@@ -343,7 +343,6 @@ def test_buffer_VideoBufferLeft_do_task_com_set_0(myvideo):
     expect = False
     myvideo.set(0)
     result = myvideo.do_task()
-    # ipdb.set_trace()
     assert result == expect
 
 
@@ -352,7 +351,6 @@ def test_buffer_VideoBufferLeft_do_task_com_set_1(myvideo):
     expect = True
     myvideo.set(1)
     result = myvideo.do_task()
-    # ipdb.set_trace()
     assert result == expect
 
 
@@ -598,3 +596,35 @@ def test_buffer_VideoBufferLeft_setando_o_buffer_com_frame_id_maior_que_o_maior_
             myvideo.set(frame_id)
     result = str(excinfo.value)
     assert result == expect
+
+
+# #################### TESTES EXTRAS PARA START_FRAME##################################
+
+@pytest.mark.parametrize('myvideo', [(list(range(20, 65)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_put_com_buffer_vazio(myvideo):
+    frame_id = 45
+    expect_start_frame = 20
+    expect_end_frame = frame_id - 1
+    myvideo.put(frame_id, np.zeros((2, 2)))
+    result_start_frame = myvideo.start_frame()
+    result_end_frame = myvideo.end_frame()
+    assert result_start_frame == expect_start_frame
+    assert result_end_frame == expect_end_frame
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(20, 65)), 25)], indirect=True)
+def test_buffer_VideoBufferLeft_com_buffer_vazio_apos_um_get(myvideo):
+    # Caso epecial que pode ocorrer no método get do VideoBufferLeft, quando tiramos o
+    # ultimo frame do _buffer, o mesmo fica vazio fazendo entrar no segundo run, que chama
+    # o método que não trata este caso adequadamente
+    frame_id = 45
+    expect_start_frame = 20
+    expect_end_frame = frame_id - 1
+
+    # Fica dificil de criar esse cenario usando os métodos put e get, então devemos colocar
+    # manualmente o valor no atributo __frame_id
+    myvideo._VideoBufferLeft__frame_id = frame_id
+    result_start_frame = myvideo.start_frame()
+    result_end_frame = myvideo.end_frame()
+    assert result_start_frame == expect_start_frame
+    assert result_end_frame == expect_end_frame

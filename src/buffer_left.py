@@ -223,8 +223,9 @@ class VideoBufferLeft(IVideoBuffer):
                 return frame_ids[0]
             else:
                 return frame_ids[idx]
-        else:
-            return self.__mapping[0]
+        elif isinstance(self.__frame_id, int) and self.__frame_id != self.__mapping[0]:
+            return self.__frame_id - 1
+        return self.__mapping[0]
 
     def start_frame(self) -> int:
         logger.debug("obtendo o start_frame")
