@@ -19,7 +19,6 @@ módulo da opencv, a mesma tem a seguinte estrutura:
 """
 
 
-from array import array
 from cv2 import VideoCapture
 from loguru import logger
 from numpy import ndarray
@@ -29,10 +28,9 @@ from src.reader import reader
 from src.video_buffer import IVideoBuffer
 from src.custom_exceptions import VideoBufferError
 from threading import Semaphore, Thread
-from time import sleep
 import bisect
 import cv2
-import ipdb
+# import ipdb
 
 
 class VideoBufferRight(IVideoBuffer):

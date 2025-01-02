@@ -137,7 +137,7 @@ class VideoBufferLeft(IVideoBuffer):
             # end_frame == start_frame, com isso nenhum frame sera lido, nesse caso
             # precisamos tratar esse caso de modo diferente no método run
             if (idx - 1) == 0:
-                logger.debug('setando a variável para o caso epsecial')
+                logger.debug('setando a variável para o caso especial')
                 self.__special_case = frame_ids[idx]
         else:
             self.__set_end_frame = frame_ids[idx - 1]
@@ -203,7 +203,6 @@ class VideoBufferLeft(IVideoBuffer):
         """
         logger.debug(f"setando o frame de id '{frame_id}'")
         if not isinstance(frame_id, int):
-            logger.error('o frame_id deve ser um número inteiro')
             raise TypeError('frame_id must be an integer')
         elif frame_id < 0:
             raise VideoBufferError(f"frame_id '{frame_id}' must be greater than 0.")
@@ -218,7 +217,6 @@ class VideoBufferLeft(IVideoBuffer):
         elif self._buffer.empty() is False:
             frame_ids = self.__mapping.frame_ids
             idx = bisect.bisect_left(frame_ids, self._buffer[-1]) - 1
-            logger.info(f'idx {idx} {frame_ids[idx]}')
             if idx < 0:
                 return frame_ids[0]
             else:
