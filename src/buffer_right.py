@@ -117,7 +117,7 @@ class VideoBufferRight(IVideoBuffer):
         try:
             frame_id = frame_ids[idx]
         except IndexError:
-            frame_id = frame_ids[-1]
+            raise IndexError('frame_id does not belong to the lot range.')
 
         # calculo para o metodo end_frame
         idx += self.buffersize
@@ -185,18 +185,23 @@ class VideoBufferRight(IVideoBuffer):
 
     def end_frame(self) -> int:
         logger.debug("obtendo o end_frame")
+        frame_ids = self.__mapping.frame_ids
         if isinstance(self._set_frame, int):
             return self._set_frame_end
         elif self._buffer.empty() is False:
-            frame_ids = self.__mapping.frame_ids
             idx = bisect.bisect_left(frame_ids, self._buffer[-1]) + self.buffersize
+            try:
+                return frame_ids[idx]
+            except IndexError:
+                return frame_ids[-1]
+        elif self._buffer.empty() and isinstance(self.__frame_id, int):
+            idx = bisect.bisect_left(frame_ids, self.__frame_id) + self.buffersize
             try:
                 return frame_ids[idx]
             except IndexError:
                 return frame_ids[-1]
         else:
             idx = self.buffersize
-            frame_ids = self.__mapping.frame_ids
             try:
                 return frame_ids[idx]
             except IndexError:
@@ -255,7 +260,7 @@ class VideoBufferRight(IVideoBuffer):
         if self._buffer.empty() is False:
             if self._buffer[0] < frame_id and self._buffer.empty() is False:
                 raise VideoBufferError(f"Inconsistency in operation: 'frame_id' '{frame_id}' is greater than the current frame.")
-            elif frame_id in self._buffer:
+            elif frame_id == self._buffer[0]:
                 raise VideoBufferError(f"The frame_id '{frame_id}' is already present in VideoBufferRight.")
 
         # O método put tem prioriade sobre o set, portanto devemos
@@ -265,7 +270,6 @@ class VideoBufferRight(IVideoBuffer):
 
         # O frame_id deve ser setado com None pois ...
         self.__frame_id = None
-        print('R ->', frame_id)
         self._buffer.put((frame_id, frame))
 
     def get(self) -> tuple[int, ndarray | None]:
