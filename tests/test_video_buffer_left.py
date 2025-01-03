@@ -525,21 +525,21 @@ def test_buffer_VideoBufferLeft_colocando_um_frame_id_menor_que_o_ultimo_frame_i
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_colocando_um_frame_id_igual_ao_primeiro_frame_id_do_buffer(myvideo):
+def test_buffer_VideoBufferLeft_colocando_um_frame_id_que_ja_esta_presente_no_buffer(myvideo):
     [myvideo.put(*frame) for frame in lote(10, 35, 1)]
 
-    frame_id = 34
-    expect = f"The frame_id '{frame_id}' is already present in VideoBufferLeft."
+    frame_id = 28
+    expect = f"Inconsistency in operation: 'frame_id' '{frame_id}' is less than the current frame."
     with raises(VideoBufferError) as excinfo:
         myvideo.put(frame_id, np.zeros((2, 2)))
     assert excinfo.value.message == expect
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
-def test_buffer_VideoBufferLeft_colocando_um_frame_id_que_ja_esta_presente_no_buffer(myvideo):
+def test_buffer_VideoBufferLeft_colocando_um_frame_id_igual_ao_primeiro_frame_id_do_buffer(myvideo):
     [myvideo.put(*frame) for frame in lote(10, 35, 1)]
 
-    frame_id = 28
+    frame_id = 34
     expect = f"The frame_id '{frame_id}' is already present in VideoBufferLeft."
     with raises(VideoBufferError) as excinfo:
         myvideo.put(frame_id, np.zeros((2, 2)))
@@ -616,7 +616,7 @@ def test_buffer_VideoBufferLeft_put_com_buffer_vazio(myvideo):
 def test_buffer_VideoBufferLeft_com_buffer_vazio_apos_um_get(myvideo):
     # Caso epecial que pode ocorrer no método get do VideoBufferLeft, quando tiramos o
     # ultimo frame do _buffer, o mesmo fica vazio fazendo entrar no segundo run, que chama
-    # o método que não trata este caso adequadamente
+    # o método `end_frame` que não trata este caso adequadamente
     frame_id = 45
     expect_start_frame = 20
     expect_end_frame = frame_id - 1

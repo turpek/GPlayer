@@ -37,6 +37,7 @@ class BufferLeft(Buffer):
 
 from abc import ABC, abstractmethod
 from collections import deque
+from loguru import logger
 from queue import Queue
 from src.channel import Channel1
 from time import sleep
@@ -67,8 +68,6 @@ class Buffer(ABC, Channel1):
         self._wait_task.put_nowait(True)
 
     def __getitem__(self, index: int) -> int:
-        if not isinstance(index, int):
-            raise TypeError(f'O método __getitem__ espera um `int`, mas recebeu um `{type(index)}`!')
         return self._primary[index][0]
 
     def __len__(self):
@@ -86,6 +85,7 @@ class Buffer(ABC, Channel1):
         Returns:
             None
         """
+        logger.debug('unloading the primary and secondary buffers')
         self.clear_queue()
         self._primary.clear()
 
@@ -97,12 +97,15 @@ class Buffer(ABC, Channel1):
             None
         """
 
+        logger.debug('starting process to clear secondary buffer')
         # Matamos a task antes de limpar a queue, para isso enviamos False
         if not self.task_is_done():
+            logger.debug('terminating the task in the thread')
             self.end_task.set()
 
         # Devemos descarregar o buffer secondary no primary antes de limpa-lo
         self.unqueue()
+        logger.debug('unloading the secondary buffer')
         while self.secondary_empty() is False:
             self._secondary.get_nowait()
 
@@ -160,6 +163,7 @@ class Buffer(ABC, Channel1):
         Returns:
             None
         """
+        logger.debug('setting synchronization and task control variables with threads')
         self.semaphore.acquire()
         self.task_is_done(False)
         self._wait_task.get()
@@ -173,6 +177,7 @@ class Buffer(ABC, Channel1):
         Returns:
             None
         """
+        logger.debug('unsetting synchronization and task control variables with threads')
         self.semaphore.release()
         self.task_is_done(True)
         self._wait_task.put(True)
@@ -195,6 +200,7 @@ class Buffer(ABC, Channel1):
         Returns:
             None
         """
+        logger.debug('synchronizing main thread')
         self.event.wait()
 
     def task_is_done(self, value: bool = None) -> bool:
@@ -207,6 +213,7 @@ class Buffer(ABC, Channel1):
         with self.lock:
             task_is_done = self.__task.get_nowait()
             if isinstance(value, bool):
+                logger.debug(f'setting task_is_done to {value}')
                 self.__task.put_nowait(value)
             else:
                 self.__task.put_nowait(task_is_done)
@@ -245,7 +252,7 @@ class Buffer(ABC, Channel1):
 
     def put(self, value: any) -> None:
         """
-        Coloca um valor no Buffer, risco de ficar bloqueada até que a task esteja concluida.
+        Coloca um valor no Buffer, sem risco de ficar bloqueada até que a task esteja concluida.
 
         Args:
             value (any): valor a ser armazenado no Buffer.
@@ -287,6 +294,7 @@ class BufferRight(Buffer):
         """
         self._wait_until_fill()
         if self.task_is_done() and self.empty():
+            logger.debug('unloading the primary buffer')
             while not self.secondary_empty():
                 value = self._secondary.get()
                 self._primary.append(value)
@@ -305,6 +313,7 @@ class BufferLeft(Buffer):
         """
         self._wait_until_fill()
         if self.task_is_done() and self.empty():
+            logger.debug('unloading the primary buffer')
             while not self.secondary_empty():
                 value = self._secondary.get()
                 self._primary.appendleft(value)

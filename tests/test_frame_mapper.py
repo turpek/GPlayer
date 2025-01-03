@@ -122,3 +122,12 @@ def test_FrameMapper_remove_frame_id(frame_map):
     frame_map.remove(2)
     result = 2 in frame_map
     assert result == expect
+
+
+@pytest.mark.parametrize('frame_map', [(list(range(10)), 10)], indirect=True)
+def test_FrameMapper_add_frame_id_ja_existente(frame_map):
+    frame_id = 5
+    expect = f'frame_id "{frame_id}" is already in the mapping'
+    with raises(InvalidFrameIdError) as excinfo:
+        frame_map.add(frame_id)
+    assert excinfo.value.message == expect

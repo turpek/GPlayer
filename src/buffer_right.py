@@ -30,7 +30,6 @@ from src.custom_exceptions import VideoBufferError
 from threading import Semaphore, Thread
 import bisect
 import cv2
-# import ipdb
 
 
 class VideoBufferRight(IVideoBuffer):
@@ -222,9 +221,7 @@ class VideoBufferRight(IVideoBuffer):
             logger.debug("tentativa de inicializar a task na thread")
             start_frame = self.start_frame()
             end_frame = self.end_frame()
-
-            if start_frame > end_frame:
-                raise VideoBufferError(f"Inconsistency in operation 'run': 'start_frame'={start_frame} is greater than 'end_frame'={end_frame}.")
+            logger.debug(f"start_frame set {start_frame}, end_frame set {end_frame}")
 
             mapping = self.__mapping.get_mapping()
             values = (start_frame, end_frame, mapping)
@@ -273,11 +270,11 @@ class VideoBufferRight(IVideoBuffer):
         self._buffer.put((frame_id, frame))
 
     def get(self) -> tuple[int, ndarray | None]:
-        logger.debug("VideoBufferLeft: iniciativa de obtenção do frame")
+        logger.debug("iniciativa de obtenção do frame")
         self.run()
         self._buffer.unqueue()
         frame_id, frame = self._buffer.get()
         self.__frame_id = frame_id
-        logger.debug(f"VideoBufferLeft: frame de id '{frame_id}' lido com sucesso!")
+        logger.debug(f"frame de id '{frame_id}' lido com sucesso!")
         self.run()
         return frame_id, frame

@@ -19,6 +19,7 @@ class Trash():
         self._state = None
         self.__caretaker = Caretaker()
         self.__originator = TrashOriginator(self._mapping)
+        self._history = list()
 
     def join(self):
         self._buffer.join()
@@ -41,10 +42,16 @@ class Trash():
             return None
         elif len(self._stack) == self._stack.maxlen:
             fid = self._stack.popleft()
+            print(self._dframes.keys())
             del self._dframes[fid]
             self.__memento_save(fid)
+
+        if frame_id in self._history:
+            # ipdb.set_trace()
+            ...
         self._stack.append(frame_id)
         self._dframes[frame_id] = frame
+        self._history.append(frame_id)
 
     def undo(self) -> tuple[int, ndarray] | None:
         bsize = self._stack.maxlen // 2
@@ -59,7 +66,6 @@ class Trash():
                 fid, frame = self._buffer.get()
                 self._mapping.remove(fid)
                 self._dframes[fid] = frame
-                print("Adicionado: ", fid)
         if not self.empty():
             frame_id = self._stack.pop()
             frame = self._dframes[frame_id]

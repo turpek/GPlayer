@@ -1,4 +1,5 @@
 from array import array
+from loguru import logger
 from numpy import ndarray
 from src.buffer_left import VideoBufferLeft
 from src.buffer_right import VideoBufferRight
@@ -54,6 +55,10 @@ class VideoCon:
         self._slave.join()
         self.__trash.join()
 
+    @property
+    def frame_id(self):
+        return self.__player.frame_id
+
     def set_mapping(self, frame_ids: list = None) -> None:
         """
         Define o mapping de frames que serão lidos e armazenados no buffer.
@@ -94,7 +99,7 @@ class VideoCon:
 
     def show(self, flag, frame):
         if flag is True:
-            print(self.__player.frame_id)
+            logger.info(f'exibindo o frame de id {self.__player.frame_id}')
             self._show(frame)
         return cv2.waitKeyEx(self.__player.delay)
 

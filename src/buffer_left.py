@@ -241,6 +241,7 @@ class VideoBufferLeft(IVideoBuffer):
             logger.debug("tentativa de inicializar a task na thread")
             start_frame = self.start_frame()
             end_frame = self.end_frame()
+            logger.debug(f"start_frame set {start_frame}, end_frame set {end_frame}")
 
             # O VideoBufferLeft é aberto para end_frame, então o 1o.
             # frame valído para end_frame seria o de índice 1, no caso
@@ -301,7 +302,7 @@ class VideoBufferLeft(IVideoBuffer):
         """
         logger.debug(f"colocando '{frame_id}' no vbuffer")
         if self._buffer.empty() is False:
-            if self._buffer[-1] > frame_id and len(self._buffer._primary) > 0:
+            if self._buffer[0] > frame_id and len(self._buffer._primary) > 0:
                 raise VideoBufferError(f"Inconsistency in operation: 'frame_id' '{frame_id}' is less than the current frame.")
             elif frame_id in self._buffer:
                 raise VideoBufferError(f"The frame_id '{frame_id}' is already present in VideoBufferLeft.")

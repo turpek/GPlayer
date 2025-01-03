@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from loguru import logger
 from numpy import ndarray
 from src.player_control import PlayerControl
 from src.frame_mapper import FrameMapper
@@ -20,9 +21,11 @@ class FrameRemoveOrchestrator:
         if isinstance(player_control.frame_id, int):
             swap_buffer = player_control.servant.is_task_complete()
             frame_id, frame = player_control.remove_frame()
+
             print(f'frame_id {frame_id}')
             self.frame_mapper.remove(frame_id)
             self.trash.move(frame_id, frame)
+            logger.debug(f'removido {frame_id}')
 
             # O swap do buffer deve ocorrer quando o frame a ser removido estiver em alguma das
             # extremidades (inicio ou final do vídeo) e o buffer estiver na direção da extremidade
@@ -30,7 +33,7 @@ class FrameRemoveOrchestrator:
             # ser iniciada na proxima leitura, onde start_frame == end_frame, que no caso é igual ao
             # primeiro frame_id no buffer master, assim ocorrendo um duplicação de frames.
             if swap_buffer:
-                ipdb.set_trace()
+                # ipdb.set_trace()
                 player_control.servant, player_control.master = player_control.master, player_control.servant
         else:
             # Criar um erro personalizado aqui

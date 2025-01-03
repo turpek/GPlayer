@@ -136,6 +136,8 @@ class FrameMapper:
             raise InvalidFrameIdError('frame_id must be less than frame_count')
         elif frame_id < 0:
             raise InvalidFrameIdError('frame_id must be greater than zero')
+        elif frame_id in self.__mapping:
+            raise InvalidFrameIdError(f'frame_id "{frame_id}" is already in the mapping')
         bisect.insort(self.__frame_ids, frame_id)
         self.__mapping.add(frame_id)
 
@@ -153,3 +155,7 @@ class FrameMapper:
         if frame_id in self.__mapping:
             del self.__frame_ids[bisect.bisect_left(self.__frame_ids, frame_id)]
             self.__mapping.remove(frame_id)
+        elif isinstance(frame_id, int):
+            # import ipdb
+            # ipdb.set_trace()
+            ...

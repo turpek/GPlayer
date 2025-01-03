@@ -17,6 +17,11 @@ def lote(start, end, step=1):
     return [(frame_id, np.zeros((2, 2))) for frame_id in range(start, end, step)]
 
 
+def setVideoBufferLeft(frame_id, buffer_left, buffer_right):
+    buffer_left.set(frame_id)
+    buffer_right.set(frame_id)
+
+
 @fixture
 def mycap():
     with patch('cv2.VideoCapture', return_value=MyVideoCapture()) as mock:
@@ -75,8 +80,11 @@ def orch_100(mycap, frame_count=100, buffersize=25, log=False):
     servant.join()
 
 
-def test_orchestrator_removendo_frame_0_sem_read(orch_100):
+# ####### Testes do FrameRemoveOrchestrator com servant VideoBufferRight como padrão ###### #
+
+def test_orchestrator_removendo_frame_0_com_servant_VideoBufferRight(orch_100):
     player, trash, mapping = orch_100
+    player.read()
     remov = FrameRemoveOrchestrator(*orch_100)
     remov.remove()
 
@@ -84,6 +92,198 @@ def test_orchestrator_removendo_frame_0_sem_read(orch_100):
     player.read()
     result_frame_id = player.frame_id
     assert expect_frame_id == result_frame_id
+
+
+def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferRight(orch_100):
+    player, trash, mapping = orch_100
+    player.servant.set(99)
+    player.master.set(99)
+    player.read()
+    remov = FrameRemoveOrchestrator(*orch_100)
+    remov.remove()
+
+    expect_frame_id = 98
+    expect_buffer = True
+    player.read()
+    result_frame_id = player.frame_id
+    assert expect_frame_id == result_frame_id
+    assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
+
+
+def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferRight(orch_100):
+    player, trash, mapping = orch_100
+    player.servant.set(50)
+    player.master.set(50)
+    player.read()
+    remov = FrameRemoveOrchestrator(*orch_100)
+    remov.remove()
+
+    expect_frame_id = 51
+    expect_buffer = False
+    player.read()
+    result_frame_id = player.frame_id
+    assert expect_frame_id == result_frame_id
+    assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
+
+
+def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_VideoBufferRight(orch_100):
+    player, trash, mapping = orch_100
+    remov = FrameRemoveOrchestrator(*orch_100)
+    player.servant.set(50)
+    player.master.set(50)
+    while not player.servant.is_task_complete():
+        player.read()
+        remov.remove()
+
+    expect_is_task_complete = True
+
+    # Aqui ocorre duas trocas de buffers, a primeira ao atingir a extremidade direita,
+    # a segunda ao atingir a extremidade da esquerda, portanto o buffer do final é o da direita
+    # por isso o expect_buffer deve ser falso
+    expect_buffer = False
+    player.read()
+    result_is_task_complet = player.servant.is_task_complete()
+    assert expect_is_task_complete == result_is_task_complet
+    assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
+
+
+def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_VideoBufferRight(orch_100):
+    player, trash, mapping = orch_100
+    remov = FrameRemoveOrchestrator(*orch_100)
+    while not player.servant.is_task_complete():
+        player.read()
+        remov.remove()
+
+    expect_is_task_complete = True
+    expect_buffer = True
+    player.read()
+    result_is_task_complet = player.servant.is_task_complete()
+    assert expect_is_task_complete == result_is_task_complet
+    assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
+
+
+# ####### Testes do FrameRemoveOrchestrator com servant VideoBufferRight como padrão ###### #
+
+def test_orchestrator_removendo_frame_0_com_servant_VideoBufferLeft(orch_100):
+    player, trash, mapping = orch_100
+    player.rewind()
+
+    player.servant.set(1)
+    player.master.set(1)
+    player.read()
+
+    remov = FrameRemoveOrchestrator(*orch_100)
+    remov.remove()
+
+    expect_frame_id = 1
+    player.read()
+    result_frame_id = player.frame_id
+    assert expect_frame_id == result_frame_id
+
+
+def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferLeft(orch_100):
+    player, trash, mapping = orch_100
+
+    player.servant.set(99)
+    player.master.set(99)
+    player.read()
+    player.rewind()
+
+    remov = FrameRemoveOrchestrator(*orch_100)
+    remov.remove()
+
+    expect_frame_id = 98
+    expect_buffer = True
+    player.read()
+    result_frame_id = player.frame_id
+    assert expect_frame_id == result_frame_id
+    assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
+
+
+def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferLeft(orch_100):
+    player, trash, mapping = orch_100
+
+    player.rewind()
+    player.servant.set(50)  # seta o frame_id 49
+    player.master.set(50)
+    player.read()
+
+    remov = FrameRemoveOrchestrator(*orch_100)
+    remov.remove()  # Remove o frame_id 49
+
+    expect_frame_id = 48
+    expect_buffer = False
+    player.read()
+    result_frame_id = player.frame_id
+    assert expect_frame_id == result_frame_id
+    assert expect_buffer is isinstance(player.servant, VideoBufferRight)
+
+
+def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_VideoBufferLeft(orch_100):
+    player, trash, mapping = orch_100
+    remov = FrameRemoveOrchestrator(*orch_100)
+
+    player.rewind()
+    player.servant.set(50)
+    player.master.set(50)
+
+    while not player.servant.is_task_complete():
+        player.read()
+        remov.remove()
+
+    expect_is_task_complete = True
+
+    # Aqui ocorre duas trocas de buffers, a primeira ao atingir a extremidade esquerda,
+    # a segunda ao atingir a extremidade da direita, portanto o buffer do final é o da esquerda
+    # por isso o expect_buffer deve ser falso
+    expect_buffer = False
+
+    player.read()
+    result_is_task_complet = player.servant.is_task_complete()
+
+    assert expect_is_task_complete == result_is_task_complet
+    assert expect_buffer is isinstance(player.servant, VideoBufferRight)
+
+
+def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_VideoBufferLeft(orch_100):
+    player, trash, mapping = orch_100
+    remov = FrameRemoveOrchestrator(*orch_100)
+
+    player.rewind()
+    while not player.servant.is_task_complete():
+        player.read()
+        remov.remove()
+
+    expect_is_task_complete = True
+    # expect_buffer = True
+
+    player.read()
+    result_is_task_complet = player.servant.is_task_complete()
+
+    assert expect_is_task_complete == result_is_task_complet
+    # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
+
+
+def test_orchestrator_removendo_todos_os_frames_desde_o_final_com_servant_VideoBufferLeft(orch_100):
+    player, trash, mapping = orch_100
+    remov = FrameRemoveOrchestrator(*orch_100)
+
+    player.servant.set(99)
+    player.master.set(99)
+    player.read()
+    player.rewind()
+
+    while not player.servant.is_task_complete():
+        remov.remove()
+        player.read()
+
+    expect_is_task_complete = True
+    # expect_buffer = True
+
+    result_is_task_complet = player.servant.is_task_complete()
+
+    assert expect_is_task_complete == result_is_task_complet
+    # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
 @pytest.mark.skip(reason='Criar os teste de exclusão primeiro')

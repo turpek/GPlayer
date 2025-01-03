@@ -25,7 +25,6 @@ class PlayerControl:
         Returns:
             None
         """
-        # if isinstance(self.__frame, ndarray) and not self.servant.is_task_complete():
         if isinstance(self.__frame, ndarray) and self.master[0] != self.frame_id:
             logger.debug(f'colentando o frame de id {self.frame_id}')
             self.master.put(self.frame_id, self.__frame)

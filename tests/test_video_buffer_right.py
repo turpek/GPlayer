@@ -1,6 +1,8 @@
-from pytest import fixture
 from src.buffer_right import VideoBufferRight
+from src.custom_exceptions import VideoBufferError
 from src.frame_mapper import FrameMapper
+from pytest import fixture
+from pytest import raises
 from threading import Semaphore
 from unittest.mock import patch
 
@@ -209,6 +211,14 @@ def test_buffer_VideoBufferRight_end_frame_buffer_nao_vazio_e_nao_linear_atingin
 def test_buffer_VideoBufferRight_end_frame_buffer_nao_vazio_e_nao_linear(myvideo):
     expect = 420
     [myvideo._buffer.put(frame) for frame in lote(385, 355, -7)]
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(0, 500, 1)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_buffer_vazio_e_com__freme_id_nao_none_index_error(myvideo):
+    expect = 499
+    myvideo._VideoBufferRight__frame_id = 490
     result = myvideo.end_frame()
     assert result == expect
 
@@ -507,4 +517,120 @@ def test_buffer_VideoBufferRight_colocando_manualmente_o_primeiro_frame_e_usando
     [myvideo.put(*frame) for frame in lote(0, 1, 1)]
     myvideo.get()
     result_end_frame = myvideo.end_frame()
+    assert result_end_frame == expect_end_frame
+
+
+# ##################### TESTANDO OS ERROS NO METODO PUT ########################## #
+
+@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_colocando_um_frame_id_maior_que_o_primeiro_frame_id_do_buffer(myvideo):
+    [myvideo.put(*frame) for frame in lote(35, 10, -1)]
+
+    frame_id = 12
+    expect = f"Inconsistency in operation: 'frame_id' '{frame_id}' is greater than the current frame."
+    with raises(VideoBufferError) as excinfo:
+        myvideo.put(frame_id, np.zeros((2, 2)))
+    assert excinfo.value.message == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_colocando_um_frame_id_que_ja_esta_presente_no_buffer(myvideo):
+    [myvideo.put(*frame) for frame in lote(30, 10, -1)]
+
+    frame_id = 34
+    expect = f"Inconsistency in operation: 'frame_id' '{frame_id}' is greater than the current frame."
+    with raises(VideoBufferError) as excinfo:
+        myvideo.put(frame_id, np.zeros((2, 2)))
+    assert excinfo.value.message == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_colocando_um_frame_id_igual_ao_primeiro_frame_id_do_buffer(myvideo):
+    [myvideo.put(*frame) for frame in lote(35, 10, -1)]
+
+    frame_id = 11
+    expect = f"The frame_id '{frame_id}' is already present in VideoBufferRight."
+    with raises(VideoBufferError) as excinfo:
+        myvideo.put(frame_id, np.zeros((2, 2)))
+    assert excinfo.value.message == expect
+
+
+# ##################### TESTANDO OS ERROS NO METODO SET ########################## #
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_setando_o_buffer_com_uma_string(myvideo):
+    [myvideo.put(*frame) for frame in lote(35, 10, -1)]
+
+    frame_id = '8'
+    expect = 'frame_id must be an integer.'
+    with raises(TypeError) as excinfo:
+        myvideo.set(frame_id)
+    result = str(excinfo.value)
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_setando_o_buffer_com_frame_id_menor_que_zero(myvideo):
+    [myvideo.put(*frame) for frame in lote(35, 10, -1)]
+
+    frame_id = -5
+    expect = f"frame_id '{frame_id}' must be greater than 0."
+    with raises(VideoBufferError) as excinfo:
+        myvideo.set(frame_id)
+    result = str(excinfo.value)
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_setando_o_buffer_com_frame_id_maior_que_o_maior_frame_id_no_buffer(myvideo):
+    [myvideo.put(*frame) for frame in lote(35, 10, -1)]
+
+    frame_id = 45
+    expect = 'frame_id does not belong to the lot range.'
+    with raises(IndexError) as excinfo:
+        myvideo.set(frame_id)
+    result = str(excinfo.value)
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(10, 60)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_setando_o_buffer_com_idx_do_set_end_frame_maior_que_o_indice_maximo_do_mapping(myvideo):
+    frame_id = 50
+    expect = 59
+    myvideo.buffersize = 60
+    myvideo.set(frame_id)
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+# #################### TESTES EXTRAS PARA START_FRAME##################################
+
+@pytest.mark.parametrize('myvideo', [(list(range(20, 65)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_put_com_buffer_vazio(myvideo):
+    frame_id = 30
+    expect_start_frame = 31
+    expect_end_frame = 55
+    myvideo.put(frame_id, np.zeros((2, 2)))
+    result_start_frame = myvideo.start_frame()
+    result_end_frame = myvideo.end_frame()
+    assert result_start_frame == expect_start_frame
+    assert result_end_frame == expect_end_frame
+
+
+@pytest.mark.parametrize('myvideo', [(list(range(20, 65)), 25)], indirect=True)
+def test_buffer_VideoBufferRight_com_buffer_vazio_apos_um_get(myvideo):
+    # Caso epecial que pode ocorrer no método get do VideoBufferRight, quando tiramos o
+    # ultimo frame do _buffer, o mesmo fica vazio fazendo entrar no segundo run, que chama
+    # o método `end_frame` que não trata este caso adequadamente
+    frame_id = 35
+    expect_start_frame = 36
+    expect_end_frame = 60
+
+    # Fica dificil de criar esse cenario usando os métodos put e get, então devemos colocar
+    # manualmente o valor no atributo __frame_id
+    myvideo._VideoBufferRight__frame_id = frame_id
+    result_start_frame = myvideo.start_frame()
+    result_end_frame = myvideo.end_frame()
+    assert result_start_frame == expect_start_frame
     assert result_end_frame == expect_end_frame
