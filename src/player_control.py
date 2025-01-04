@@ -144,7 +144,7 @@ class PlayerControl:
             self.frame_id = None
             return frame_id, frame
         elif not self.servant.is_task_complete():
-            frame, ret = self.read()
+            ret, frame = self.read()
             if ret is True:
                 return self.remove_frame()
         return None, None
