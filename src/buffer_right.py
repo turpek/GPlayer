@@ -84,7 +84,7 @@ class VideoBufferRight(IVideoBuffer):
 
         """
         if self._buffer.empty() or not isinstance(index, int):
-            return -1
+            return None
         return self._buffer[index]
 
     def __start(self) -> None:
@@ -116,6 +116,8 @@ class VideoBufferRight(IVideoBuffer):
         try:
             frame_id = frame_ids[idx]
         except IndexError:
+            # frame_id = self.__mapping.frame_id
+            # self.__frame_id = frame_id
             raise IndexError('frame_id does not belong to the lot range.')
 
         # calculo para o metodo end_frame
@@ -136,6 +138,8 @@ class VideoBufferRight(IVideoBuffer):
         """
         if self.__mapping.empty():
             return True
+        elif isinstance(self.__frame_id, int) and self.__frame_id > self.__mapping[-1]:
+            self.__frame_id = self.__mapping[-1]
         return self.__frame_id == self.__mapping[-1]
 
     def is_done(self) -> bool:
@@ -161,6 +165,9 @@ class VideoBufferRight(IVideoBuffer):
 
     def set_frame_id(self):
         ...
+
+    def _set_frame_id(self, frame_id, int) -> None:
+        self.__frame_id = frame_id
 
     def set(self, frame_id: int) -> None:
         """
@@ -277,4 +284,12 @@ class VideoBufferRight(IVideoBuffer):
         self.__frame_id = frame_id
         logger.debug(f"frame de id '{frame_id}' lido com sucesso!")
         self.run()
+
+        if isinstance(frame_id, int):
+            self.__mapping.set_frame_id(frame_id)
+
         return frame_id, frame
+
+    @property
+    def frame_id(self) -> int:
+        return self.__frame_id
