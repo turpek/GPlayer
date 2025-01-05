@@ -5,7 +5,6 @@ from collections import deque
 from src.memento import Caretaker, TrashOriginator
 from src.buffer_right import VideoBufferRight
 from numpy import ndarray
-import ipdb
 
 
 class Trash():
@@ -46,9 +45,6 @@ class Trash():
             del self._dframes[fid]
             self.__memento_save(fid)
 
-        if frame_id in self._history:
-            # ipdb.set_trace()
-            ...
         self._stack.append(frame_id)
         self._dframes[frame_id] = frame
         self._history.append(frame_id)

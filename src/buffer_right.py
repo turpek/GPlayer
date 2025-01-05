@@ -69,6 +69,9 @@ class VideoBufferRight(IVideoBuffer):
     def __len__(self):
         return len(self._buffer)
 
+    def __repr__(self):
+        return f'VideoBufferRight("{self.frame_id}")'
+
     def __getitem__(self, index: int) -> int:
         """
         Retorna os frame_id do buffer, caso o mesmo esteja vazio -1 é retornado.
@@ -116,8 +119,6 @@ class VideoBufferRight(IVideoBuffer):
         try:
             frame_id = frame_ids[idx]
         except IndexError:
-            # frame_id = self.__mapping.frame_id
-            # self.__frame_id = frame_id
             raise IndexError('frame_id does not belong to the lot range.')
 
         # calculo para o metodo end_frame

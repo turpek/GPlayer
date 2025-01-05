@@ -1,6 +1,5 @@
 from src.frame_mapper import FrameMapper
 from abc import ABC, abstractmethod
-from typing import Any
 from collections import deque
 
 
