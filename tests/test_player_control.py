@@ -68,8 +68,8 @@ def player(mycap, request):
     mapping = FrameMapper(lote, frame_count)
     semaphore = Semaphore()
     log = False
-    vbuffer_left = VideoBufferLeft(cap, mapping, semaphore, bufferlog=log, buffersize=buffersize)
     vbuffer_right = VideoBufferRight(cap, mapping, semaphore, bufferlog=log, buffersize=buffersize)
+    vbuffer_left = VideoBufferLeft(cap, mapping, semaphore, bufferlog=log, buffersize=buffersize)
     player_control = PlayerControl(vbuffer_right, vbuffer_left)
     yield player_control
 
@@ -667,3 +667,5 @@ def test_player_control_pause_delay3x_pausa(player):
     [player.pause_delay() for _ in range(3)]
     result = player.delay
     assert expect == result
+
+
