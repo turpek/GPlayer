@@ -10,6 +10,7 @@ class FrameMapper:
     def __init__(self, frame_ids: list[int], frame_count: int) -> None:
         self.__frame_count = None
         self.__frame_ids = None
+        self.__frame_id = None
         self.__mapping = None
         self.__set_mapping(frame_ids, frame_count)
 
@@ -159,3 +160,10 @@ class FrameMapper:
             # import ipdb
             # ipdb.set_trace()
             ...
+
+    def set_frame_id(self, frame_id: int) -> None:
+        self.__frame_id = frame_id
+
+    @property
+    def frame_id(self) -> None | int:
+        return self.__frame_id
