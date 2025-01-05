@@ -100,6 +100,7 @@ class VideoCon:
     def show(self, flag, frame):
         if flag is True:
             logger.info(f'exibindo o frame de id {self.__player.frame_id}')
+            logger.info(f'servo -> {self.__player.servant} | mestre -> {self.__player.master}')
             self._show(frame)
         return cv2.waitKeyEx(self.__player.delay)
 
