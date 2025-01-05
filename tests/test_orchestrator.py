@@ -405,3 +405,100 @@ def test_orchestrator_removendo_o_ultimo_frame_com_servant_buffer_left(orch_100)
     # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
+def test_player_control_simulando_o_bug_ao_remover_o_1o_frame(orch_100):
+
+    """
+    ### Descrição do Problema
+
+        <!-- Explique claramente o que está acontecendo. -->
+        Logo que abrimos ativamos o modo `pause_delay` , logo em seguida mudamos para o modo `rewind`,
+        removemos o 1o. f rame e apertamos `rewind` 2x seguidas, com isso o erro VideoBufferError:
+        Inconsistency in operation: 'frame_id' '25' is greater than the current frame é levantado.
+
+    ### Passos para Reproduzir (1)
+        1. Enquanto a janela do opencv carrega, apertamos a tecla de barra de espaço.
+        2. Apertamos a tecla "a" para entrar no modo `rewind`.
+        3. Apertamos a tacla "x" para remover o 1o. frame
+        4. Apertamos a tecla "a" 2x.
+
+    ### Passos para Reproduzir (2)
+
+        1. Enquanto a janela do opencv abre, apetamos a tecla de barra de espaço, para ativar o pause por delay
+        2. Apertamos o botão 'a' 2x para o modo `rewind`
+        3. Apertamos o botão 'd' para ativar o modo `proceed`
+        4. Apertamos o botão 'a' 2x novamente para o modo `rewind`
+
+    Para a simulação o passo 1. não é necessario, já que podemos controlar frame por frame, já o 2x rewind é
+    simulado por 1x rewind seguido de 2x read
+    """
+    player, trash, mapping = orch_100
+    remov = FrameRemoveOrchestrator(*orch_100)
+    expect = None
+
+    player.servant.run()
+    player.servant._buffer.wait_task()
+
+    player.read()
+    player.read()
+
+    player.rewind()
+    player.read()
+
+    remov.remove()
+    player.read()
+
+    player.rewind()
+    player.read()
+    player.read()
+
+    result = player.frame_id
+    assert expect == result
+
+
+def test_player_control_simulando_o_bug_ao_remover_o_1o_frame_versao_2(orch_100):
+
+    """
+    ### Descrição do Problema
+
+        <!-- Explique claramente o que está acontecendo. -->
+        Ao dar o pause_dalay e excluir o 1o frame o seguinte erro é levantado
+        "VideoBufferError: Inconsistency in operation: 'frame_id' '1' is less than the current frame."
+
+    ### Passos para Reproduzir
+
+        1. Enquanto a janela do opencv abre, aperto o botão para o `pause_delay` com a tecla barra de espaço
+        2. Logo em seguida aperto o 'd' 2x para mudar o modo para `rewind`
+        3. Aperto o 'a' 1x para mudar o modo para `proceed`
+        4. Aperto a tecla `x` para remover o 1o. frame
+        5. Aperto a tecla 'd' 1x para o modo `rewind`
+        6. Por último aperto 2x 'a' para o modo `proceed`
+
+    Para a simulação o passo 1. não é necessario, já que podemos controlar frame por frame, já o 2x rewind é
+    simulado por 1x rewind seguido de 2x read
+    """
+    player, trash, mapping = orch_100
+    remov = FrameRemoveOrchestrator(*orch_100)
+    expect = 2
+
+    player.servant.run()
+    player.servant._buffer.wait_task()
+
+    player.rewind()
+    player.read()
+    player.read()
+
+    player.proceed()
+    player.read()
+
+    remov.remove()
+    player.read()
+
+    player.rewind()
+    player.read()
+
+    player.proceed()
+    player.read()
+    player.read()
+
+    result = player.frame_id
+    assert expect == result
