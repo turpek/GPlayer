@@ -83,6 +83,45 @@ def myvideo_mapping(mycap, request):
     buffer.join()
 
 
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferRight_start_frame_sem_frames(myvideo):
+    expect = None
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_sem_frames(myvideo):
+    expect = None
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferRight__calc_frame_sem_frames(myvideo):
+    expect = None
+    result = myvideo._VideoBufferRight__calc_frame(5)
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferRight_get_com_o_buffer_vazio(myvideo):
+    expect = 'get from an empty buffer'
+    with raises(VideoBufferError) as excinfo:
+        myvideo.get()
+    result = f'{excinfo.value}'
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferRight_put_com_o_buffer_vazio(myvideo):
+    expect = 'frame_id does not belong to map'
+    with raises(VideoBufferError) as excinfo:
+        myvideo.put(5, np.zeros((2, 2)))
+    result = f'{excinfo.value}'
+    assert result == expect
+
+
 @pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
 def test_buffer_VideoBufferRight_start_frame_0(myvideo):
     expect = 0
@@ -522,7 +561,7 @@ def test_buffer_VideoBufferRight_colocando_manualmente_o_primeiro_frame_e_usando
 
 # ##################### TESTANDO OS ERROS NO METODO PUT ########################## #
 
-@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+@pytest.mark.parametrize('myvideo', [(list(range(10, 36)), 25)], indirect=True)
 def test_buffer_VideoBufferRight_colocando_um_frame_id_maior_que_o_primeiro_frame_id_do_buffer(myvideo):
     [myvideo.put(*frame) for frame in lote(35, 10, -1)]
 
@@ -533,7 +572,7 @@ def test_buffer_VideoBufferRight_colocando_um_frame_id_maior_que_o_primeiro_fram
     assert excinfo.value.message == expect
 
 
-@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+@pytest.mark.parametrize('myvideo', [(list(range(10, 36)), 25)], indirect=True)
 def test_buffer_VideoBufferRight_colocando_um_frame_id_que_ja_esta_presente_no_buffer(myvideo):
     [myvideo.put(*frame) for frame in lote(30, 10, -1)]
 
@@ -544,7 +583,7 @@ def test_buffer_VideoBufferRight_colocando_um_frame_id_que_ja_esta_presente_no_b
     assert excinfo.value.message == expect
 
 
-@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+@pytest.mark.parametrize('myvideo', [(list(range(10, 36)), 25)], indirect=True)
 def test_buffer_VideoBufferRight_colocando_um_frame_id_igual_ao_primeiro_frame_id_do_buffer(myvideo):
     [myvideo.put(*frame) for frame in lote(35, 10, -1)]
 
@@ -558,7 +597,7 @@ def test_buffer_VideoBufferRight_colocando_um_frame_id_igual_ao_primeiro_frame_i
 # ##################### TESTANDO OS ERROS NO METODO SET ########################## #
 
 
-@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+@pytest.mark.parametrize('myvideo', [(list(range(10, 36)), 25)], indirect=True)
 def test_buffer_VideoBufferRight_setando_o_buffer_com_uma_string(myvideo):
     [myvideo.put(*frame) for frame in lote(35, 10, -1)]
 
@@ -570,7 +609,7 @@ def test_buffer_VideoBufferRight_setando_o_buffer_com_uma_string(myvideo):
     assert result == expect
 
 
-@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+@pytest.mark.parametrize('myvideo', [(list(range(10, 36)), 25)], indirect=True)
 def test_buffer_VideoBufferRight_setando_o_buffer_com_frame_id_menor_que_zero(myvideo):
     [myvideo.put(*frame) for frame in lote(35, 10, -1)]
 
@@ -582,7 +621,7 @@ def test_buffer_VideoBufferRight_setando_o_buffer_com_frame_id_menor_que_zero(my
     assert result == expect
 
 
-@pytest.mark.parametrize('myvideo', [(list(range(10, 35)), 25)], indirect=True)
+@pytest.mark.parametrize('myvideo', [(list(range(10, 36)), 25)], indirect=True)
 def test_buffer_VideoBufferRight_setando_o_buffer_com_frame_id_maior_que_o_maior_frame_id_no_buffer(myvideo):
     [myvideo.put(*frame) for frame in lote(35, 10, -1)]
 
