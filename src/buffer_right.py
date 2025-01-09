@@ -103,7 +103,7 @@ class VideoBufferRight(IVideoBuffer):
             self.thread = Thread(target=reader, args=args)
             self.thread.start()
 
-    def __calc_frame(self, frame_id: int) -> int:
+    def __calc_frame(self, frame_id: int) -> int | None:
         """
         Calcula o start_fame dado um frame_id
 
@@ -111,9 +111,13 @@ class VideoBufferRight(IVideoBuffer):
             frame_id int: Identificador do frame.
 
         Returns:
-            int
+            int: Se o `FrameMapper` não estiver vazio
+            None: Se o `FrameMapper` estiver vazio
         """
         logger.debug('calculo do VideoBufferRight.__set_end_frame')
+        if self.__mapping.empty():
+            return None
+
         frame_ids = self.__mapping.frame_ids
         idx = bisect.bisect_left(frame_ids, frame_id)
         try:
@@ -190,8 +194,11 @@ class VideoBufferRight(IVideoBuffer):
         # self.__frame_id = self._set_frame
         self.__frame_id = None
 
-    def end_frame(self) -> int:
+    def end_frame(self) -> int | None:
         logger.debug("obtendo o end_frame")
+        if self.__mapping.empty():
+            return None
+
         frame_ids = self.__mapping.frame_ids
         if isinstance(self._set_frame, int):
             return self._set_frame_end
@@ -214,9 +221,11 @@ class VideoBufferRight(IVideoBuffer):
             except IndexError:
                 return frame_ids[-1]
 
-    def start_frame(self) -> int:
+    def start_frame(self) -> int | None:
         logger.debug("obtendo o start_frame")
-        if isinstance(self._set_frame, int):
+        if self.__mapping.empty():
+            return None
+        elif isinstance(self._set_frame, int):
             return self._set_frame
         elif self._buffer.empty() is False:
             return self.__calc_frame(self._buffer[-1] + 1)
@@ -262,7 +271,10 @@ class VideoBufferRight(IVideoBuffer):
                 frame (ndarray): frame a ser colocado no buffer.
         """
         logger.debug(f"colocando '{frame_id}' no vbuffer")
-        if self._buffer.empty() is False:
+
+        if frame_id not in self.__mapping:
+            raise VideoBufferError('frame_id does not belong to map')
+        elif self._buffer.empty() is False:
             if self._buffer[0] < frame_id and self._buffer.empty() is False:
                 raise VideoBufferError(f"Inconsistency in operation: 'frame_id' '{frame_id}' is greater than the current frame.")
             elif frame_id == self._buffer[0]:
