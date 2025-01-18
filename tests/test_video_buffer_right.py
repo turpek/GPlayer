@@ -83,6 +83,15 @@ def myvideo_mapping(mycap, request):
     buffer.join()
 
 
+# ################### Testes para o VideoBufferRight sem Frames ##################################333
+
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete(myvideo):
+    expect = True
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
 @pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
 def test_buffer_VideoBufferRight_start_frame_sem_frames(myvideo):
     expect = None
@@ -121,6 +130,75 @@ def test_buffer_VideoBufferRight_put_com_o_buffer_vazio(myvideo):
     result = f'{excinfo.value}'
     assert result == expect
 
+
+# ##################### Testes para  VideoBufferRight com 1 Frame ###########################
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_com_1_frame_sem_ler(myvideo):
+    expect = False
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_com_1_frame_com_leitura(myvideo):
+    expect = True
+    myvideo.get()
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferRight_start_frame_com_1_frame(myvideo):
+    expect = 0
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_com_1_frame(myvideo):
+    expect = 0
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferRight__calc_frame_com_1_frame(myvideo):
+    expect = 0
+    result = myvideo._VideoBufferRight__calc_frame(0)
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferRight__calc_frame_com_1_frame_com_get(myvideo):
+    expect = 'frame_id does not belong to the lot range.'
+    myvideo.get()
+
+    with raises(IndexError) as excinfo:
+        myvideo._VideoBufferRight__calc_frame(1)
+    result = f'{excinfo.value}'
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferRight_get_com_1_frame(myvideo):
+    expect = 0
+    myvideo.get()
+    result = myvideo.frame_id
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferRight_put_com_1_frame(myvideo):
+    expect = 1
+    myvideo._VideoBufferRight__mapping.add(1)
+    myvideo.put(1, np.zeros((2, 2)))
+    myvideo.get()
+    result = myvideo.frame_id
+    assert result == expect
+
+
+# ##################### Testes para  VideoBufferRight com 2 Frame ###########################
 
 @pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
 def test_buffer_VideoBufferRight_start_frame_0(myvideo):
