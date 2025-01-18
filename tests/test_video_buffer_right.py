@@ -262,6 +262,88 @@ def test_buffer_VideoBufferRight_put_com_2_frame(myvideo):
 
 
 # ##################### Testes para  VideoBufferRight com 3 Frame ###########################
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_com_3_frame_sem_ler(myvideo):
+    expect = False
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_com_3_frame_com_leitura(myvideo):
+    expect = False
+    myvideo.get()
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferRight_is_task_complete_com_3_frame_com_3_leitura(myvideo):
+    expect = True
+    [myvideo.get() for _ in range(3)]
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferRight_start_frame_com_3_frame(myvideo):
+    expect = 0
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferRight_end_frame_com_3_frame(myvideo):
+    expect = 2
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferRight__calc_frame_com_3_frame(myvideo):
+    expect = 0
+    result = myvideo._VideoBufferRight__calc_frame(0)
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferRight__calc_frame_com_3_frame_com_get(myvideo):
+    expect = 1
+    myvideo.get()
+
+    result = myvideo._VideoBufferRight__calc_frame(1)
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferRight_get_com_3_frame(myvideo):
+    expect = 0
+    myvideo.get()
+    result = myvideo.frame_id
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferRight_get_com_3_frame_e_3_get(myvideo):
+    expect = True
+    [myvideo.get() for _ in range(3)]
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2, 3], 5)], indirect=True)
+def test_buffer_VideoBufferRight_put_com_3_frame(myvideo):
+    expect = 3
+    myvideo.put(3, np.zeros((2, 2)))
+    myvideo.get()
+    result = myvideo.frame_id
+    assert result == expect
+
+
+# ##################### Testes diversos  ###########################
+
+
 @pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
 def test_buffer_VideoBufferRight_start_frame_0(myvideo):
     expect = 0
