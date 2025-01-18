@@ -310,7 +310,9 @@ class VideoBufferLeft(IVideoBuffer):
             frame (ndarray): frame a ser colocado no buffer.
         """
         logger.debug(f"colocando '{frame_id}' no vbuffer")
-        if self._buffer.empty() is False:
+        if frame_id not in self.__mapping:
+            raise VideoBufferError('frame_id does not belong to map')
+        elif self._buffer.empty() is False:
             if self._buffer[0] > frame_id and len(self._buffer._primary) > 0:
                 raise VideoBufferError(f"Inconsistency in operation: 'frame_id' '{frame_id}' is less than the current frame.")
             elif frame_id in self._buffer:
