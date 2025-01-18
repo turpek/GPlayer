@@ -105,17 +105,21 @@ class VideoBufferLeft(IVideoBuffer):
             self.thread = Thread(target=reader, args=args)
             self.thread.start()
 
-    def __calc_frame(self, frame_id: int) -> int:
+    def __calc_frame(self, frame_id: int) -> int | None:
         """
-        Calcula o start_frame dado um frame_id
+        Calcula o start_fame dado um frame_id
 
         Args:
             frame_id int: Identificador do frame.
 
         Returns:
-            int
+            int: Se o `FrameMapper` não estiver vazio
+            None: Se o `FrameMapper` estiver vazio
         """
         logger.debug('calculo do VideoBufferLeft.__set_end_frame')
+        if self.__mapping.empty():
+            return None
+
         frame_ids = self.__mapping.frame_ids
         temp_idx = bisect.bisect_left(frame_ids, frame_id)
         if (idx := temp_idx - self.buffersize) > 0:
