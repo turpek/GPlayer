@@ -40,7 +40,7 @@ from collections import deque
 from loguru import logger
 from queue import Queue
 from src.channel import Channel1
-from time import sleep
+from src.custom_exceptions import VideoBufferError
 from threading import Event, Lock, Semaphore
 
 
@@ -278,7 +278,10 @@ class Buffer(ABC, Channel1):
 
         # Desbloquando a task
         self.no_block_task(True)
-        return self._primary.popleft()
+        try:
+            return self._primary.popleft()
+        except IndexError:
+            raise VideoBufferError('get from an empty buffer')
 
 
 class BufferRight(Buffer):
