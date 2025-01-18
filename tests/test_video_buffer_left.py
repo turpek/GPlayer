@@ -85,6 +85,59 @@ def myvideo_mapping(mycap, request):
     buffer.join()
 
 
+# ################### Testes para o VideoBufferRight sem Frames ##################################333
+
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_is_task_complete(myvideo):
+    expect = True
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_start_frame_sem_frames(myvideo):
+    expect = None
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_end_frame_sem_frames(myvideo):
+    expect = None
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferLeft__calc_frame_sem_frames(myvideo):
+    expect = None
+    result = myvideo._VideoBufferLeft__calc_frame(5)
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_get_com_o_buffer_vazio(myvideo):
+    expect = 'get from an empty buffer'
+    with raises(VideoBufferError) as excinfo:
+        myvideo.get()
+    result = f'{excinfo.value}'
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_put_com_o_buffer_vazio(myvideo):
+    expect = 'frame_id does not belong to map'
+    import ipdb
+    ipdb.set_trace()
+    with raises(VideoBufferError) as excinfo:
+        myvideo.put(5, np.zeros((2, 2)))
+    result = f'{excinfo.value}'
+    assert result == expect
+
+
+# ##################### Testes para  VideoBufferRight com 1 Frame ###########################
+
+
 @pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
 def test_buffer_VideoBufferLeft_start_frame_0(myvideo):
     expect = 0
