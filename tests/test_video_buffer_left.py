@@ -311,6 +311,123 @@ def test_buffer_VideoBufferLeft_put_com_2_frame(myvideo):
 
 # ##################### Testes para  VideoBufferLeft com 3 Frame ###########################
 
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_is_task_complete_com_3_frame_sem_ler(myvideo):
+    expect = True
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_is_task_complete_com_3_frame_com_leitura_com_set(myvideo):
+    expect = False
+    myvideo.set(3)
+    myvideo.get()
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_is_task_complete_com_3_frame_com_3_leitura_com_set(myvideo):
+    expect = True
+    myvideo.set(3)
+    [myvideo.get() for _ in range(3)]
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_start_frame_com_3_frame_sem_set(myvideo):
+    expect = 0
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_start_frame_com_3_frame_com_set(myvideo):
+    expect = 0
+    myvideo.set(3)
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_end_frame_com_3_frame_sem_set(myvideo):
+    expect = 0
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_end_frame_com_3_frame_com_set(myvideo):
+    expect = 2
+    myvideo.set(3)
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft__calc_frame_com_3_frame_sem_set(myvideo):
+    expect = 0
+    result = myvideo._VideoBufferLeft__calc_frame(0)
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft__calc_frame_com_3_frame_com_set(myvideo):
+    expect = 0
+    myvideo.set(3)
+    result = myvideo._VideoBufferLeft__calc_frame(0)
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft__calc_frame_com_3_frame_com_get_sem_set(myvideo):
+    expect = "get from an empty buffer"
+    with raises(VideoBufferError) as excinfo:
+        myvideo.get()
+    result = f'{excinfo.value}'
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_get_com_3_frame_sem_set(myvideo):
+    expect = "get from an empty buffer"
+    with raises(VideoBufferError) as excinfo:
+        myvideo.get()
+    result = f'{excinfo.value}'
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_get_com_3_frame_com_set(myvideo):
+    expect = 2
+    myvideo.set(3)
+    myvideo.get()
+    result = myvideo.frame_id
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_get_com_3_frame_e_3_get_com_set(myvideo):
+    expect = True
+    myvideo.set(3)
+    [myvideo.get() for _ in range(3)]
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2, 3], 5)], indirect=True)
+@pytest.mark.skip(reason="pq sim")
+def test_buffer_VideoBufferLeft_put_com_3_frame(myvideo):
+    expect = 3
+    myvideo.put(3, np.zeros((2, 2)))
+    myvideo.get()
+    result = myvideo.frame_id
+    assert result == expect
+
+
+# ##################### Testes diversos  ###########################
 
 @pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
 def test_buffer_VideoBufferLeft_start_frame_0(myvideo):
