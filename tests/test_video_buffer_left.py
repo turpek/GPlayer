@@ -85,7 +85,7 @@ def myvideo_mapping(mycap, request):
     buffer.join()
 
 
-# ################### Testes para o VideoBufferRight sem Frames ##################################333
+# ################### Testes para o VideoBufferLeft sem Frames ##################################333
 
 @pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
 def test_buffer_VideoBufferLeft_is_task_complete(myvideo):
@@ -133,7 +133,76 @@ def test_buffer_VideoBufferLeft_put_com_o_buffer_vazio(myvideo):
     assert result == expect
 
 
-# ##################### Testes para  VideoBufferRight com 1 Frame ###########################
+# ##################### Testes para  VideoBufferLeft com 1 Frame ###########################
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_is_task_complete_com_1_frame_sem_ler(myvideo):
+    expect = True
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_is_task_complete_com_1_frame_com_leitura(myvideo):
+    # O VideoBufferLeft` foi construído de forma a não conseguir ler midias que tenham
+    # somente 1 frame
+
+    expect = "get from an empty buffer"
+    with raises(VideoBufferError) as excinfo:
+        myvideo.get()
+    result = f'{excinfo.value}'
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_start_frame_com_1_frame(myvideo):
+    expect = 0
+    result = myvideo.start_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_end_frame_com_1_frame(myvideo):
+    expect = 0
+    result = myvideo.end_frame()
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferLeft__calc_frame_com_1_frame(myvideo):
+    expect = 0
+    result = myvideo._VideoBufferLeft__calc_frame(0)
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_get_com_1_frame(myvideo):
+    expect = "get from an empty buffer"
+    with raises(VideoBufferError) as excinfo:
+        myvideo.get()
+    result = f'{excinfo.value}'
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_put_com_1_frame(myvideo):
+    expect = 1
+    myvideo.put(1, np.zeros((2, 2)))
+    myvideo.get()
+    result = myvideo.frame_id
+    assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_put_com_1_frame_e_lendo_tudo(myvideo):
+    expect = True
+    myvideo.put(1, np.zeros((2, 2)))
+    [myvideo.get() for _ in range(2)]
+    result = myvideo.is_task_complete()
+    assert result == expect
+
+
+# ##################### Testes para  VideoBufferLeft com 2 Frame ###########################
 
 
 @pytest.mark.parametrize('myvideo', [(list(range(200)), 5)], indirect=True)
@@ -300,6 +369,7 @@ def test_buffer_VideoBufferLeft_metodo_set_frame_com_lote_linear_penultimo_frame
     myvideo.set(198)
     result_start_frame = myvideo.start_frame()
     assert result_start_frame == expect_start_frame
+
 
 @pytest.mark.parametrize('myvideo', [(list(range(100)), 25)], indirect=True)
 def test_buffer_VideoBufferLeft_enchendo_o_buffer_manualmente(myvideo):
