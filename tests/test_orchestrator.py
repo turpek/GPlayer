@@ -2,7 +2,7 @@ from src.buffer_right import VideoBufferRight
 from src.buffer_left import VideoBufferLeft
 from src.frame_mapper import FrameMapper
 from src.player_control import PlayerControl
-from src.video_command import FrameUndoOrchestrator, FrameRemoveOrchestrator
+from src.video_command import FrameUndoOrchestrator, FrameRemoveOrchestrator, RewindCommand, ProceesCommand
 from src.trash import Trash
 from threading import Semaphore
 from pytest import fixture
@@ -10,7 +10,6 @@ from unittest.mock import patch
 import numpy as np
 import cv2
 import pytest
-import ipdb
 
 
 def lote(start, end, step=1):
@@ -65,6 +64,23 @@ class MyVideoCapture():
 
 
 @fixture
+def player(mycap, request):
+    lote, buffersize = request.param
+    cap = mycap.return_value
+    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    mapping = FrameMapper(lote, frame_count)
+    semaphore = Semaphore()
+    log = False
+    vbuffer_right = VideoBufferRight(cap, mapping, semaphore, bufferlog=log, buffersize=buffersize)
+    vbuffer_left = VideoBufferLeft(cap, mapping, semaphore, bufferlog=log, buffersize=buffersize)
+    player_control = PlayerControl(vbuffer_right, vbuffer_left)
+    yield player_control
+
+    vbuffer_left.join()
+    vbuffer_right.join()
+
+
+@fixture
 def orch_100(mycap, frame_count=100, buffersize=25, log=False):
     cap = mycap.return_value
     semaphore = Semaphore()
@@ -96,10 +112,82 @@ def orch_200(mycap, frame_count=200, buffersize=25, log=False):
     servant.join()
 
 
+# ######### Teste do RewindCommand Sem frames ###################################
+
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_RewindCommand_sem_frames(player):
+    RewindCommand(player)
+
+    expect = True
+    player.rewind()
+    result = isinstance(player.servant, VideoBufferLeft)
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_RewindCommand_sem_frames_com_read(player):
+    rewind = RewindCommand(player)
+
+    expect = False
+    rewind.executor()
+    result, _ = player.read()
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_RewindCommand_sem_frames_com_a_seguinte_sequencia_rewind_proceed_rewind(player):
+    rewind = RewindCommand(player)
+    procees = ProceesCommand(player)
+
+    expect = False
+    rewind.executor()
+    procees.executor()
+    rewind.executor()
+    result, _ = player.read()
+    assert expect == result
+
+
+# ######### Teste do RewindCommand com 1 frame #####################################
+
+"""
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_RewindCommand_sem_frames(player):
+    RewindCommand(player)
+
+    expect = True
+    player.rewind()
+    result = isinstance(player.servant, VideoBufferLeft)
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_RewindCommand_sem_frames_com_read(player):
+    rewind = RewindCommand(player)
+
+    expect = False
+    rewind.executor()
+    result, _ = player.read()
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_RewindCommand_sem_frames_com_a_seguinte_sequencia_rewind_proceed_rewind(player):
+    rewind = RewindCommand(player)
+    procees = ProceesCommand(player)
+
+    expect = False
+    rewind.executor()
+    procees.executor()
+    rewind.executor()
+    result, _ = player.read()
+    assert expect == result
+"""
+
+
 # ####### Testes do FrameRemoveOrchestrator com servant VideoBufferRight como padrão ###### #
 
 def test_orchestrator_removendo_frame_0_com_servant_VideoBufferRight(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     player.read()
     remov = FrameRemoveOrchestrator(*orch_100)
     remov.remove()
@@ -111,7 +199,7 @@ def test_orchestrator_removendo_frame_0_com_servant_VideoBufferRight(orch_100):
 
 
 def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferRight(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     player.servant.set(99)
     player.master.set(99)
     player.read()
@@ -127,7 +215,7 @@ def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferRight(orch_1
 
 
 def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferRight(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     player.servant.set(50)
     player.master.set(50)
     player.read()
@@ -143,7 +231,7 @@ def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferRight(orch_
 
 
 def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_VideoBufferRight(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
     player.servant.set(50)
     player.master.set(50)
@@ -164,7 +252,7 @@ def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_Video
 
 
 def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_VideoBufferRight(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
     while not player.servant.is_task_complete():
         player.read()
@@ -181,7 +269,7 @@ def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_V
 # ####### Testes do FrameRemoveOrchestrator com servant VideoBufferRight como padrão ###### #
 
 def test_orchestrator_removendo_frame_0_com_servant_VideoBufferLeft(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     player.rewind()
 
     player.servant.set(1)
@@ -198,7 +286,7 @@ def test_orchestrator_removendo_frame_0_com_servant_VideoBufferLeft(orch_100):
 
 
 def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferLeft(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
 
     player.servant.set(99)
     player.master.set(99)
@@ -217,7 +305,7 @@ def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferLeft(orch_10
 
 
 def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferLeft(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
 
     player.rewind()
     player.servant.set(50)  # seta o frame_id 49
@@ -236,7 +324,7 @@ def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferLeft(orch_1
 
 
 def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_VideoBufferLeft(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
 
     player.rewind()
@@ -262,7 +350,7 @@ def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_V
 
 
 def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_VideoBufferLeft(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
 
     player.rewind()
@@ -281,7 +369,7 @@ def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_Video
 
 
 def test_orchestrator_removendo_todos_os_frames_desde_o_final_com_servant_VideoBufferLeft(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
 
     player.servant.set(99)
@@ -303,7 +391,7 @@ def test_orchestrator_removendo_todos_os_frames_desde_o_final_com_servant_VideoB
 
 
 def test_orchestrator_removendo_o_primeiro_frame_com_servant_buffer_leftt_e_depois_rewind_e_read_novamente(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
 
     player.servant.set(1)
@@ -325,7 +413,7 @@ def test_orchestrator_removendo_o_primeiro_frame_com_servant_buffer_leftt_e_depo
 
 @pytest.mark.skip(reason='Criar os teste de exclusão primeiro')
 def test_orchestrator_restaurando_o_frame_com_os_dois_buffers_vazios_exclusao_linear_para_a_direita(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     orch = FrameUndoOrchestrator(*orch_100)
     remov = FrameRemoveOrchestrator(*orch_100)
 
@@ -342,7 +430,7 @@ def test_orchestrator_restaurando_o_frame_com_os_dois_buffers_vazios_exclusao_li
 
 @pytest.mark.skip(reason='Criar os teste de exclusão primeiro')
 def test_orchestrator_restaurando_o_frame_com_o_indice_no_buffer_primario_do_buffer_da_direita_e_VideoBufferRight_como_servant(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     orch = FrameUndoOrchestrator(*orch_100)
     remov = FrameRemoveOrchestrator(*orch_100)
 
@@ -363,7 +451,7 @@ def test_orchestrator_restaurando_o_frame_com_o_indice_no_buffer_primario_do_buf
 
 
 def test_orchestrator_removendo_o_ultimos_frame_e_depois_proceed_e_read_novamente(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
 
     player.servant.set(99)
@@ -384,7 +472,7 @@ def test_orchestrator_removendo_o_ultimos_frame_e_depois_proceed_e_read_novament
 
 
 def test_orchestrator_removendo_o_ultimo_frame_com_servant_buffer_left(orch_100):
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
 
     player.servant.set(99)
@@ -431,7 +519,7 @@ def test_player_control_simulando_o_bug_ao_remover_o_1o_frame(orch_100):
     Para a simulação o passo 1. não é necessario, já que podemos controlar frame por frame, já o 2x rewind é
     simulado por 1x rewind seguido de 2x read
     """
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
     expect = None
 
@@ -476,7 +564,7 @@ def test_player_control_simulando_o_bug_ao_remover_o_1o_frame_versao_2(orch_100)
     Para a simulação o passo 1. não é necessario, já que podemos controlar frame por frame, já o 2x rewind é
     simulado por 1x rewind seguido de 2x read
     """
-    player, trash, mapping = orch_100
+    player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
     expect = 2
 
@@ -500,5 +588,24 @@ def test_player_control_simulando_o_bug_ao_remover_o_1o_frame_versao_2(orch_100)
     player.read()
     player.read()
 
+    result = player.frame_id
+    assert expect == result
+
+
+def test_orchestrator_undo_recuperando_o_frame_do_50_com_servant_VideoBufferRight_no_frame_60(orch_100):
+    player, mapping, trash = orch_100
+    remov = FrameRemoveOrchestrator(*orch_100)
+    undo = FrameUndoOrchestrator(*orch_100)
+    expect = 50
+
+    # ipdb.set_trace()
+    player.servant.set(50)
+    player.master.set(50)
+    player.servant.run()
+    player.read()
+    remov.remove()
+    [player.read() for _ in range(10)]
+    undo.undo()
+    player.read()
     result = player.frame_id
     assert expect == result
