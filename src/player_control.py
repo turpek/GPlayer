@@ -14,6 +14,7 @@ class PlayerControl:
         self.__quit = False
         self.__paused = False
         self.__frame = None
+        self.__read = False
         self.__delay = 35
         self.__default_delay = 35
         self.old = None
@@ -67,7 +68,8 @@ class PlayerControl:
                 - O segundo valor é um `ndarray` representando o frame lido, ou `None` se a operação falhar.
         """
         self.collect_frame()
-        if self.servant.is_task_complete() or self.pause():
+        if self.servant.is_task_complete() or self.pause() or self.no_read():
+            # if self.servant.is_task_complete() or self.pause():
             return False, None
         return self.__opencv_format(*self.servant.get())
 
@@ -113,6 +115,15 @@ class PlayerControl:
     def quit(self) -> bool:
         return self.__quit
 
+    def set_read(self):
+        self.__read = False
+
+    def no_read(self):
+        read_flag = self.__read
+        if not self.__read:
+            self.__read = True
+        return read_flag and self.__delay == 0
+
     def increase_speed(self) -> None:
         if self.__delay > 1:
             self.__delay -= 1
@@ -128,9 +139,11 @@ class PlayerControl:
         if self.__delay == 0:
             logger.debug('unpause by delay')
             self.__delay = self.__default_delay
+            self.__read = False
         else:
             logger.debug('pause by delay')
             self.__delay = 0
+            self.__read = True
 
     @property
     def delay(self) -> int:
