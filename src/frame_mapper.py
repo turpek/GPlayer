@@ -27,7 +27,8 @@ class FrameMapper:
             int: retorna um inteiro se index for uma instancia de int
             array: retorna um array contendo os frame_ids, caso index seja uma instancia de slice
         """
-        return self.__frame_ids[index]
+        if len(self.__frame_ids) > 0:
+            return self.__frame_ids[index]
 
     def __contains__(self, frame_id: int) -> bool:
         """
