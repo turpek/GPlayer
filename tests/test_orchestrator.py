@@ -1,5 +1,6 @@
 from src.buffer_right import VideoBufferRight
 from src.buffer_left import VideoBufferLeft
+from src.custom_exceptions import VideoBufferError
 from src.frame_mapper import FrameMapper
 from src.player_control import PlayerControl
 from src.video_command import FrameUndoOrchestrator, FrameRemoveOrchestrator, RewindCommand, ProceesCommand
@@ -149,9 +150,8 @@ def test_RewindCommand_sem_frames_com_a_seguinte_sequencia_rewind_proceed_rewind
 
 # ######### Teste do RewindCommand com 1 frame #####################################
 
-"""
-@pytest.mark.parametrize('player', [([], 25)], indirect=True)
-def test_RewindCommand_sem_frames(player):
+@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
+def test_RewindCommand_com_1_frame(player):
     RewindCommand(player)
 
     expect = True
@@ -160,18 +160,17 @@ def test_RewindCommand_sem_frames(player):
     assert expect == result
 
 
-@pytest.mark.parametrize('player', [([], 25)], indirect=True)
-def test_RewindCommand_sem_frames_com_read(player):
+@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
+def test_RewindCommand_com_1_frame_com_read(player):
     rewind = RewindCommand(player)
-
     expect = False
     rewind.executor()
     result, _ = player.read()
     assert expect == result
 
 
-@pytest.mark.parametrize('player', [([], 25)], indirect=True)
-def test_RewindCommand_sem_frames_com_a_seguinte_sequencia_rewind_proceed_rewind(player):
+@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
+def test_RewindCommand_com_1_frame_com_a_seguinte_sequencia_rewind_proceed_rewind(player):
     rewind = RewindCommand(player)
     procees = ProceesCommand(player)
 
@@ -181,7 +180,6 @@ def test_RewindCommand_sem_frames_com_a_seguinte_sequencia_rewind_proceed_rewind
     rewind.executor()
     result, _ = player.read()
     assert expect == result
-"""
 
 
 # ####### Testes do FrameRemoveOrchestrator com servant VideoBufferRight como padrão ###### #
