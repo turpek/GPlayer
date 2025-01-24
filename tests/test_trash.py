@@ -149,7 +149,7 @@ def test_trash_com_11_frame_undo(trash):
     assert expect_frames_id == result_frames_id
 
 
-@pytest.mark.skip(reason='Devo implementar depois')
+# @pytest.mark.skip(reason='Devo implementar depois')
 def test_trash_com_20_frame_undo(trash):
     expect_frames_id = list(range(20, 0, -1))
     [trash.move(frame_id, frame) for frame_id, frame in lote(1, 21)]
