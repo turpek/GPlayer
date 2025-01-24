@@ -182,6 +182,57 @@ def test_RewindCommand_com_1_frame_com_a_seguinte_sequencia_rewind_proceed_rewin
     assert expect == result
 
 
+# ######### Teste do RewindCommand com 2 frame #####################################
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_RewindCommand_com_2_frames(player):
+    RewindCommand(player)
+
+    expect = True
+    player.rewind()
+    result = isinstance(player.servant, VideoBufferLeft)
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_RewindCommand_com_2_frames_com_read(player):
+    rewind = RewindCommand(player)
+    expect = False
+    rewind.executor()
+    result, _ = player.read()
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_RewindCommand_com_2_frames_com_a_seguinte_sequencia_rewind_proceed_rewind(player):
+    rewind = RewindCommand(player)
+    procees = ProceesCommand(player)
+
+    expect = False
+    rewind.executor()
+    procees.executor()
+    rewind.executor()
+    result, _ = player.read()
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_RewindCommand_com_2_frames_com_set_antes_do_executor(player):
+    rewind = RewindCommand(player)
+    procees = ProceesCommand(player)
+    player.servant.set(1)
+    player.master.set(1)
+
+    expect = True
+    rewind.executor()
+    procees.executor()
+    rewind.executor()
+    result, _ = player.read()
+    import ipdb
+    ipdb.set_trace()
+    assert expect == result
+
+
 # ####### Testes do FrameRemoveOrchestrator com servant VideoBufferRight como padrão ###### #
 
 def test_orchestrator_removendo_frame_0_com_servant_VideoBufferRight(orch_100):
