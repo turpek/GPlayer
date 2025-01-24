@@ -1,3 +1,4 @@
+from src.custom_exceptions import VideoBufferError
 from src.player_control import PlayerControl
 from src.buffer_left import VideoBufferLeft
 from src.buffer_right import VideoBufferRight
@@ -78,7 +79,7 @@ def player(mycap, request):
 
 
 @pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
-def test_player_read_com_buffer_right_e_left_vazios_servant_right_no_primeiro_framet(player):
+def test_player_read_com_buffer_right_e_left_vazios_servant_right_no_primeiro_frame(player):
     expect = 0
     player.read()
     result = player.frame_id
@@ -669,3 +670,19 @@ def test_player_control_pause_delay3x_pausa(player):
     assert expect == result
 
 
+# ######### Testes para o rewind sem frames ##############################
+
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_player_control_rewind_sem_frames(player):
+    expect = True
+    player.rewind()
+    result = isinstance(player.servant, VideoBufferLeft)
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_player_control_rewind_sem_frames_com_read(player):
+    expect = False
+    player.rewind()
+    result, _ = player.read()
+    assert expect == result
