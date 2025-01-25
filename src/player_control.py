@@ -17,6 +17,7 @@ class PlayerControl:
         self.__read = False
         self.__delay = 35
         self.__default_delay = 35
+        self.__current_delay = self.__delay
         self.old = None
 
     def collect_frame(self) -> None:
@@ -138,10 +139,11 @@ class PlayerControl:
     def pause_delay(self) -> None:
         if self.__delay == 0:
             logger.debug('unpause by delay')
-            self.__delay = self.__default_delay
+            self.__delay = self.__current_delay
             self.__read = False
         else:
             logger.debug('pause by delay')
+            self.__current_delay = self.__delay
             self.__delay = 0
             self.__read = True
 
