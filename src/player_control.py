@@ -20,17 +20,34 @@ class PlayerControl:
         self.__current_delay = self.__delay
         self.old = None
 
-    def __speed(self) -> float | None:
+    def __speed(self, delay) -> float | None:
         """
         Método que calcula a velocidade de reprodução do vídeo para
-        delay diferente de 0
+        delay diferente de zero
 
         Returns:
-            float: Se o delay for maior que zero
-            None:  Se o delay for zero
+            float | None: Se o delay for maior que zero, None caso contrário
         """
-        if self.__delay > 0:
-            return self.__default_delay / self.__delay
+        if delay > 0:
+            return self.__default_delay / delay
+
+    def __adjust_delay(self, delta: int) -> int | None:
+        """
+        Ajusta o valor do delay.
+
+        Args:
+            delta (int): Valor a ser adicionado ao delay.
+
+        Returns:
+            int | None: Novo valor do delay, ou None se a alteração não for possível.
+        """
+        flag_delay = self.__delay != 0
+        if flag_delay is True and self.__delay + delta > 0:
+            self.__delay += delta
+            return self.__delay
+        elif flag_delay is False and self.__current_delay + delta > 0:
+            self.__current_delay += delta
+            return self.__current_delay
 
     def collect_frame(self) -> None:
         """
@@ -50,7 +67,7 @@ class PlayerControl:
         """
         Faz a converção para retornar o mesmo tipo que `cv2.VideoCapture.read`.
 
-        Arggs:
+        Args:
             frame (ndarray): o frame coletado.
             frame_id (int): indice do frame coletado.
 
@@ -138,13 +155,14 @@ class PlayerControl:
         return read_flag and self.__delay == 0
 
     def increase_speed(self) -> None:
-        if self.__delay > 1:
-            self.__delay -= 1
-            logger.info(f'speed {self.__speed():.2f}x {self.__delay}')
+        delay = self.__adjust_delay(-1)
+        if delay is not None:
+            logger.info(f'speed {self.__speed(delay):.2f}x {delay}')
 
     def decrease_speed(self) -> None:
-        self.__delay += 1
-        logger.info(f'speed {self.__speed():.2f}x {self.__delay}')
+        delay = self.__adjust_delay(+1)
+        if delay is not None:
+            logger.info(f'speed {self.__speed(delay):.2f}x {delay}')
 
     def pause_delay(self) -> None:
         if self.__delay == 0:
@@ -159,7 +177,7 @@ class PlayerControl:
 
     def restore_delay(self) -> None:
         self.__delay = self.__default_delay
-        logger.info(f'speed {self.__speed():.2f}x {self.__delay}')
+        logger.info(f'speed {self.__speed(self.__delay):.2f}x {self.__delay}')
 
     @property
     def delay(self) -> int:
