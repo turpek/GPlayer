@@ -121,6 +121,14 @@ class PauseDelayCommand(Command):
         self.receiver.pause_delay()
 
 
+class RestoreDelayCommand(Command):
+    def __init__(self, receiver: PlayerControl):
+        self.receiver = receiver
+
+    def executor(self) -> None:
+        self.receiver.restore_delay()
+
+
 class RemoveFrameCommand(Command):
     def __init__(self, receiver: FrameRemoveOrchestrator):
         self.receiver = receiver

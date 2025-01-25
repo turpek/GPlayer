@@ -20,6 +20,18 @@ class PlayerControl:
         self.__current_delay = self.__delay
         self.old = None
 
+    def __speed(self) -> float | None:
+        """
+        Método que calcula a velocidade de reprodução do vídeo para
+        delay diferente de 0
+
+        Returns:
+            float: Se o delay for maior que zero
+            None:  Se o delay for zero
+        """
+        if self.__delay > 0:
+            return self.__default_delay / self.__delay
+
     def collect_frame(self) -> None:
         """
         Método onde o `master` faz a coleta do trabalho do `servant`.
@@ -128,13 +140,11 @@ class PlayerControl:
     def increase_speed(self) -> None:
         if self.__delay > 1:
             self.__delay -= 1
-            speed = self.__default_delay / self.__delay
-            logger.info(f'velocidade {speed:.2f}x {self.__delay}')
+            logger.info(f'speed {self.__speed():.2f}x {self.__delay}')
 
     def decrease_speed(self) -> None:
         self.__delay += 1
-        speed = self.__default_delay / self.__delay
-        logger.info(f'velocidade {speed:.2f}x {self.__delay}')
+        logger.info(f'speed {self.__speed():.2f}x {self.__delay}')
 
     def pause_delay(self) -> None:
         if self.__delay == 0:
@@ -146,6 +156,10 @@ class PlayerControl:
             self.__current_delay = self.__delay
             self.__delay = 0
             self.__read = True
+
+    def restore_delay(self) -> None:
+        self.__delay = self.__default_delay
+        logger.info(f'speed {self.__speed():.2f}x {self.__delay}')
 
     @property
     def delay(self) -> int:

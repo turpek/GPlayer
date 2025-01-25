@@ -1,16 +1,27 @@
 from array import array
 from loguru import logger
-from numpy import ndarray
 from src.buffer_left import VideoBufferLeft
 from src.buffer_right import VideoBufferRight
 from src.frame_mapper import FrameMapper
 from src.player_control import PlayerControl
 from src.trash import Trash
-from src.video_command import Invoker, FrameRemoveOrchestrator
-from src.video_command import RemoveFrameCommand, RewindCommand, PauseCommand, ProceesCommand, QuitCommand
-from src.video_command import DecreaseSpeedCommand, IncreaseSpeedCommand, PauseDelayCommand
+from src.video_command import (
+    Invoker,
+    FrameRemoveOrchestrator,
+    FrameUndoOrchestrator,
+    DecreaseSpeedCommand,
+    IncreaseSpeedCommand,
+    PauseDelayCommand,
+    RemoveFrameCommand,
+    RestoreDelayCommand,
+    RewindCommand,
+    PauseCommand,
+    ProceesCommand,
+    QuitCommand,
+    UndoFrameCommand
+)
 from pathlib3x import Path
-from time import sleep, time, perf_counter
+from time import sleep
 from threading import Semaphore
 import cv2
 
@@ -106,6 +117,7 @@ class VideoCon:
 
     def set_commands(self, player: PlayerControl, frame_mapper: FrameMapper, trash: Trash) -> None:
         frame_orchestrator = FrameRemoveOrchestrator(player, frame_mapper, trash)
+        frame_undo = FrameUndoOrchestrator(player, frame_mapper, trash)
         command = self.command
         command.set_command(ord('p'), PauseCommand(player))
         command.set_command(ord('q'), QuitCommand(player))
@@ -114,7 +126,9 @@ class VideoCon:
         command.set_command(ord(']'), IncreaseSpeedCommand(player))
         command.set_command(ord('['), DecreaseSpeedCommand(player))
         command.set_command(ord(' '), PauseDelayCommand(player))
+        command.set_command(ord('='), RestoreDelayCommand(player))
         command.set_command(ord('x'), RemoveFrameCommand(frame_orchestrator))
+        command.set_command(ord('u'), UndoFrameCommand(frame_undo))
 
     def control(self, key):
         self.command.executor_command(key)
