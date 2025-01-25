@@ -176,8 +176,12 @@ class PlayerControl:
             self.__read = True
 
     def restore_delay(self) -> None:
-        self.__delay = self.__default_delay
-        logger.info(f'speed {self.__speed(self.__delay):.2f}x {self.__delay}')
+        delay = self.__default_delay
+        logger.info(f'speed {self.__speed(delay):.2f}x {delay}')
+        if self.__delay > 0:
+            self.__delay = self.__default_delay
+        else:
+            self.__current_delay = self.__default_delay
 
     @property
     def delay(self) -> int:
