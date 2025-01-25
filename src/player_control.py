@@ -42,10 +42,10 @@ class PlayerControl:
             int | None: Novo valor do delay, ou None se a alteração não for possível.
         """
         flag_delay = self.__delay != 0
-        if flag_delay is True and self.__delay + delta > 0:
+        if flag_delay and self.__delay + delta > 0:
             self.__delay += delta
             return self.__delay
-        elif flag_delay is False and self.__current_delay + delta > 0:
+        elif not flag_delay and self.__current_delay + delta > 0:
             self.__current_delay += delta
             return self.__current_delay
 
