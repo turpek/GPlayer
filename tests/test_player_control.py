@@ -686,3 +686,107 @@ def test_player_control_rewind_sem_frames_com_read(player):
     player.rewind()
     result, _ = player.read()
     assert expect == result
+
+
+# ######### Testes para o restore delay ##############################
+
+@pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
+def test_player_control_restore_delay_com_o_valor_padrao(player):
+    expect = player._PlayerControl__default_delay
+    player.restore_delay()
+    result = player.delay
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
+def test_player_control_restore_delay_com_o_pause_delay_ativado(player):
+    expect_delay = 0
+    expect_current_delay = player.current_delay
+    player.pause_delay()
+    player.restore_delay()
+    result_delay = player.delay
+
+    result_current_delay = player.current_delay
+    assert expect_delay == result_delay
+    assert expect_current_delay == result_current_delay
+
+
+@pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
+def test_player_control_restore_delay_antes_de_desativar_o_pause_delay(player):
+    expect_delay = player._PlayerControl__default_delay
+    player.pause_delay()
+    player.restore_delay()
+    player.pause_delay()
+    result_delay = player.delay
+
+    assert expect_delay == result_delay
+
+
+@pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
+def test_player_control_restore_delay_com_increase_delay(player):
+    expect_delay = player._PlayerControl__default_delay
+    [player.increase_speed() for _ in range(10)]
+    player.restore_delay()
+    result_delay = player.delay
+
+    assert expect_delay == result_delay
+
+
+@pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
+def test_player_control_restore_delay_com_decrease_delay(player):
+    expect_delay = player._PlayerControl__default_delay
+    [player.decrease_speed() for _ in range(10)]
+    player.restore_delay()
+    result_delay = player.delay
+
+    assert expect_delay == result_delay
+
+
+@pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
+def test_player_control_restore_delay_com_increase_delay_e_pause_delay_ativado(player):
+    [player.increase_speed() for _ in range(10)]
+    player.pause_delay()
+
+    expect_delay = 0
+    player.restore_delay()
+    result_delay = player.delay
+
+    assert expect_delay == result_delay
+
+
+@pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
+def test_player_control_restore_delay_com_increase_delay_e_desativando_o_pause_delay(player):
+    [player.increase_speed() for _ in range(10)]
+    player.pause_delay()
+
+    expect_delay = player._PlayerControl__default_delay
+    player.restore_delay()
+    player.pause_delay()
+    result_delay = player.delay
+
+    assert expect_delay == result_delay
+
+
+@pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
+def test_player_control_restore_delay_com_decrease_delay_e_pause_delay_ativado(player):
+    [player.decrease_speed() for _ in range(10)]
+    player.pause_delay()
+
+    expect_delay = 0
+    player.restore_delay()
+    result_delay = player.delay
+
+    assert expect_delay == result_delay
+
+
+@pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
+def test_player_control_restore_delay_com_decrease_delay_e_desativando_o_pause_delay(player):
+    [player.decrease_speed() for _ in range(10)]
+    player.pause_delay()
+
+    expect_delay = player._PlayerControl__default_delay
+    player.restore_delay()
+    player.pause_delay()
+    result_delay = player.delay
+
+    assert expect_delay == result_delay
