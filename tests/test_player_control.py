@@ -368,6 +368,15 @@ def test_player_decrease_speed_DefaultDelayx_mais_1(player):
     assert expect == result
 
 
+# ########## Testes para a remoção de frames ############################3
+
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_player_control_remove_frame_sem_frame(player):
+    expect = None
+    result, _ = player.remove_frame()
+    assert expect == result
+
+
 @pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
 def test_player_control_remove_frame_com_os_buffers_vazios_com_servant_buffer_right(player):
     expect = 0
