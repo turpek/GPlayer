@@ -348,6 +348,8 @@ def test_RewindCommand_com_3_frames_com_set_antes_do_executor_com_3_read(player)
 
 # ####### Testes do FrameRemoveOrchestrator com servant VideoBufferRight como padrão ###### #
 
+# ####### Teste para o FrameMapper vazio ####################################
+
 #  lote, buffersize, frame_count, log = request.param
 @pytest.mark.parametrize('orch', [([], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_frame_mapper_vazio(orch):
@@ -361,6 +363,8 @@ def test_orchestrator_removendo_frame_com_frame_mapper_vazio(orch):
     result_frame_id = player.frame_id
     assert expect_frame_id == result_frame_id
 
+
+# ####### Teste para o FrameMapper com 1 frame ####################################
 
 @pytest.mark.parametrize('orch', [([0], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_1_frame_no_frame_mapper(orch):
@@ -398,6 +402,8 @@ def test_orchestrator_removendo_frame_com_1_frame_no_frame_mapper_com_rewind(orc
     assert expect_frame_id == result_frame_id
     assert expect_VideoBufferLeft_servant == result_VideoBufferLeft
 
+
+# ####### Teste para o FrameMapper com 2 frames ####################################
 
 @pytest.mark.parametrize('orch', [([0, 1], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper(orch):
@@ -466,6 +472,234 @@ def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper_removendo_2x_c
 
     expect_frame_id = None
     expect_servant = False
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_servant = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_servant == result_servant
+
+
+# ####### Teste para o FrameMapper com 3 frames ####################################
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    player.read()
+    remov.remove()
+
+    expect_frame_id = 1
+    expect_VideoBufferLeft_servant = True
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_VideoBufferRight = isinstance(player.servant, VideoBufferRight)
+    assert expect_frame_id == result_frame_id
+    assert expect_VideoBufferLeft_servant == result_VideoBufferRight
+
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_2x(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    for _ in range(2):
+        player.read()
+        remov.remove()
+
+    expect_frame_id = 2
+    expect_servant = False
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_servant = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_servant == result_servant
+
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_3x(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    for _ in range(3):
+        player.read()
+        remov.remove()
+
+    expect_frame_id = None
+    expect_servant = True
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_servant = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_servant == result_servant
+
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_1x_com_rewind(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    [player.read() for _ in range(4)]
+    player.rewind()
+
+    player.read()
+    remov.remove()
+
+    expect_frame_id = 1
+    expect_servant = True
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_servant = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_servant == result_servant
+
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_2x_com_rewind(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    [player.read() for _ in range(4)]
+    player.rewind()
+    for _ in range(2):
+        player.read()
+        remov.remove()
+
+    expect_frame_id = 0
+    expect_servant = True
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_servant = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_servant == result_servant
+
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_3x_com_rewind(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    [player.read() for _ in range(4)]
+    player.rewind()
+    for _ in range(3):
+        player.read()
+        remov.remove()
+
+    expect_frame_id = None
+    expect_servant = False
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_servant = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_servant == result_servant
+
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_1x(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    [player.read() for _ in range(2)]
+    remov.remove()
+
+    expect_frame_id = 2
+    expect_servant = False
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_servant = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_servant == result_servant
+
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_2x(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    player.read()
+    for _ in range(2):
+        player.read()
+        remov.remove()
+
+    expect_frame_id = 0
+    expect_servant = True
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_servant = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_servant == result_servant
+
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_3x(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    player.read()
+    for _ in range(3):
+        player.read()
+        remov.remove()
+
+    expect_frame_id = None
+    expect_servant = False
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_servant = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_servant == result_servant
+
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_1x_com_rewind(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    [player.read() for _ in range(2)]
+    player.rewind()
+    remov.remove()
+
+    expect_frame_id = 0
+    expect_servant = True
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_servant = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_servant == result_servant
+
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_2x_com_rewind(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    [player.read() for _ in range(2)]
+    player.rewind()
+    for _ in range(2):
+        player.read()
+        remov.remove()
+
+    expect_frame_id = 2
+    expect_servant = False
+
+    player.read()
+    result_frame_id = player.frame_id
+    result_servant = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_servant == result_servant
+
+
+@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_3x_com_rewind(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    [player.read() for _ in range(2)]
+    player.rewind()
+    for _ in range(3):
+        player.read()
+        remov.remove()
+
+    expect_frame_id = None
+    expect_servant = True
 
     player.read()
     result_frame_id = player.frame_id
