@@ -348,10 +348,25 @@ def test_RewindCommand_com_3_frames_com_set_antes_do_executor_com_3_read(player)
 
 # ####### Testes do FrameRemoveOrchestrator com servant VideoBufferRight como padrão ###### #
 
-def test_orchestrator_removendo_frame_0_com_servant_VideoBufferRight(orch_100):
-    player, mapping, trash = orch_100
+#  lote, buffersize, frame_count, log = request.param
+@pytest.mark.parametrize('orch', [([], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_frame_mapper_vazio(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
     player.read()
-    remov = FrameRemoveOrchestrator(*orch_100)
+    remov.remove()
+
+    expect_frame_id = None
+    player.read()
+    result_frame_id = player.frame_id
+    assert expect_frame_id == result_frame_id
+
+
+@pytest.mark.parametrize('orch', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_0_com_servant_VideoBufferRight(orch):
+    player, mapping, trash = orch
+    player.read()
+    remov = FrameRemoveOrchestrator(*orch)
     remov.remove()
 
     expect_frame_id = 1
