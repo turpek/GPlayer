@@ -431,6 +431,51 @@ def test_player_control_remove_frame_com_2_frames_com_2x_read_removendo_2x_com_r
     assert expect_is_task_complete == result_is_task_complete
 
 
+# ########## Testes para a remoção de frames com o FrameMapper com 3 frames ############################
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_remove_frame_com_3_frames(player):
+    expect = 0
+    result, _ = player.remove_frame()
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_remove_frame_com_3_frames_com_1x_read(player):
+    expect = 0
+    player.read()
+    result, _ = player.remove_frame()
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_remove_frame_3_com_frames_com_3x_read(player):
+    expect = 2
+    [player.read() for _ in range(3)]
+    result, _ = player.remove_frame()
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_remove_frame_com_3_frames_com_3x_read_removendo_3x(player):
+    expect = [2, None, None]  # No RemoveFrameCommand é esperado remover [1, 0]
+    [player.read() for _ in range(3)]
+    result = [player.remove_frame()[0] for _ in range(3)]
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_remove_frame_com_3_frames_com_3x_read_removendo_3x_com_rewind(player):
+    expect = [2, 1, 0]
+    expect_is_task_complete = True
+    [player.read() for _ in range(3)]
+    player.rewind()
+    result = [player.remove_frame()[0] for _ in range(3)]
+    result_is_task_complete = player.servant.is_task_complete()
+    assert expect == result
+    assert expect_is_task_complete == result_is_task_complete
+
+
 @pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
 def test_player_control_remove_frame_com_os_buffers_vazios_com_servant_buffer_right(player):
     expect = 0
