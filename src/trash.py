@@ -57,6 +57,7 @@ class Trash():
                     break
                 self._memento_undo()
                 self._stack.appendleft(self.__originator.get_state())
+            self._buffer.set(self._mapping[0])
             self._buffer.run()
             while not self._buffer.is_task_complete():
                 fid, frame = self._buffer.get()
