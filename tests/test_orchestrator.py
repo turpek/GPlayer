@@ -604,7 +604,6 @@ def test_orchestrator_restaurando_o_frame_com_o_indice_no_buffer_primario_do_buf
     player.rewind()
     [player.read() for _ in range(16)]
     player.proceed()
-    # ipdb.set_trace()
 
     expect_frame_id = 15
     orch.undo()
@@ -760,7 +759,6 @@ def test_orchestrator_undo_recuperando_o_frame_do_50_com_servant_VideoBufferRigh
     undo = FrameUndoOrchestrator(*orch_100)
     expect = 50
 
-    # ipdb.set_trace()
     player.servant.set(50)
     player.master.set(50)
     player.servant.run()
