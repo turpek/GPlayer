@@ -11,6 +11,20 @@ def frame_map(request):
     yield FrameMapper(frame_id, frame_count)
 
 
+@pytest.mark.parametrize('frame_map', [([], 300)], indirect=True)
+def test_FrameMapper_com_lista_vazia_get_mapping(frame_map):
+    expect = set()
+    result = frame_map.get_mapping()
+    assert result == expect
+
+
+@pytest.mark.parametrize('frame_map', [([], 300)], indirect=True)
+def test_FrameMapper_com_lista_vazia__getitems__(frame_map):
+    expect = None
+    result = frame_map[0]
+    assert result == expect
+
+
 @pytest.mark.parametrize('frame_map', [(list(range(300)), 300)], indirect=True)
 def test_FrameMapper_com_lista_igual_ao_count_frame(frame_map):
     expect = set(range(300))
