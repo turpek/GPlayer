@@ -82,6 +82,23 @@ def player(mycap, request):
 
 
 @fixture
+def orch(mycap, request):
+    lote, buffersize, frame_count, log = request.param
+    cap = mycap.return_value
+    semaphore = Semaphore()
+
+    mapping = FrameMapper(lote, frame_count=frame_count)
+    master = VideoBufferLeft(cap, mapping, semaphore, buffersize=buffersize, bufferlog=log, name='left')
+    servant = VideoBufferRight(cap, mapping, semaphore, buffersize=buffersize, bufferlog=log, name='right')
+    player_control = PlayerControl(servant, master)
+    _trash = Trash(cap, semaphore, frame_count=frame_count, buffersize=5)
+    yield (player_control, mapping, _trash)
+    _trash.join()
+    master.join()
+    servant.join()
+
+
+@fixture
 def orch_100(mycap, frame_count=100, buffersize=25, log=False):
     cap = mycap.return_value
     semaphore = Semaphore()
