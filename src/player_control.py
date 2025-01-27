@@ -187,6 +187,10 @@ class PlayerControl:
     def delay(self) -> int:
         return self.__delay
 
+    @property
+    def current_delay(self) -> int:
+        return self.__current_delay
+
     def remove_frame(self) -> tuple[int | None, ndarray | None]:
         logger.debug(f'servo {self.servant}')
         if isinstance(self.__frame, ndarray) and not self.pause():
