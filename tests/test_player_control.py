@@ -384,6 +384,57 @@ def test_player_control_remove_frame_com_1_frame(player):
     assert expect == result
 
 
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_remove_frame_com_2_frames(player):
+    expect = 0
+    result, _ = player.remove_frame()
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_remove_frame_com_2_frames_com_1x_read(player):
+    expect = 0
+    player.read()
+    result, _ = player.remove_frame()
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_remove_frame_2_com_frames_com_2x_read(player):
+    expect = 1
+    [player.read() for _ in range(2)]
+    result, _ = player.remove_frame()
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_remove_frame_com_2_frames_com_2x_read(player):
+    expect = 1
+    [player.read() for _ in range(2)]
+    result, _ = player.remove_frame()
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_remove_frame_com_2_frames_com_2x_read_removendo_2x(player):
+    expect = [1, None]  # No RemoveFrameCommand é esperado remover [1, 0]
+    [player.read() for _ in range(2)]
+    result = [player.remove_frame()[0] for _ in range(2)]
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_remove_frame_com_2_frames_com_2x_read_removendo_2x_com_rewind(player):
+    expect = [1, 0]
+    expect_is_task_complete = True
+    [player.read() for _ in range(2)]
+    player.rewind()
+    result = [player.remove_frame()[0] for _ in range(2)]
+    result_is_task_complete = player.servant.is_task_complete()
+    assert expect == result
+    assert expect_is_task_complete == result_is_task_complete
+
+
 @pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
 def test_player_control_remove_frame_com_os_buffers_vazios_com_servant_buffer_right(player):
     expect = 0
