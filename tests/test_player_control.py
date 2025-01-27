@@ -368,7 +368,7 @@ def test_player_decrease_speed_DefaultDelayx_mais_1(player):
     assert expect == result
 
 
-# ########## Testes para a remoção de frames ############################3
+# ########## Testes para a remoção de frames com o FrameMapper vazio ############################
 
 @pytest.mark.parametrize('player', [([], 25)], indirect=True)
 def test_player_control_remove_frame_sem_frame(player):
@@ -377,12 +377,16 @@ def test_player_control_remove_frame_sem_frame(player):
     assert expect == result
 
 
+# ########## Testes para a remoção de frames com o FrameMapper com 1 frame ############################
+
 @pytest.mark.parametrize('player', [([0], 25)], indirect=True)
 def test_player_control_remove_frame_com_1_frame(player):
     expect = 0
     result, _ = player.remove_frame()
     assert expect == result
 
+
+# ########## Testes para a remoção de frames com o FrameMapper com 2 frames ############################
 
 @pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
 def test_player_control_remove_frame_com_2_frames(player):
@@ -395,14 +399,6 @@ def test_player_control_remove_frame_com_2_frames(player):
 def test_player_control_remove_frame_com_2_frames_com_1x_read(player):
     expect = 0
     player.read()
-    result, _ = player.remove_frame()
-    assert expect == result
-
-
-@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
-def test_player_control_remove_frame_2_com_frames_com_2x_read(player):
-    expect = 1
-    [player.read() for _ in range(2)]
     result, _ = player.remove_frame()
     assert expect == result
 
