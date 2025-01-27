@@ -362,6 +362,43 @@ def test_orchestrator_removendo_frame_com_frame_mapper_vazio(orch):
     assert expect_frame_id == result_frame_id
 
 
+@pytest.mark.parametrize('orch', [([0], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_1_frame_no_frame_mapper(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    player.read()
+    remov.remove()
+
+    expect_frame_id = None
+    expect_VideoBufferLeft_servant = True
+
+    # Como é o último frame deve ocorrer um swap entre os buffers
+    player.read()
+    result_frame_id = player.frame_id
+    result_VideoBufferLeft = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_VideoBufferLeft_servant == result_VideoBufferLeft
+
+
+@pytest.mark.parametrize('orch', [([0], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_1_frame_no_frame_mapper_com_rewind(orch):
+    player, mapping, trash = orch
+    remov = FrameRemoveOrchestrator(*orch)
+    player.read()
+    player.rewind()
+    remov.remove()
+
+    expect_frame_id = None
+    expect_VideoBufferLeft_servant = False
+
+    # Como é o último frame deve ocorrer um swap entre os buffers
+    player.read()
+    result_frame_id = player.frame_id
+    result_VideoBufferLeft = isinstance(player.servant, VideoBufferLeft)
+    assert expect_frame_id == result_frame_id
+    assert expect_VideoBufferLeft_servant == result_VideoBufferLeft
+
+
 @pytest.mark.parametrize('orch', [(list(range(100)), 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_0_com_servant_VideoBufferRight(orch):
     player, mapping, trash = orch
