@@ -140,6 +140,15 @@ class RemoveFrameCommand(Command):
         self.receiver.player_control.set_read()
 
 
+class UndoFrameCommand(Command):
+    def __init__(self, receiver: FrameUndoOrchestrator):
+        self.receiver = receiver
+
+    def executor(self) -> None:
+        self.receiver.undo()
+        self.receiver.player_control.set_read()
+
+
 class Invoker:
     def __init__(self):
         self.commands = {}
