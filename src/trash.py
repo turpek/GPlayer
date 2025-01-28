@@ -1,9 +1,10 @@
-from src.frame_mapper import FrameMapper
 from cv2 import VideoCapture
-from threading import Semaphore
 from collections import deque
-from src.memento import Caretaker, TrashOriginator
+from loguru import logger
 from src.buffer_right import VideoBufferRight
+from src.frame_mapper import FrameMapper
+from src.memento import Caretaker, TrashOriginator
+from threading import Semaphore
 from numpy import ndarray
 
 
@@ -51,6 +52,7 @@ class Trash():
 
     def undo(self) -> tuple[int, ndarray] | None:
         bsize = self._stack.maxlen // 2
+        logger.debug('iniciando a restauracao do frame')
         if len(self._stack) == bsize and not self.__caretaker.empty():
             for _ in range(bsize):
                 if self.__caretaker.empty():
