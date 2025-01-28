@@ -121,6 +121,7 @@ class PauseDelayCommand(Command):
 
     def executor(self) -> None:
         self.receiver.pause_delay()
+        self.receiver.disable_collect()
 
 
 class RestoreDelayCommand(Command):

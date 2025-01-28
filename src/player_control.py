@@ -15,6 +15,7 @@ class PlayerControl:
         self.__paused = False
         self.__frame = None
         self.__read = False
+        self.__is_collect = True
         self.__delay = 35
         self.__default_delay = 35
         self.__current_delay = self.__delay
@@ -49,6 +50,13 @@ class PlayerControl:
             self.__current_delay += delta
             return self.__current_delay
 
+    def __is_collect_frame(self) -> bool:
+        return (
+            self.is_collect() and
+            isinstance(self.__frame, ndarray) and
+            self.master[0] != self.frame_id
+        )
+
     def collect_frame(self) -> None:
         """
         Método onde o `master` faz a coleta do trabalho do `servant`.
@@ -56,7 +64,7 @@ class PlayerControl:
         Returns:
             None
         """
-        if isinstance(self.__frame, ndarray) and self.master[0] != self.frame_id:
+        if self.__is_collect_frame():
             logger.debug(f'colentando o frame de id {self.frame_id}')
             self.master.put(self.frame_id, self.__frame)
             if self.servant.is_task_complete():
@@ -145,8 +153,16 @@ class PlayerControl:
     def quit(self) -> bool:
         return self.__quit
 
-    def set_read(self):
+    def set_read(self) -> None:
         self.__read = False
+
+    def disable_collect(self) -> None:
+        self.__is_collect = False
+
+    def is_collect(self) -> bool:
+        result = self.__is_collect
+        self.__is_collect = True
+        return result
 
     def no_read(self):
         read_flag = self.__read
