@@ -79,6 +79,7 @@ class RewindCommand(Command):
 
     def executor(self) -> None:
         self.receiver.rewind()
+        self.receiver.set_read()
 
 
 class ProceesCommand(Command):
@@ -87,6 +88,7 @@ class ProceesCommand(Command):
 
     def executor(self) -> None:
         self.receiver.proceed()
+        self.receiver.set_read()
 
 
 class QuitCommand(Command):
@@ -135,6 +137,7 @@ class RemoveFrameCommand(Command):
 
     def executor(self) -> None:
         self.receiver.remove()
+        self.receiver.player_control.set_read()
 
 
 class Invoker:
