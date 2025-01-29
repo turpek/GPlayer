@@ -123,7 +123,7 @@ def test_trash_full(trash):
 
 
 def test_trash_vazio_com_undo(trash):
-    expect = None
+    expect = (None, None)
     result = trash.undo()
     assert expect == result
 
