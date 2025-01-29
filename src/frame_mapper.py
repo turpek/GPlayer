@@ -30,6 +30,12 @@ class FrameMapper:
         if len(self.__frame_ids) > 0:
             return self.__frame_ids[index]
 
+    def __len__(self) -> int:
+        """
+        Retorna o número de elementos contidos no mapping
+        """
+        return len(self.__frame_ids)
+
     def __contains__(self, frame_id: int) -> bool:
         """
         Verifica se um item está no `FrameMapper`.
