@@ -233,6 +233,17 @@ def test_buffer_VideoBufferLeft_is_task_complete_com_2_frame_com_leitura_com_set
 
 
 @pytest.mark.parametrize('myvideo', [([0, 1], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_is_task_complete_com_2_frame_com_leitura_com_set_no_primeiro_frame(myvideo):
+    expect = True
+    expect_frame_id = 0
+    myvideo.set(0)
+    result = myvideo.is_task_complete()
+    result_frame_id = myvideo.frame_id
+    assert result == expect
+    assert result_frame_id == expect_frame_id
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1], 5)], indirect=True)
 def test_buffer_VideoBufferLeft_start_frame_com_2_frame_sem_set(myvideo):
     expect = 0
     result = myvideo.start_frame()
