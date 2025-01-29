@@ -1,5 +1,5 @@
 from loguru import logger
-from numpy import ndarray
+from numpy import ndarray, zeros
 from src.buffer_left import VideoBufferLeft
 from src.buffer_right import VideoBufferRight
 from src.video_buffer import IVideoBuffer
@@ -56,6 +56,10 @@ class PlayerControl:
             isinstance(self.__frame, ndarray) and
             self.master[0] != self.frame_id
         )
+
+    def update_frame(self, frame_id: int, frame: ndarray) -> None:
+        self.frame_id = frame_id
+        self.__frame = frame
 
     def collect_frame(self) -> None:
         """
@@ -219,3 +223,18 @@ class PlayerControl:
             if ret is True:
                 return self.remove_frame()
         return None, None
+
+    def rapid_read(self):
+        if not self.servant.is_task_complete():
+            self.update_frame(*self.servant.read())
+
+    def set_frame(self, frame_id: int) -> None:
+        logger.debug(f'setting the frame for the frame_id {frame_id}')
+        self.servant.set(frame_id)
+        self.master.set(frame_id)
+
+    def restore_frame(self, frame_id: int, frame: ndarray) -> None:
+        logger.debug(f'starting frame restoration {frame_id}')
+        self.set_frame(frame_id)
+        self.servant.put(frame_id, frame)
+        self.update_frame(frame_id, frame)
