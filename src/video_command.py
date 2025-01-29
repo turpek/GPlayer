@@ -44,19 +44,14 @@ class FrameUndoOrchestrator:
         self.frame_mapper = frame_mapper
         self.trash = trash
 
-    def _goto_frame(self, frame_id: int, player: PlayerControl, buffer: IVideoBuffer) -> None:
-        if isinstance(buffer, VideoBufferRight):
-            while frame_id > player.frame_id:
-                player.read()
-
     def undo(self):
         frame_id, frame = self.trash.undo()
         if isinstance(frame, ndarray):
-            servant = self.player_control.servant
-            master = self.player_control.master
-            # if farme_id > servant._buffer[0]
-            self._goto_frame(frame_id, self.player_control, servant)
-            master
+            self.frame_mapper.add(frame_id)
+            self.player_control.restore_frame(frame_id, frame)
+            logger.info('frame {frame_id} restored')
+        else:
+            logger.info('unable to undo removal')
 
 
 class Command(ABC):
