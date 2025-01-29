@@ -69,5 +69,5 @@ class Trash():
             frame_id = self._stack.pop()
             frame = self._dframes[frame_id]
             del self._dframes[frame_id]
-            print('Undo: ', frame_id)
             return frame_id, frame
+        return None, None
