@@ -54,6 +54,7 @@ class VideoBufferLeft(IVideoBuffer):
         self._buffer = BufferLeft(semaphore, maxsize=buffersize, log=bufferlog)
 
         # Definições das variaveis responsavel pela criação do buffer
+        # self.__frame_id = frame_mapping[0]
         self.__frame_id = frame_mapping[0]
         self._set_frame = None
         self.__set_end_frame = None
@@ -217,7 +218,7 @@ class VideoBufferLeft(IVideoBuffer):
             raise VideoBufferError(f"frame_id '{frame_id}' must be greater than 0.")
         self._set_frame = self.__calc_frame(frame_id)
         self._buffer.clear_buffer()
-        self.__frame_id = None
+        self.__frame_id = frame_id if self.__mapping[0] == frame_id else None
 
     def end_frame(self) -> int:
         logger.debug("obtendo o end_frame")
