@@ -3,11 +3,7 @@ from loguru import logger
 from numpy import ndarray
 from src.player_control import PlayerControl
 from src.frame_mapper import FrameMapper
-from src.video_buffer import IVideoBuffer
-from src.buffer_left import VideoBufferLeft
-from src.buffer_right import VideoBufferRight
 from src.trash import Trash
-import ipdb
 
 
 class FrameRemoveOrchestrator:
