@@ -158,7 +158,7 @@ class VideoBufferLeft(IVideoBuffer):
         Returns:
             bool
         """
-        if self.__mapping.empty():
+        if len(self.__mapping) <= 1 and self._buffer.empty():
             return True
         elif isinstance(self.__frame_id, int) and self.__frame_id < self.__mapping[0]:
             self.__frame_id = self.__mapping[0]
