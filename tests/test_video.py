@@ -2,10 +2,8 @@ from array import array
 from pytest import fixture
 from src.video import VideoCon
 from unittest.mock import patch
-from time import sleep
 
 import cv2
-import ipdb
 import numpy as np
 import pytest
 

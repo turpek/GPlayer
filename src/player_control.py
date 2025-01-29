@@ -1,9 +1,8 @@
 from loguru import logger
-from numpy import ndarray, zeros
+from numpy import ndarray
 from src.buffer_left import VideoBufferLeft
 from src.buffer_right import VideoBufferRight
 from src.video_buffer import IVideoBuffer
-import ipdb
 
 
 class PlayerControl:

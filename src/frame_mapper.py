@@ -164,8 +164,6 @@ class FrameMapper:
             del self.__frame_ids[bisect.bisect_left(self.__frame_ids, frame_id)]
             self.__mapping.remove(frame_id)
         elif isinstance(frame_id, int):
-            # import ipdb
-            # ipdb.set_trace()
             ...
 
     def set_frame_id(self, frame_id: int) -> None:

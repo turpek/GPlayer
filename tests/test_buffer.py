@@ -3,7 +3,6 @@ from src.buffer import FakeBuffer as Buffer
 from threading import Semaphore, Thread
 from time import sleep
 import numpy as np
-import ipdb
 
 
 @fixture

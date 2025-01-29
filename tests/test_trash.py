@@ -1,12 +1,9 @@
 from src.trash import Trash
-from src.buffer_right import VideoBufferRight
 from threading import Semaphore
 from pytest import fixture
 from unittest.mock import patch
 import numpy as np
 import cv2
-import pytest
-import ipdb
 
 
 def lote(start, end, step=1):

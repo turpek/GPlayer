@@ -1,11 +1,10 @@
 from src.custom_exceptions import VideoOpenError
 from cv2 import VideoCapture
-from time import time, sleep
+from time import time
 from src.buffer import Buffer
 
 import cv2
 import traceback
-# import ipdb
 
 
 def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:

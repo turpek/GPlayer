@@ -2,8 +2,6 @@ from pytest import fixture
 from src.buffer import BufferLeft
 from threading import Semaphore
 import numpy as np
-import pytest
-import ipdb
 
 
 @fixture
