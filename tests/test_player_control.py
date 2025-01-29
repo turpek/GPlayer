@@ -78,6 +78,24 @@ def player(mycap, request):
     vbuffer_right.join()
 
 
+@fixture
+def pm(mycap, request):
+    # Fixture para testes do método restore_frame
+    lote, buffersize = request.param
+    cap = mycap.return_value
+    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    mapping = FrameMapper(lote, frame_count)
+    semaphore = Semaphore()
+    log = False
+    vbuffer_right = VideoBufferRight(cap, mapping, semaphore, bufferlog=log, buffersize=buffersize)
+    vbuffer_left = VideoBufferLeft(cap, mapping, semaphore, bufferlog=log, buffersize=buffersize)
+    player_control = PlayerControl(vbuffer_right, vbuffer_left)
+    yield player_control, mapping
+
+    vbuffer_left.join()
+    vbuffer_right.join()
+
+
 @pytest.mark.parametrize('player', [(list(range(0, 35)), 25)], indirect=True)
 def test_player_read_com_buffer_right_e_left_vazios_servant_right_no_primeiro_frame(player):
     expect = 0
@@ -1055,6 +1073,174 @@ def test_player_control_set_frame_com_3_frames_no_primeiro_frame_com_rewind(play
     expect = None
     player.rewind()
     player.set_frame(0)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+# ######### Teste para o método restore_frame para o FrameMapper vazio ####################### #
+
+@pytest.mark.parametrize('pm', [([], 25)], indirect=True)
+def test_player_control_restore_frame_com_o_FrameMapper_vazio_proceed(pm):
+    player, mapping = pm
+    frame_id, frame = (0, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.restore_frame(frame_id, frame)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('pm', [([], 25)], indirect=True)
+def test_player_control_restore_frame_com_o_FrameMapper_vazio_rewind(pm):
+    player, mapping = pm
+    frame_id, frame = (0, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.rewind()
+    player.restore_frame(frame_id, frame)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+# ######### Teste para o método restore_frame para 1 frame ####################### #
+
+@pytest.mark.parametrize('pm', [([0], 25)], indirect=True)
+def test_player_control_restore_frame_com_1_frame_proceed_ultimo_frame(pm):
+    player, mapping = pm
+    frame_id, frame = (1, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.restore_frame(frame_id, frame)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('pm', [([0], 25)], indirect=True)
+def test_player_control_restore_frame_com_1_frame_rewind_ultimo_frame(pm):
+    player, mapping = pm
+    frame_id, frame = (1, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.rewind()
+    player.restore_frame(frame_id, frame)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('pm', [([1], 25)], indirect=True)
+def test_player_control_restore_frame_com_1_frame_proceed_primeiro_frame(pm):
+    player, mapping = pm
+    frame_id, frame = (0, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.restore_frame(frame_id, frame)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('pm', [([1], 25)], indirect=True)
+def test_player_control_restore_frame_com_1_frame_rewind_primeiro_frame(pm):
+    player, mapping = pm
+    frame_id, frame = (0, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.rewind()
+    player.restore_frame(frame_id, frame)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+# ######### Teste para o método restore_frame para 2 frame ####################### #
+
+@pytest.mark.parametrize('pm', [([0, 1], 25)], indirect=True)
+def test_player_control_restore_frame_com_2_frames_proceed_ultimo_frame(pm):
+    player, mapping = pm
+    frame_id, frame = (2, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.restore_frame(frame_id, frame)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('pm', [([0, 1], 25)], indirect=True)
+def test_player_control_restore_frame_com_2_frames_rewind_ultimo_frame(pm):
+    player, mapping = pm
+    frame_id, frame = (2, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.rewind()
+    player.restore_frame(frame_id, frame)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('pm', [([0, 2], 25)], indirect=True)
+def test_player_control_restore_frame_com_2_frames_proceed_frame_do_meio(pm):
+    player, mapping = pm
+    frame_id, frame = (1, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.restore_frame(frame_id, frame)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('pm', [([0, 2], 25)], indirect=True)
+def test_player_control_restore_frame_com_2_frames_rewind_frame_do_meio(pm):
+    player, mapping = pm
+    frame_id, frame = (1, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.rewind()
+    player.restore_frame(frame_id, frame)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('pm', [([1, 2], 25)], indirect=True)
+def test_player_control_restore_frame_com_2_frames_proceed_primeiro_frame(pm):
+    player, mapping = pm
+    frame_id, frame = (0, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.restore_frame(frame_id, frame)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('pm', [([1, 2], 25)], indirect=True)
+def test_player_control_restore_frame_com_2_frames_rewind_primeiro_frame(pm):
+    player, mapping = pm
+    frame_id, frame = (0, np.zeros((2, 2)))
+    mapping.add(frame_id)
+
+    expect = frame_id
+    player.rewind()
+    player.restore_frame(frame_id, frame)
     player.read()
     result = player.frame_id
     assert expect == result
