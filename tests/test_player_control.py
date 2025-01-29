@@ -898,3 +898,163 @@ def test_player_control_restore_delay_com_decrease_delay_e_desativando_o_pause_d
     result_delay = player.delay
 
     assert expect_delay == result_delay
+
+
+# ################## Teste do set_frame para FrameMapper vazio ######################### #
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_player_control_set_frame_com_0_frames(player):
+    expect = None
+    player.set_frame(0)
+    result = player.frame_id
+    assert expect == result
+
+
+# ################## Teste do set_frame para 1 frame ######################### #
+@pytest.mark.parametrize('player', [([1], 25)], indirect=True)
+def test_player_control_set_frame_com_1_frames(player):
+    expect = 1
+    player.set_frame(1)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([1], 25)], indirect=True)
+def test_player_control_set_frame_com_1_frames_com_rewind(player):
+    expect = None
+    player.rewind()
+    player.set_frame(1)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+# ################## Teste do set_frame para 2 frames ######################### #
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_set_frame_com_2_frames_no_ultimo_frame(player):
+    expect = 1
+    player.set_frame(1)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_set_frame_com_2_frames_no_primeiro_frame(player):
+    expect = 0
+    player.set_frame(0)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_set_frame_com_2_frames_no_ultimo_frame_com_rewind(player):
+    expect = 0  # O VideoBufferLeft lé a partir de frame_id - 1
+    player.rewind()
+    player.set_frame(1)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control_set_frame_com_2_frames_no_primeiro_frame_com_rewind(player):
+    expect = None
+    player.rewind()
+    player.set_frame(0)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+# ################## Teste do set_frame para 3 frames ######################### #
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_set_frame_com_3_frames_no_ultimo_frame(player):
+    expect = 2
+    player.set_frame(2)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_set_frame_com_3_frames_no_primeiro_frame(player):
+    expect = 0
+    player.set_frame(0)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_set_frame_com_3_frames_no_frame_do_meio(player):
+    expect = 1
+    player.set_frame(1)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_set_frame_com_3_frames_no_frame_do_meio_com_read_2x(player):
+    expect = 2
+    player.set_frame(1)
+    [player.read() for _ in range(2)]
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_set_frame_com_3_frames_no_frame_do_meio_com_read_3x(player):
+    expect = None
+    expect_is_complete = True
+    player.set_frame(1)
+    [player.read() for _ in range(3)]
+    result = player.frame_id
+    result_is_complete = player.servant.is_task_complete()
+    assert expect == result
+    assert expect_is_complete == result_is_complete
+
+
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_set_frame_com_3_frames_no_ultimo_frame_com_rewind(player):
+    expect = 1
+    player.rewind()
+    player.set_frame(2)
+    player.read()
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_set_frame_com_3_frames_no_ultimo_frame_com_rewind_com_read_2x(player):
+    expect = 0
+    player.rewind()
+    player.set_frame(2)
+    [player.read() for _ in range(2)]
+    result = player.frame_id
+    assert expect == result
+
+
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_set_frame_com_3_frames_no_ultimo_frame_com_rewind_com_read_3x(player):
+    expect = 0
+    expect_is_complete = True
+    player.rewind()
+    player.set_frame(2)
+    [player.read() for _ in range(2)]
+    result = player.frame_id
+    result_is_complete = player.servant.is_task_complete()
+    assert expect == result
+    assert expect_is_complete == result_is_complete
+
+
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control_set_frame_com_3_frames_no_primeiro_frame_com_rewind(player):
+    expect = None
+    player.rewind()
+    player.set_frame(0)
+    player.read()
+    result = player.frame_id
+    assert expect == result
