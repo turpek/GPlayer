@@ -19,7 +19,8 @@ class PlayerControl:
         self.__paused = False
         self.__frame = None
         self.__read = False
-        self.__is_collect = True
+        self.__can_update_frame = True
+        self.__can_collect = True
         self.__delay = 35
         self.__default_delay = 35
         self.__current_delay = self.__delay
@@ -60,9 +61,9 @@ class PlayerControl:
             self.__current_delay += delta
             return self.__current_delay
 
-    def __is_collect_frame(self) -> bool:
+    def __can_collect_frame(self) -> bool:
         return (
-            self.is_collect() and
+            self.can_collect() and
             isinstance(self.__frame, ndarray) and
             self.master[0] != self.frame_id
         )
@@ -78,14 +79,14 @@ class PlayerControl:
         Returns:
             None
         """
-        if self.__is_collect_frame():
+        if self.__can_collect_frame():
             logger.debug(f'colentando o frame de id {self.frame_id}')
             self.master.put(self.frame_id, self.__frame)
             if self.servant.is_task_complete():
                 self.frame_id = None
                 self.__frame = None
 
-    def __opencv_format(self, frame_id: int, frame: ndarray) -> tuple[bool, ndarray | None]:
+    def __opencv_format(self, frame: ndarray) -> tuple[bool, ndarray | None]:
         """
         Faz a converção para retornar o mesmo tipo que `cv2.VideoCapture.read`.
 
@@ -99,10 +100,8 @@ class PlayerControl:
         if isinstance(frame, ndarray):
             ls = [x[0] for x in self.servant._buffer._primary]
             ms = [x[0] for x in self.master._buffer._primary]
-            print('servant', ls[:10])
-            print('master:', ms[:10])
-            self.__frame = frame
-            self.frame_id = frame_id
+            logger.info('servant', ls[:10])
+            logger.info('master:', ms[:10])
             return True, frame
         return False, None
 
@@ -119,11 +118,13 @@ class PlayerControl:
                 - O primeiro valor é um `bool` indicando se a operação foi bem-sucedida (`True`) ou não (`False`).
                 - O segundo valor é um `ndarray` representando o frame lido, ou `None` se a operação falhar.
         """
+
         self.collect_frame()
         if self.servant.is_task_complete() or self.pause() or self.no_read():
-            # if self.servant.is_task_complete() or self.pause():
             return False, None
-        return self.__opencv_format(*self.servant.get())
+        elif self.can_update_frame():
+            self.update_frame(*self.servant.get())
+        return self.__opencv_format(self.__frame)
 
     def rewind(self) -> None:
         """
@@ -171,18 +172,26 @@ class PlayerControl:
         self.__read = False
 
     def disable_collect(self) -> None:
-        self.__is_collect = False
+        self.__can_collect = False
 
-    def is_collect(self) -> bool:
-        result = self.__is_collect
-        self.__is_collect = True
-        return result
+    def disable_update_frame(self) -> None:
+        self.__can_update_frame = False
 
     def no_read(self):
         read_flag = self.__read
         if not self.__read:
             self.__read = True
         return read_flag and self.__delay == 0
+
+    def can_collect(self) -> bool:
+        result = self.__can_collect
+        self.__can_collect = True
+        return result
+
+    def can_update_frame(self) -> bool:
+        update_flag = self.__can_update_frame
+        self.__can_update_frame = True
+        return update_flag
 
     def increase_speed(self) -> None:
         delay = self.__adjust_delay(-1)
@@ -298,5 +307,4 @@ class PlayerControl:
     def restore_frame(self, frame_id: int, frame: ndarray) -> None:
         logger.debug(f'starting frame restoration {frame_id}')
         self.set_frame(frame_id)
-        self.servant.put(frame_id, frame)
         self.update_frame(frame_id, frame)
