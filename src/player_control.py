@@ -246,6 +246,24 @@ class PlayerControl:
         self.servant.set(frame_id)
         self.master.set(frame_id)
 
+    def _backward(self, frame_id: int) -> bool:
+        """
+        Método para voltar até o frame de índice de 'frame_id', esse método espera
+        que o frame_id pertença ao intervalor do `VideoBufferLeft`, isto é, que seja
+        maior que 'start_frame' e menor que 'end_frame'
+        """
+        servant, master = self.__vbleft, self.__vbright
+        fid = servant[0]
+        if fid is None:
+            return False
+        elif fid < frame_id:
+            return True
+
+        while self.__speed_read(servant, master):
+            if servant[0] is not None and servant[0] < frame_id:
+                break
+        return True
+
     def restore_frame(self, frame_id: int, frame: ndarray) -> None:
         logger.debug(f'starting frame restoration {frame_id}')
         self.set_frame(frame_id)
