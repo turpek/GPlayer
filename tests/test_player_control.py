@@ -1731,3 +1731,120 @@ def test_player_control__forward_com_10_frames_com_frame_id_meio(player):
     player._forward(frame_id)
     result = player.master[0]
     assert expect == result
+
+
+# ########### Testes do _is_valid_backward para 0 frames ############ #
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_player_control__is_valid_backward_com_0_frames(player):
+    expect = False
+
+    result = player._is_valid_backward(0)
+    assert expect == result
+
+
+# ########### Testes do _is_valid_backward para 1 frame ############ #
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1], 25)], indirect=True)
+def test_player_control__is_valid_backward_com_1_frame_com_frame_id_menor(player):
+    expect = True
+
+    [player.read() for _ in range(2)]
+    result = player._is_valid_backward(0)
+    assert expect == result
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1], 25)], indirect=True)
+def test_player_control__is_valid_backward_com_1_frame_com_frame_id_igual(player):
+    expect = False
+
+    [player.read() for _ in range(2)]
+    result = player._is_valid_backward(1)
+    assert expect == result
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1], 25)], indirect=True)
+def test_player_control__is_valid_backward_com_1_frame_com_frame_id_maior(player):
+    expect = False
+
+    [player.read() for _ in range(2)]
+    result = player._is_valid_backward(2)
+    assert expect == result
+
+
+# ########### Testes do _is_valid_backward para 2 frame ############ #
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 2], 25)], indirect=True)
+def test_player_control__is_valid_backward_com_2_frames_com_frame_id_menor(player):
+    expect = True
+
+    [player.read() for _ in range(3)]
+    result = player._is_valid_backward(0)
+    assert expect == result
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 2], 25)], indirect=True)
+def test_player_control__is_valid_backward_com_2_frames_com_frame_id_igual(player):
+    expect = True
+
+    [player.read() for _ in range(3)]
+    result = player._is_valid_backward(1)
+    assert expect == result
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 2], 25)], indirect=True)
+def test_player_control__is_valid_backward_com_2_frames_com_frame_id_maior(player):
+    expect = False
+
+    [player.read() for _ in range(3)]
+    result = player._is_valid_backward(3)
+    assert expect == result
+
+
+# ########### Testes do _is_valid_backward para 2 frame ############ #
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 2, 3], 25)], indirect=True)
+def test_player_control__is_valid_backward_com_3_frames_com_frame_id_menor(player):
+    expect = True
+
+    [player.read() for _ in range(4)]
+    result = player._is_valid_backward(0)
+    assert expect == result
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 2, 3], 25)], indirect=True)
+def test_player_control__is_valid_backward_com_3_frames_com_frame_id_igual(player):
+    expect = True
+
+    [player.read() for _ in range(4)]
+    result = player._is_valid_backward(1)
+    assert expect == result
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 2, 3], 25)], indirect=True)
+def test_player_control__is_valid_backward_com_3_frames_com_frame_id_maior(player):
+    expect = False
+
+    [player.read() for _ in range(4)]
+    result = player._is_valid_backward(3)
+    assert expect == result
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 3, 4], 25)], indirect=True)
+def test_player_control__is_valid_backward_com_3_frames_com_frame_id_meio(player):
+    expect = True
+
+    [player.read() for _ in range(4)]
+    result = player._is_valid_backward(3)
+    assert expect == result
