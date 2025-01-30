@@ -314,10 +314,37 @@ def test_buffer_VideoBufferLeft_get_com_2_frame_com_set(myvideo):
 @pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
 def test_buffer_VideoBufferLeft_put_com_2_frame(myvideo):
     expect = 2
+
     myvideo.put(2, np.zeros((2, 2)))
     myvideo.get()
     result = myvideo.frame_id
     assert result == expect
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1, 2], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_put_com_2_frame_no_block_task(myvideo):
+    expect_no_block_task_put = False
+    expect_no_block_task_get = True
+
+    myvideo.put(2, np.zeros((2, 2)))
+    result_no_block_task_put = myvideo._buffer.no_block_task()
+
+    myvideo.get()
+    result_no_block_task_get = myvideo._buffer.no_block_task()
+
+    assert expect_no_block_task_put == result_no_block_task_put
+    assert expect_no_block_task_get == result_no_block_task_get
+
+
+@pytest.mark.parametrize('myvideo', [([0, 1], 5)], indirect=True)
+def test_buffer_VideoBufferLeft_put_com_2_frame_com_set_no_block_task(myvideo):
+    expect_no_block_task = True
+
+    myvideo.put(0, np.zeros((2, 2)))
+    myvideo.put(1, np.zeros((2, 2)))
+    myvideo.set(1)
+    result_no_block_task = myvideo._buffer.no_block_task()
+    assert expect_no_block_task == result_no_block_task
 
 
 # ##################### Testes para  VideoBufferLeft com 3 Frame ###########################
