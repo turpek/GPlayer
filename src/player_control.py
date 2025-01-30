@@ -223,9 +223,12 @@ class PlayerControl:
                 return self.remove_frame()
         return None, None
 
-    def rapid_read(self):
-        if not self.servant.is_task_complete():
-            self.update_frame(*self.servant.read())
+    def __speed_read(self, servant: IVideoBuffer, master: IVideoBuffer):
+        if not servant.is_task_complete():
+            self.update_frame(*servant.get())
+            master.put(self.frame_id, self.__frame)
+            return True
+        return False
 
     def set_frame(self, frame_id: int) -> None:
         logger.debug(f'setting the frame for the frame_id {frame_id}')
