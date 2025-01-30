@@ -219,6 +219,7 @@ class VideoBufferLeft(IVideoBuffer):
         self._set_frame = self.__calc_frame(frame_id)
         self._buffer.clear_buffer()
         self.__frame_id = frame_id if self.__mapping[0] == frame_id else None
+        self._buffer.no_block_task(True)
 
     def end_frame(self) -> int:
         logger.debug("obtendo o end_frame")

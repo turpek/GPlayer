@@ -193,6 +193,7 @@ class VideoBufferRight(IVideoBuffer):
         self._buffer.clear_buffer()
         # self.__frame_id = self._set_frame
         self.__frame_id = None
+        self._buffer.no_block_task(True)
 
     def end_frame(self) -> int | None:
         logger.debug("obtendo o end_frame")
