@@ -32,6 +32,9 @@ class MyVideoCapture():
             return True, frame
         return False, None
 
+    def grab(self):
+        self.index += 1
+
     def set(self, flag, value):
         if cv2.CAP_PROP_POS_FRAMES == flag:
             if len(self.frames) >= value and value >= 0:
