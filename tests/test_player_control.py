@@ -1247,3 +1247,293 @@ def test_player_control_restore_frame_com_2_frames_rewind_primeiro_frame(pm):
     player.read()
     result = player.frame_id
     assert expect == result
+
+
+# ######## Teste para o backward com FrameMapper sem frames ############### #
+# Os testes para o _backward devem ser feitos em relação ao VideoBufferLeft
+# usando o valor do fid
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_player_control__backward_com_0_frames(player):
+    expect = None
+    player.read()
+    player._backward(1)
+    result = player.master[0]
+    assert expect == result
+
+
+# ######## Teste para o backward com 1 frames ############### #
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
+def test_player_control__backward_com_1_frames_com_proceed_frame_id_maior(player):
+    expect = 0
+    expect_servant = VideoBufferRight
+    frame_id = 1
+
+    [player.read() for _ in range(2)]
+    player.proceed()
+    player._backward(frame_id)
+    result = player.master[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
+def test_player_control__backward_com_1_frames_com_rewind_frame_id_maior(player):
+    expect = 0  # Eh None pois nesse cenario a task já acabou
+    expect_servant = VideoBufferLeft
+    frame_id = 1
+
+    [player.read() for _ in range(2)]
+    player.rewind()
+    player._backward(frame_id)
+    result = player.servant[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
+def test_player_control__backward_com_1_frames_com_rewind_frame_id_igual(player):
+    expect = None  # Eh None pois nesse cenario a task já acabou
+    expect_servant = VideoBufferLeft
+    frame_id = 0
+
+    [player.read() for _ in range(2)]
+    player.rewind()
+    player._backward(frame_id)
+    result = player.servant[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
+def test_player_control__backward_com_1_frames_com_proceed_frame_id_igual(player):
+    expect = None
+    expect_servant = VideoBufferRight
+    frame_id = 0
+
+    [player.read() for _ in range(2)]
+    player.proceed()
+    player._backward(frame_id)
+    result = player.master[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+# ######## Teste para o backward com 2 frames ############### #
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control__backward_com_2_frames_com_proceed_frame_id_maior(player):
+    expect = 1
+    expect_servant = VideoBufferRight
+    frame_id = 2
+
+    player.proceed()
+    [player.read() for _ in range(3)]
+    player._backward(frame_id)
+    result = player.master[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control__backward_com_2_frames_com_rewind_frame_id_maior(player):
+    expect = 1
+    expect_servant = VideoBufferLeft
+    frame_id = 2
+
+    [player.read() for _ in range(3)]
+    player.rewind()
+    player._backward(frame_id)
+    result = player.servant[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control__backward_com_2_frames_com_proceed_frame_id_igual(player):
+    expect = None
+    expect_servant = VideoBufferRight
+    frame_id = 0
+
+    player.proceed()
+    [player.read() for _ in range(2)]
+    player._backward(frame_id)
+    result = player.master[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control__backward_com_2_frames_com_rewind_frame_id_igual(player):
+    expect = None
+    expect_servant = VideoBufferLeft
+    frame_id = 0
+
+    [player.read() for _ in range(2)]
+    player.rewind()
+    player._backward(frame_id)
+    result = player.servant[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 2], 25)], indirect=True)
+def test_player_control__backward_com_2_frames_com_proceed_frame_id_menor(player):
+    expect = None
+    expect_servant = VideoBufferRight
+    frame_id = 0
+
+    player.proceed()
+    [player.read() for _ in range(2)]
+    player._backward(frame_id)
+    result = player.master[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 2], 25)], indirect=True)
+def test_player_control__backward_com_2_frames_com_rewind_frame_id_menor(player):
+    expect = None
+    expect_servant = VideoBufferLeft
+    frame_id = 0
+
+    [player.read() for _ in range(2)]
+    player.rewind()
+    player._backward(frame_id)
+    result = player.servant[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+# ######## Teste para o backward com 3 frames ############### #
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control__backward_com_3_frames_com_proceed_frame_id_maior(player):
+    expect = 2
+    expect_servant = VideoBufferRight
+    frame_id = 3
+
+    player.proceed()
+    [player.read() for _ in range(4)]
+    player._backward(frame_id)
+    result = player.master[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control__backward_com_3_frames_com_rewind_frame_id_maior(player):
+    expect = 2
+    expect_servant = VideoBufferLeft
+    frame_id = 3
+
+    [player.read() for _ in range(4)]
+    player.rewind()
+    player._backward(frame_id)
+    result = player.servant[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control__backward_com_3_frames_com_proceed_frame_id_igual(player):
+    expect = None
+    expect_servant = VideoBufferRight
+    frame_id = 0
+
+    player.proceed()
+    [player.read() for _ in range(3)]
+    player._backward(frame_id)
+    result = player.master[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control__backward_com_3_frames_com_rewind_frame_id_igual(player):
+    expect = None
+    expect_servant = VideoBufferLeft
+    frame_id = 0
+
+    [player.read() for _ in range(3)]
+    player.rewind()
+    player._backward(frame_id)
+    result = player.servant[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 2, 3], 25)], indirect=True)
+def test_player_control__backward_com_3_frames_com_proceed_frame_id_menor(player):
+    expect = None
+    expect_servant = VideoBufferRight
+    frame_id = 0
+
+    player.proceed()
+    [player.read() for _ in range(3)]
+    player._backward(frame_id)
+    result = player.master[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 2, 3], 25)], indirect=True)
+def test_player_control__backward_com_3_frames_com_rewind_frame_id_menor(player):
+    expect = None
+    expect_servant = VideoBufferLeft
+    frame_id = 0
+
+    [player.read() for _ in range(3)]
+    player.rewind()
+    player._backward(frame_id)
+    result = player.servant[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 3, 4], 25)], indirect=True)
+def test_player_control__backward_com_3_frames_com_rewind_frame_id_meio(player):
+    expect = 1
+    expect_servant = VideoBufferLeft
+    frame_id = 2
+
+    [player.read() for _ in range(3)]
+    player.rewind()
+    player._backward(frame_id)
+    result = player.servant[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
+
+
+@pytest.mark.backward
+@pytest.mark.parametrize('player', [([1, 3, 4], 25)], indirect=True)
+def test_player_control__backward_com_3_frames_com_proceed_frame_id_meio(player):
+    expect = 1
+    expect_servant = VideoBufferRight
+    frame_id = 2
+
+    player.proceed()
+    [player.read() for _ in range(3)]
+    player._backward(frame_id)
+    result = player.master[0]
+    assert expect == result
+    assert isinstance(player.servant, expect_servant)
