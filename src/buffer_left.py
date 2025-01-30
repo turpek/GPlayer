@@ -354,3 +354,6 @@ class VideoBufferLeft(IVideoBuffer):
     @property
     def frame_id(self) -> int:
         return self.__frame_id
+
+    def mapper_id(self, index: int) -> int:
+        return self.__mapping[index]
