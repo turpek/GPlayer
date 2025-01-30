@@ -46,8 +46,11 @@ class FrameUndoOrchestrator:
             self.frame_mapper.add(frame_id)
             self.player_control.restore_frame(frame_id, frame)
             logger.info('frame {frame_id} restored')
+            return True
         else:
             logger.info('unable to undo removal')
+
+        return False
 
 
 class Command(ABC):
@@ -137,8 +140,10 @@ class UndoFrameCommand(Command):
         self.receiver = receiver
 
     def executor(self) -> None:
-        self.receiver.undo()
-        self.receiver.player_control.set_read()
+        if self.receiver.undo():
+            self.receiver.player_control.disable_collect()
+            self.receiver.player_control.disable_update_frame()
+            self.receiver.player_control.set_read()
 
 
 class Invoker:
