@@ -283,6 +283,18 @@ class PlayerControl:
                 break
         return True
 
+    def _is_valid_backward(self, frame_id: int) -> bool:
+        buffer = self.__vbleft
+        end_frame = buffer[0]
+        if end_frame is None:
+            return False
+
+        first_frame = buffer.mapper_id(0)
+        start_frame = buffer.start_frame()
+        if first_frame == start_frame and end_frame > frame_id:
+            return True
+        return start_frame < frame_id and end_frame > frame_id
+
     def restore_frame(self, frame_id: int, frame: ndarray) -> None:
         logger.debug(f'starting frame restoration {frame_id}')
         self.set_frame(frame_id)
