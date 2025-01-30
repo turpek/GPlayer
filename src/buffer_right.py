@@ -83,7 +83,7 @@ class VideoBufferRight(IVideoBuffer):
         Returns:
             int
                 - Em caso de sucesso um número inteiro maior que zero é retornado.
-                - Em caso de falha -1 é retornado.
+                - Em caso de falha None é retornado.
 
         """
         if self._buffer.empty() or not isinstance(index, int):
