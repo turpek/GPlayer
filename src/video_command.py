@@ -45,10 +45,10 @@ class FrameUndoOrchestrator:
         if isinstance(frame, ndarray):
             self.frame_mapper.add(frame_id)
             self.player_control.restore_frame(frame_id, frame)
-            logger.info('frame {frame_id} restored')
+            logger.info(f'frame {frame_id} restored')
             return True
         else:
-            logger.info('unable to undo removal')
+            logger.debug('unable to undo removal')
 
         return False
 
