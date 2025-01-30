@@ -9,6 +9,11 @@ class PlayerControl:
     def __init__(self, servant: IVideoBuffer, master: IVideoBuffer):
         self.servant = servant
         self.master = master
+
+        self.__vbright = None
+        self.__vbleft = None
+        self.__define_buffers(servant, master)
+
         self.frame_id = None
         self.__quit = False
         self.__paused = False
@@ -19,6 +24,12 @@ class PlayerControl:
         self.__default_delay = 35
         self.__current_delay = self.__delay
         self.old = None
+
+    def __define_buffers(self, servant: IVideoBuffer, master: IVideoBuffer):
+        if isinstance(servant, VideoBufferRight):
+            self.__vbright, self.__vbleft = self.servant, self.master
+        else:
+            self.__vbright, self.__vbleft = self.master, self.servant
 
     def __speed(self, delay) -> float | None:
         """
