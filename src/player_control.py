@@ -129,7 +129,7 @@ class PlayerControl:
         """
         Controle para retroceder o vídeo.
 
-        Esse metodo faz o swap entre os buffers, se servant for instancia de `VideoBufferRight`, com isso
+        Esse metodo faz o swap entre os buffers, se servant for instância de `VideoBufferRight`, com isso
         o buffer que faz a leitura reversa, ou seja, o `master`, passa a funcionar como o `servant`.
 
         Returns:
@@ -143,7 +143,7 @@ class PlayerControl:
         """
         Controle para retroceder o vídeo.
 
-        Esse metodo faz o swap entre os buffers se `servant` for instancia de `VideoBufferRight`, com isso
+        Esse metodo faz o swap entre os buffers se `servant` for instância de `VideoBufferRight`, com isso
         o buffer que faz a leitura correta, ou seja, o `master`, passa a funcionar como o `servant`.
 
         Returns:
@@ -250,7 +250,8 @@ class PlayerControl:
         """
         Método para voltar até o frame de índice de 'frame_id', esse método espera
         que o frame_id pertença ao intervalor do `VideoBufferLeft`, isto é, que seja
-        maior que 'start_frame' e menor que 'end_frame'
+        maior que 'start_frame' e menor que 'buffer[0]' onde buffer é uma instância de
+        `VideoBufferLeft`
         """
         servant, master = self.__vbleft, self.__vbright
         fid = servant[0]
