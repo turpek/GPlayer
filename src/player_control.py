@@ -265,6 +265,24 @@ class PlayerControl:
                 break
         return True
 
+    def _forward(self, frame_id: int) -> bool:
+        """
+        Método para avançar até o frame de índice com o valor de 'frame_id', esse método
+        espera que  frame_id pertença ao intervalo do `VideoBufferRight`, isto é, que seja
+        maior que 'buffer[0]', onde buffer é uma instância de `VideoBufferRight`e menor que
+        'end_frame'
+        """
+        servant, master = self.__vbright, self.__vbleft
+        fid = servant[0]
+        if fid is None:
+            return False
+        elif fid > frame_id:
+            return True
+        while self.__speed_read(servant, master):
+            if servant[0] is not None and servant[0] > frame_id:
+                break
+        return True
+
     def restore_frame(self, frame_id: int, frame: ndarray) -> None:
         logger.debug(f'starting frame restoration {frame_id}')
         self.set_frame(frame_id)
