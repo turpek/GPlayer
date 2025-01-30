@@ -1537,3 +1537,197 @@ def test_player_control__backward_com_3_frames_com_proceed_frame_id_meio(player)
     result = player.master[0]
     assert expect == result
     assert isinstance(player.servant, expect_servant)
+
+
+# ############# Testes para o método _forward 0 frames ################### #
+# Usar o VideoBufferLeft para fazer o testes de valores
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([], 25)], indirect=True)
+def test_player_control__forward_com_0_frames(player):
+    expect = None
+    frame_id = 0
+
+    player.read()
+    player.proceed()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+# ############# Testes para o método _forward 1 frames ################### #
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
+def test_player_control__forward_com_1_frames_com_frame_id_maior(player):
+    expect = 0
+    frame_id = 1
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([1], 25)], indirect=True)
+def test_player_control__forward_com_1_frames_com_frame_id_menor(player):
+    expect = None
+    frame_id = 0
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
+def test_player_control__forward_com_1_frames_com_frame_id_igual(player):
+    expect = 0
+    frame_id = 0
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+# ############# Testes para o método _forward 2 frames ################### #
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control__forward_com_2_frames_com_frame_id_maior(player):
+    expect = 1
+    frame_id = 2
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([1, 2], 25)], indirect=True)
+def test_player_control__forward_com_2_frames_com_frame_id_menor(player):
+    expect = None
+    frame_id = 0
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+@pytest.mark.dev0
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
+def test_player_control__forward_com_2_frames_com_frame_id_igual(player):
+    expect = 1
+    frame_id = 1
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+# ############# Testes para o método _forward 3 frames ################### #
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control__forward_com_3_frames_com_frame_id_maior(player):
+    expect = 2
+    frame_id = 3
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([1, 2, 3], 25)], indirect=True)
+def test_player_control__forward_com_3_frames_com_frame_id_menor(player):
+    expect = None
+    frame_id = 0
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
+def test_player_control__forward_com_3_frames_com_frame_id_igual(player):
+    expect = 2
+    frame_id = 2
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([0, 1, 3], 25)], indirect=True)
+def test_player_control__forward_com_3_frames_com_frame_id_meio(player):
+    expect = 1
+    frame_id = 2
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+# ############# Testes para o método _forward 10 frames ################### #
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 25)], indirect=True)
+def test_player_control__forward_com_10_frames_com_frame_id_maior(player):
+    expect = 10
+    frame_id = 11
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 25)], indirect=True)
+def test_player_control__forward_com_10_frames_com_frame_id_igual(player):
+    expect = 8
+    frame_id = 8
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
+
+
+@pytest.mark.forward
+@pytest.mark.parametrize('player', [([0, 1, 2, 3, 4, 5, 6, 8, 9, 10], 25)], indirect=True)
+def test_player_control__forward_com_10_frames_com_frame_id_meio(player):
+    expect = 6
+    frame_id = 7
+
+    player.servant.run()
+    player.servant._buffer.unqueue()
+    player._forward(frame_id)
+    result = player.master[0]
+    assert expect == result
