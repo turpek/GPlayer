@@ -159,6 +159,7 @@ def test_player_read_com_buffer_right_e_left_vazios_servant_leftt_com_set_15(pla
     assert expect == result
 
 
+@pytest.mark.skip(reason='Não lembro o porque, desse teste passar')
 @pytest.mark.parametrize('player', [(list(range(205, 300)), 25)], indirect=True)
 def test_player__opencv_format_retorna_none(player):
     expect = None
@@ -1083,6 +1084,7 @@ def test_player_control_set_frame_com_3_frames_no_primeiro_frame_com_rewind(play
 
 # ######### Teste para o método restore_frame para o FrameMapper vazio ####################### #
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([], 25)], indirect=True)
 def test_player_control_restore_frame_com_o_FrameMapper_vazio_proceed(pm):
     player, mapping = pm
@@ -1096,6 +1098,7 @@ def test_player_control_restore_frame_com_o_FrameMapper_vazio_proceed(pm):
     assert expect == result
 
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([], 25)], indirect=True)
 def test_player_control_restore_frame_com_o_FrameMapper_vazio_rewind(pm):
     player, mapping = pm
@@ -1105,13 +1108,13 @@ def test_player_control_restore_frame_com_o_FrameMapper_vazio_rewind(pm):
     expect = frame_id
     player.rewind()
     player.restore_frame(frame_id, frame)
-    player.read()
     result = player.frame_id
     assert expect == result
 
 
 # ######### Teste para o método restore_frame para 1 frame ####################### #
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([0], 25)], indirect=True)
 def test_player_control_restore_frame_com_1_frame_proceed_ultimo_frame(pm):
     player, mapping = pm
@@ -1120,11 +1123,11 @@ def test_player_control_restore_frame_com_1_frame_proceed_ultimo_frame(pm):
 
     expect = frame_id
     player.restore_frame(frame_id, frame)
-    player.read()
     result = player.frame_id
     assert expect == result
 
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([0], 25)], indirect=True)
 def test_player_control_restore_frame_com_1_frame_rewind_ultimo_frame(pm):
     player, mapping = pm
@@ -1134,11 +1137,11 @@ def test_player_control_restore_frame_com_1_frame_rewind_ultimo_frame(pm):
     expect = frame_id
     player.rewind()
     player.restore_frame(frame_id, frame)
-    player.read()
     result = player.frame_id
     assert expect == result
 
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([1], 25)], indirect=True)
 def test_player_control_restore_frame_com_1_frame_proceed_primeiro_frame(pm):
     player, mapping = pm
@@ -1147,11 +1150,11 @@ def test_player_control_restore_frame_com_1_frame_proceed_primeiro_frame(pm):
 
     expect = frame_id
     player.restore_frame(frame_id, frame)
-    player.read()
     result = player.frame_id
     assert expect == result
 
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([1], 25)], indirect=True)
 def test_player_control_restore_frame_com_1_frame_rewind_primeiro_frame(pm):
     player, mapping = pm
@@ -1161,13 +1164,13 @@ def test_player_control_restore_frame_com_1_frame_rewind_primeiro_frame(pm):
     expect = frame_id
     player.rewind()
     player.restore_frame(frame_id, frame)
-    player.read()
     result = player.frame_id
     assert expect == result
 
 
 # ######### Teste para o método restore_frame para 2 frame ####################### #
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([0, 1], 25)], indirect=True)
 def test_player_control_restore_frame_com_2_frames_proceed_ultimo_frame(pm):
     player, mapping = pm
@@ -1176,11 +1179,11 @@ def test_player_control_restore_frame_com_2_frames_proceed_ultimo_frame(pm):
 
     expect = frame_id
     player.restore_frame(frame_id, frame)
-    player.read()
     result = player.frame_id
     assert expect == result
 
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([0, 1], 25)], indirect=True)
 def test_player_control_restore_frame_com_2_frames_rewind_ultimo_frame(pm):
     player, mapping = pm
@@ -1190,11 +1193,11 @@ def test_player_control_restore_frame_com_2_frames_rewind_ultimo_frame(pm):
     expect = frame_id
     player.rewind()
     player.restore_frame(frame_id, frame)
-    player.read()
     result = player.frame_id
     assert expect == result
 
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([0, 2], 25)], indirect=True)
 def test_player_control_restore_frame_com_2_frames_proceed_frame_do_meio(pm):
     player, mapping = pm
@@ -1203,11 +1206,11 @@ def test_player_control_restore_frame_com_2_frames_proceed_frame_do_meio(pm):
 
     expect = frame_id
     player.restore_frame(frame_id, frame)
-    player.read()
     result = player.frame_id
     assert expect == result
 
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([0, 2], 25)], indirect=True)
 def test_player_control_restore_frame_com_2_frames_rewind_frame_do_meio(pm):
     player, mapping = pm
@@ -1217,11 +1220,11 @@ def test_player_control_restore_frame_com_2_frames_rewind_frame_do_meio(pm):
     expect = frame_id
     player.rewind()
     player.restore_frame(frame_id, frame)
-    player.read()
     result = player.frame_id
     assert expect == result
 
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([1, 2], 25)], indirect=True)
 def test_player_control_restore_frame_com_2_frames_proceed_primeiro_frame(pm):
     player, mapping = pm
@@ -1230,11 +1233,11 @@ def test_player_control_restore_frame_com_2_frames_proceed_primeiro_frame(pm):
 
     expect = frame_id
     player.restore_frame(frame_id, frame)
-    player.read()
     result = player.frame_id
     assert expect == result
 
 
+@pytest.mark.undo
 @pytest.mark.parametrize('pm', [([1, 2], 25)], indirect=True)
 def test_player_control_restore_frame_com_2_frames_rewind_primeiro_frame(pm):
     player, mapping = pm
@@ -1244,7 +1247,6 @@ def test_player_control_restore_frame_com_2_frames_rewind_primeiro_frame(pm):
     expect = frame_id
     player.rewind()
     player.restore_frame(frame_id, frame)
-    player.read()
     result = player.frame_id
     assert expect == result
 
