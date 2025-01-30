@@ -43,7 +43,7 @@ class VideoCon:
         self._master = VideoBufferLeft(*args, buffersize=buffersize, bufferlog=log)
         self.command = Invoker()
         self.__player = PlayerControl(self._slave, self._master)
-        self.__trash = Trash(self.__cap, self.__semaphore, int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT)), buffersize=10)
+        self.__trash = Trash(self.__cap, self.__semaphore, int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT)), buffersize=20)
         # receiver = PlayerControlReceiver(self.__player)
         self.set_commands(self.__player, self._mapping, self.__trash)
 

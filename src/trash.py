@@ -42,7 +42,7 @@ class Trash():
             return None
         elif len(self._stack) == self._stack.maxlen:
             fid = self._stack.popleft()
-            print(self._dframes.keys())
+            logger.info(self._dframes.keys())
             del self._dframes[fid]
             self.__memento_save(fid)
 
