@@ -51,6 +51,14 @@ class VideoCon:
         self._slave.run()
         self._slave._buffer.wait_task()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        sleep(1)
+        self.join()
+        cv2.destroyWindow('videoseq')
+
     def __creating_window(self) -> None:
         """
         Cria a janela onde os frames serão exibidos.
@@ -110,10 +118,10 @@ class VideoCon:
 
     def show(self, flag, frame):
         if flag is True:
-            logger.info(f'exibindo o frame de id {self.__player.frame_id}')
+            logger.info(f'exibindo o frame de id {self.frame_id}')
             logger.info(f'servo -> {self.__player.servant} | mestre -> {self.__player.master}')
             self._show(frame)
-        return cv2.waitKeyEx(self.__player.delay)
+        return self.control(cv2.waitKeyEx(self.__player.delay))
 
     def set_commands(self, player: PlayerControl, frame_mapper: FrameMapper, trash: Trash) -> None:
         frame_orchestrator = FrameRemoveOrchestrator(player, frame_mapper, trash)
@@ -132,18 +140,10 @@ class VideoCon:
 
     def control(self, key):
         self.command.executor_command(key)
+        return key
 
     def read(self):
         return self.__player.read()
 
     def quit(self):
         return self.__player.quit()
-
-    def loop(self):
-        while self.quit() is False:
-            ret, frame = self.read()
-            key = self.show(ret, frame)
-            self.control(key)
-        sleep(1)
-        self.join()
-        cv2.destroyWindow('videoseq')
