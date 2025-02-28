@@ -33,6 +33,8 @@ class VideoCon:
         self.__cap = cv2.VideoCapture(str(self.__path))
         self.__creating_window()
 
+        if not frames_mapping:
+            frames_mapping = list(range(int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT))))
         self._mapping = self.set_mapping(frames_mapping)
 
         self.__semaphore = Semaphore()
