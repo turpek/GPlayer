@@ -1,0 +1,58 @@
+from collections import deque
+from pathlib import Path
+
+from src.video import VideoCon
+
+class Playlist:
+    def __init__(self, videos: list[str|Path]):
+        """
+        Playlist é a classe responsavel por gerencia a lista de reprodução de vídeos.
+        Com ela é possível fazer
+
+            1. Passar para o próximo vídeo.
+            2. Voltar para o vídeo anterior.
+            3. Ordenar a lista de reprodução pelo nome.
+            4. Ordenar a lista de reprodução pela data.
+            5. Inverter a lista de reprodução.
+            6. Reproduzir o vídeo de forma aleatória.
+
+        Args:
+            videos (list[str | Path]): é o caminho até o arquivo de vídeo.
+        """
+        self.__right_videos = deque(videos, maxlen=len(videos))
+        self.__left_videos = deque([], maxlen=len(videos))
+        self.__video_file = None
+
+
+        self.__next_video_name()
+
+    def __next_video_name(self):
+        if len(self.__right_videos) > 0:
+            self.__video_file = self.__right_videos.popleft()
+
+
+    def video_name(self) -> str|None:
+        """
+        Método que retorna o nome do vídeo para a reprodução atual.
+
+        Returns:
+            str: é o nome do arquivo.
+            None: para a lista de reprodução vazia.
+        """
+        if self.__video_file:
+            return str(self.__video_file)
+
+    def next_video(self, video_player: VideoCon) -> None:
+        """
+        Passa para o próximo vídeo da lista de reprodução, para isso passa o nome do
+        arquivo para o método open do ´VideoCon´, caso a lista de reprodução seja vazia,
+        o nome será None
+
+        Args:
+            video_player (VideoCon): objeto responsavel pela reprodução do vídeo.
+
+        Returns:
+            None
+        """
+        self.__next_video_name()
+        video_player.open(self.video_name())
