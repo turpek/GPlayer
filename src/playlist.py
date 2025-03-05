@@ -28,8 +28,15 @@ class Playlist:
 
     def __next_video_name(self):
         if len(self.__right_videos) > 0:
+            if self.__video_file is not None:
+                self.__left_videos.append(self.__video_file)
             self.__video_file = self.__right_videos.popleft()
 
+    def __prev_video_name(self):
+        if len(self.__left_videos) > 0:
+            if self.__video_file is not None:
+                self.__right_videos.appendleft(self.__video_file)
+            self.__video_file = self.__left_videos.pop()
 
     def video_name(self) -> str|None:
         """
@@ -55,4 +62,20 @@ class Playlist:
             None
         """
         self.__next_video_name()
+        video_player.open(self.video_name())
+
+
+    def prev_video(self, video_player: VideoCon) -> None:
+        """
+        Passa para o vídeo anterior da lista de reprodução, para isso passa o nome do
+        arquivo para o método open do ´VideoCon´, caso a lista de reprodução seja vazia,
+        o nome será None
+
+        Args:
+            video_player (VideoCon): objeto responsavel pela reprodução do vídeo.
+
+        Returns:
+            None
+        """
+        self.__prev_video_name()
         video_player.open(self.video_name())
