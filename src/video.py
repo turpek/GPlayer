@@ -39,6 +39,7 @@ class VideoCon:
         self.__log = log
         self.__buffersize = buffersize
         self.__semaphore = Semaphore()
+        self.__player = None
         self.__creating_window()
         self.open(self.__playlist.video_name(), frames_mapping)
 
@@ -73,7 +74,11 @@ class VideoCon:
         self._slave = VideoBufferRight(*args, buffersize=self.__buffersize, bufferlog=self.__log)
         self._master = VideoBufferLeft(*args, buffersize=self.__buffersize, bufferlog=self.__log)
         self.command = Invoker()
-        self.__player = PlayerControl(self._slave, self._master)
+
+        if self.__player is None:
+            self.__player = PlayerControl(self._slave, self._master)
+        else:
+            self.__player.set_buffers(self._slave, self._master)
         self.__trash = Trash(self.__cap, self.__semaphore, int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT)), buffersize=20)
         # receiver = PlayerControlReceiver(self.__player)
         self.set_commands(self.__player, self._mapping, self.__trash, self.__playlist)

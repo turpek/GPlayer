@@ -308,3 +308,9 @@ class PlayerControl:
         logger.debug(f'starting frame restoration {frame_id}')
         self.set_frame(frame_id)
         self.update_frame(frame_id, frame)
+
+    def set_buffers(self, servant: VideoBufferRight, master: VideoBufferLeft):
+        self.servant = servant
+        self.master = master
+        self.frame_id = None
+        self.__frame = None
