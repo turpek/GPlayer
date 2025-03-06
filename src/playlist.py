@@ -4,7 +4,7 @@ from pathlib import Path
 from src.video import VideoCon
 
 class Playlist:
-    def __init__(self, videos: list[str|Path]):
+    def __init__(self, videos: list[str | Path]):
         """
         Playlist é a classe responsavel por gerencia a lista de reprodução de vídeos.
         Com ela é possível fazer
@@ -19,10 +19,9 @@ class Playlist:
         Args:
             videos (list[str | Path]): é o caminho até o arquivo de vídeo.
         """
-        self.__right_videos = deque(videos, maxlen=len(videos))
+        self.__right_videos = deque([Path(v) for v in videos], maxlen=len(videos))
         self.__left_videos = deque([], maxlen=len(videos))
         self.__video_file = None
-
 
         self.__next_video_name()
 
@@ -38,7 +37,7 @@ class Playlist:
                 self.__right_videos.appendleft(self.__video_file)
             self.__video_file = self.__left_videos.pop()
 
-    def video_name(self) -> str|None:
+    def video_name(self) -> str | None:
         """
         Método que retorna o nome do vídeo para a reprodução atual.
 
@@ -47,7 +46,7 @@ class Playlist:
             None: para a lista de reprodução vazia.
         """
         if self.__video_file:
-            return str(self.__video_file)
+            return self.__video_file
 
     def next_video(self, video_player: VideoCon) -> None:
         """
@@ -63,7 +62,6 @@ class Playlist:
         """
         self.__next_video_name()
         video_player.open(self.video_name())
-
 
     def prev_video(self, video_player: VideoCon) -> None:
         """
