@@ -1,9 +1,18 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 from loguru import logger
 from numpy import ndarray
 from src.player_control import PlayerControl
+from src.playlist import Playlist
 from src.frame_mapper import FrameMapper
 from src.trash import Trash
+
+
+if TYPE_CHECKING:
+    # Para poder usar o `VideoCon` com dica
+    from src.video import VideoCon
 
 
 class FrameRemoveOrchestrator:
@@ -51,6 +60,34 @@ class FrameUndoOrchestrator:
             logger.debug('unable to undo removal')
 
         return False
+
+
+class NextVideoOrchestrator:
+    def __init__(self, video_player: VideoCon, playlist: Playlist):
+        self.__video_player = video_player
+        self.__playlist = playlist
+
+    def next_video(self):
+        if not self.__playlist.is_end():
+            self.__video_player.join()
+            self.__playlist.next_video(self.__video_player)
+            logger.info(f'next_video: {self.__playlist.video_name()}')
+        else:
+            logger.debug("it's already at the end of the playlist")
+
+
+class PrevVideoOrchestrator:
+    def __init__(self, video_player: VideoCon, playlist: Playlist):
+        self.__video_player = video_player
+        self.__playlist = playlist
+
+    def prev_video(self):
+        if not self.__playlist.is_beginning():
+            self.__video_player.join()
+            self.__playlist.prev_video(self.__video_player)
+            logger.info(f'prev_video: {self.__playlist.video_name()}')
+        else:
+            logger.debug('is already at the beginning of the playlist')
 
 
 class Command(ABC):
@@ -144,6 +181,22 @@ class UndoFrameCommand(Command):
             self.receiver.player_control.disable_collect()
             self.receiver.player_control.disable_update_frame()
             self.receiver.player_control.set_read()
+
+
+class NextVideoCommand(Command):
+    def __init__(self, receiver: NextVideoOrchestrator):
+        self.receiver = receiver
+
+    def executor(self) -> None:
+        self.receiver.next_video()
+
+
+class PrevVideoCommand(Command):
+    def __init__(self, receiver: NextVideoOrchestrator):
+        self.receiver = receiver
+
+    def executor(self) -> None:
+        self.receiver.prev_video()
 
 
 class Invoker:

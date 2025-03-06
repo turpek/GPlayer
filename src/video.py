@@ -10,9 +10,14 @@ from src.video_command import (
     Invoker,
     FrameRemoveOrchestrator,
     FrameUndoOrchestrator,
+    NextVideoOrchestrator,
+    PrevVideoOrchestrator,
+
     DecreaseSpeedCommand,
     IncreaseSpeedCommand,
+    NextVideoCommand,
     PauseDelayCommand,
+    PrevVideoCommand,
     RemoveFrameCommand,
     RestoreDelayCommand,
     RewindCommand,
@@ -71,7 +76,7 @@ class VideoCon:
         self.__player = PlayerControl(self._slave, self._master)
         self.__trash = Trash(self.__cap, self.__semaphore, int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT)), buffersize=20)
         # receiver = PlayerControlReceiver(self.__player)
-        self.set_commands(self.__player, self._mapping, self.__trash)
+        self.set_commands(self.__player, self._mapping, self.__trash, self.__playlist)
 
         # Iniciando a task e esperando que a mesma esteja concluida.
         self._slave.run()
@@ -131,11 +136,19 @@ class VideoCon:
             self._show(frame)
         return self.control(cv2.waitKeyEx(self.__player.delay))
 
-    def set_commands(self, player: PlayerControl, frame_mapper: FrameMapper, trash: Trash) -> None:
+    def set_commands(self,
+                     player: PlayerControl,
+                     frame_mapper: FrameMapper,
+                     trash: Trash,
+                     playlist: Playlist
+                     ) -> None:
         frame_orchestrator = FrameRemoveOrchestrator(player, frame_mapper, trash)
         frame_undo = FrameUndoOrchestrator(player, frame_mapper, trash)
+        next_video_orchestrator = NextVideoOrchestrator(self, playlist)
+        prev_video_orchestrator = PrevVideoOrchestrator(self, playlist)
+
         command = self.command
-        command.set_command(ord('p'), PauseCommand(player))
+        command.set_command(ord('b'), PauseCommand(player))
         command.set_command(ord('q'), QuitCommand(player))
         command.set_command(ord('a'), RewindCommand(player))
         command.set_command(ord('d'), ProceesCommand(player))
@@ -145,6 +158,8 @@ class VideoCon:
         command.set_command(ord('='), RestoreDelayCommand(player))
         command.set_command(ord('x'), RemoveFrameCommand(frame_orchestrator))
         command.set_command(ord('u'), UndoFrameCommand(frame_undo))
+        command.set_command(ord('n'), NextVideoCommand(next_video_orchestrator))
+        command.set_command(ord('p'), PrevVideoCommand(prev_video_orchestrator))
 
     def control(self, key):
         self.command.executor_command(key)
