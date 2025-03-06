@@ -67,7 +67,7 @@ class Playlist:
             None
         """
         self.__next_video_name()
-        video_player.open(self.video_name())
+        video_player.open(self.video_name(), None)
 
     def prev_video(self, video_player: VideoCon) -> None:
         """
@@ -82,4 +82,24 @@ class Playlist:
             None
         """
         self.__prev_video_name()
-        video_player.open(self.video_name())
+        video_player.open(self.video_name(), None)
+
+    def is_beginning(self) -> bool:
+        """
+        Verifica se já chegou no começo da lista de reprodução
+
+        Returns:
+            True: Se chegou no começo da lista.
+            False: Se não chegou no começo da lista.
+        """
+        return len(self.__left_videos) == 0
+
+    def is_end(self) -> bool:
+        """
+        Verifica se já chegou no final da lista de reprodução
+
+        Returns:
+            True: Se chegou no final da lista.
+            False: Se não chegou no final da lista.
+        """
+        return len(self.__right_videos) == 0
