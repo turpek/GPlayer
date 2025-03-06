@@ -29,29 +29,11 @@ import cv2
 class VideoCon:
     def __init__(self, file_name: str, *, frames_mapping: list[int] = None, buffersize: int = 60, log: bool = False):
 
-        self.__path = Path(file_name)
-        self.__cap = cv2.VideoCapture(str(self.__path))
-        self.__creating_window()
-
-        if not frames_mapping:
-            frames_mapping = list(range(int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT))))
-        self._mapping = self.set_mapping(frames_mapping)
-
+        self.__log = log
+        self.__buffersize = buffersize
         self.__semaphore = Semaphore()
-
-        # Intanciando os Buffers responsaveis pelo gerenciamento dos frames.
-        args = (self.__cap, self._mapping, self.__semaphore)
-        self._slave = VideoBufferRight(*args, buffersize=buffersize, bufferlog=log)
-        self._master = VideoBufferLeft(*args, buffersize=buffersize, bufferlog=log)
-        self.command = Invoker()
-        self.__player = PlayerControl(self._slave, self._master)
-        self.__trash = Trash(self.__cap, self.__semaphore, int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT)), buffersize=20)
-        # receiver = PlayerControlReceiver(self.__player)
-        self.set_commands(self.__player, self._mapping, self.__trash)
-
-        # Iniciando a task e esperando que a mesma esteja concluida.
-        self._slave.run()
-        self._slave._buffer.wait_task()
+        self.__creating_window()
+        self.open(Path(file_name), frames_mapping)
 
     def __enter__(self):
         return self
@@ -70,6 +52,28 @@ class VideoCon:
         """
         cv2.namedWindow('videoseq', cv2.WINDOW_NORMAL)
         cv2.resizeWindow('videoseq', 720, 420)
+
+    def open(self, file_name: Path, frames_mapping,):
+        self.__path = file_name
+        self.__cap = cv2.VideoCapture(str(self.__path))
+
+        if not frames_mapping:
+            frames_mapping = list(range(int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT))))
+        self._mapping = self.set_mapping(frames_mapping)
+
+        # Intanciando os Buffers responsaveis pelo gerenciamento dos frames.
+        args = (self.__cap, self._mapping, self.__semaphore)
+        self._slave = VideoBufferRight(*args, buffersize=self.__buffersize, bufferlog=self.__log)
+        self._master = VideoBufferLeft(*args, buffersize=self.__buffersize, bufferlog=self.__log)
+        self.command = Invoker()
+        self.__player = PlayerControl(self._slave, self._master)
+        self.__trash = Trash(self.__cap, self.__semaphore, int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT)), buffersize=20)
+        # receiver = PlayerControlReceiver(self.__player)
+        self.set_commands(self.__player, self._mapping, self.__trash)
+
+        # Iniciando a task e esperando que a mesma esteja concluida.
+        self._slave.run()
+        self._slave._buffer.wait_task()
 
     def join(self):
         self._master.join()
