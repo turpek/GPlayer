@@ -4,6 +4,7 @@ from src.buffer_left import VideoBufferLeft
 from src.buffer_right import VideoBufferRight
 from src.frame_mapper import FrameMapper
 from src.player_control import PlayerControl
+from src.playlist import Playlist
 from src.trash import Trash
 from src.video_command import (
     Invoker,
@@ -20,20 +21,21 @@ from src.video_command import (
     QuitCommand,
     UndoFrameCommand
 )
-from pathlib3x import Path
+from pathlib import Path
 from time import sleep
 from threading import Semaphore
 import cv2
 
 
 class VideoCon:
-    def __init__(self, file_name: str, *, frames_mapping: list[int] = None, buffersize: int = 60, log: bool = False):
+    def __init__(self, video: str | Playlist, *, frames_mapping: list[int] = None, buffersize: int = 60, log: bool = False):
 
+        self.__playlist = video if isinstance(video, Playlist) else Playlist([video])
         self.__log = log
         self.__buffersize = buffersize
         self.__semaphore = Semaphore()
         self.__creating_window()
-        self.open(Path(file_name), frames_mapping)
+        self.open(self.__playlist.video_name(), frames_mapping)
 
     def __enter__(self):
         return self

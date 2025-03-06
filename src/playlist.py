@@ -1,7 +1,13 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from collections import deque
 from pathlib import Path
 
-from src.video import VideoCon
+
+if TYPE_CHECKING:
+    # Para poder usar o `VideoCon` com dica
+    from src.video import VideoCon
+
 
 class Playlist:
     def __init__(self, videos: list[str | Path]):
