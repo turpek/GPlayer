@@ -1,9 +1,11 @@
+from collections import deque
 from src.trash import Trash
 from threading import Semaphore
 from pytest import fixture
 from unittest.mock import patch
 import numpy as np
 import cv2
+import pytest
 
 
 def lote(start, end, step=1):
@@ -146,9 +148,84 @@ def test_trash_com_11_frame_undo(trash):
     assert expect_frames_id == result_frames_id
 
 
-# @pytest.mark.skip(reason='Devo implementar depois')
 def test_trash_com_20_frame_undo(trash):
     expect_frames_id = list(range(20, 0, -1))
     [trash.move(frame_id, frame) for frame_id, frame in lote(1, 21)]
     result_frames_id = [trash.undo()[0] for _ in range(20)]
     assert expect_frames_id == result_frames_id
+
+
+def test_trash_import_frames_id_vazia(trash):
+    frames_id = deque()
+    expect = False
+    trash.import_frames_id(frames_id)
+    result = trash.can_undo()
+    assert expect == result
+
+
+def test_trash_import_frames_id_com_1_elemento(trash):
+    frames_id = deque()
+    frames_id.append(0)
+    expect = True
+
+    trash.import_frames_id(frames_id)
+    result = trash.can_undo()
+    assert expect == result
+
+
+def test_trash_undo_apos_import_frames_id_com_1_elemento(trash):
+    frames_id = deque()
+    frames_id.append(0)
+    expect = 0
+
+    trash.import_frames_id(frames_id)
+    result = trash.undo()[0]
+    assert expect == result
+
+
+def test_trash_undo_apos_import_frames_id_com_20_elemento(trash):
+    frames_id = deque()
+    [frames_id.append(fid) for fid in range(19, -1, -1)]
+    expect = list(range(19, -1, -1))
+
+    trash.import_frames_id(frames_id)
+    result = [trash.undo()[0] for _ in range(20)]
+    assert expect == result
+
+
+def test_trash_export_frames_id_vazia(trash):
+    frames_id = deque()
+    expect = True
+
+    trash.export_frames_id(frames_id)
+    result = len(frames_id) == 0
+    assert expect == result
+
+
+def test_trash_export_frames_id_com_20_elemento_sem_undo(trash):
+    frames_id = deque()
+    [frames_id.append(fid) for fid in range(19, -1, -1)]
+    expect = frames_id.copy()
+
+    result = deque()
+    trash.import_frames_id(frames_id)
+    trash.export_frames_id(result)
+
+    assert expect == result
+
+
+def test_trash_export_frames_id_com_20_elemento_com_undo(trash):
+    frames_id = deque()
+    [frames_id.append(fid) for fid in range(19, -1, -1)]
+    frames_id.appendleft(20)  # Será removido ao restaurar, então não entra no valor experado!
+    expect = frames_id.copy()
+    expect.popleft()
+
+    result = deque()
+    trash.import_frames_id(frames_id)
+    trash.undo()
+    import ipdb
+    ipdb.set_trace()
+    trash.export_frames_id(result)
+
+    assert expect == result
