@@ -5,6 +5,7 @@ from src.buffer_right import VideoBufferRight
 from src.frame_mapper import FrameMapper
 from src.memento import Caretaker, TrashOriginator
 from threading import Semaphore
+from queue import Queue
 from numpy import ndarray
 
 
@@ -71,3 +72,27 @@ class Trash():
             del self._dframes[frame_id]
             return frame_id, frame
         return None, None
+
+    def can_undo(self) -> bool:
+        """
+        Método que verifica se há frames para restaurar.
+
+        Returns:
+            True: se tiver frames
+            False: se não houver frames
+        """
+        return not self.empty() or self.__caretaker.can_undo()
+
+    def import_frames_id(self, frames_id: Queue) -> None:
+        """
+        Importar os frames_id de uma fila para uma pilha
+
+        Args:
+            frames_id (Queue): uma fila que contém números inteiros que representam o
+                os frame_id excluidos, e que podem ser restaurados.
+
+        Returns:
+            None
+        """
+        while not frames_id.empty():
+            self.__memento_save(frames_id.get())

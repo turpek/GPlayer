@@ -51,13 +51,13 @@ class Caretaker:
     def __init__(self):
         self._mementos = deque()
 
-    def empty(self) -> bool:
-        return len(self._mementos) == 0
+    def can_undo(self) -> bool:
+        return len(self._mementos) > 0
 
     def save(self, originator: IOriginator) -> None:
         self._mementos.append(originator.save())
 
     def undo(self, originator: IOriginator):
-        if not self.empty():
+        if self.can_undo():
             memento = self._mementos.pop()
             originator.undo(memento)
