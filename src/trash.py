@@ -83,7 +83,7 @@ class Trash():
         """
         return not self.empty() or self.__caretaker.can_undo()
 
-    def import_frames_id(self, frames_id: Queue) -> None:
+    def import_frames_id(self, frames_id: deque) -> None:
         """
         Importar os frames_id de uma fila para uma pilha
 
@@ -94,5 +94,23 @@ class Trash():
         Returns:
             None
         """
-        while not frames_id.empty():
-            self.__memento_save(frames_id.get())
+        while len(frames_id):
+            self.__memento_save(frames_id.pop())
+
+    def export_frames_id(self, frames_id: deque) -> None:
+        """
+        Exporta os frames_id de uma pilha para uma queue
+
+        Args:
+            frames_id (Queue): uma fila que contém números inteiros que representam o
+                os frame_id excluidos, e que podem ser restaurados.
+
+        Returns:
+            None
+        """
+        while self.__caretaker.can_undo():
+            self._memento_undo()
+            frames_id.append(self.__originator.get_state())
+
+        while self.can_undo():
+            frames_id.appendleft(self._stack.popleft())
