@@ -53,9 +53,9 @@ class Trash():
     def undo(self) -> tuple[int, ndarray] | None:
         bsize = self._stack.maxlen // 2
         logger.debug('iniciando a restauracao do frame')
-        if len(self._stack) == bsize and not self.__caretaker.empty():
+        if len(self._stack) <= bsize and self.__caretaker.can_undo():
             for _ in range(bsize):
-                if self.__caretaker.empty():
+                if not self.__caretaker.can_undo():
                     break
                 self._memento_undo()
                 self._stack.appendleft(self.__originator.get_state())
