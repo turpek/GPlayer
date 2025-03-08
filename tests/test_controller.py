@@ -1,14 +1,15 @@
-from src.buffer_right import VideoBufferRight
-from src.buffer_left import VideoBufferLeft
 from src.custom_exceptions import VideoBufferError
-from src.frame_mapper import FrameMapper
-from src.player_control import PlayerControl
-from src.video_command import RewindCommand, ProceesCommand, RemoveFrameCommand
-from src.video import Player
-from src.trash import Trash
-from threading import Semaphore
+from src.video_command import (RewindCommand,
+                               ProceesCommand,
+                               RemoveFrameCommand,
+                               UndoFrameCommand)
+from src.video_controller import FakeVideoController as VideoController
+from src.manager import VideoManager
+from src.buffer_left import VideoBufferLeft
+from src.buffer_right import VideoBufferRight
+from src.playlist import Playlist
 from pytest import fixture
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import numpy as np
 import cv2
 import pytest
@@ -16,11 +17,6 @@ import pytest
 
 def lote(start, end, step=1):
     return [(frame_id, np.zeros((2, 2))) for frame_id in range(start, end, step)]
-
-
-def setVideoBufferLeft(frame_id, buffer_left, buffer_right):
-    buffer_left.set(frame_id)
-    buffer_right.set(frame_id)
 
 
 @fixture
@@ -66,48 +62,16 @@ class MyVideoCapture():
 
 
 @fixture
-def plr(mycap, request):
-    lote, buffersize, frame_count, log = request.param
+def video(mycap, request):
+    frames_mapping, buffersize, frame_count, log = request.param
     log = False
-    player = Player(buffersize, log)
-    player.open('', lote)
-    yield player
+    with patch('src.manager.cv2.VideoCapture', return_value=MyVideoCapture()) as _:
+        manager = VideoManager(buffersize, log)
+        playlist = Playlist(['video-01.mp4'])
+        video = VideoController(playlist, frames_mapping, manager)
+        yield video
 
-    player.join()
-
-
-@fixture
-def player(mycap, request):
-    lote, buffersize = request.param
-    cap = mycap.return_value
-    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    mapping = FrameMapper(lote, frame_count)
-    semaphore = Semaphore()
-    log = False
-    vbuffer_right = VideoBufferRight(cap, mapping, semaphore, bufferlog=log, buffersize=buffersize)
-    vbuffer_left = VideoBufferLeft(cap, mapping, semaphore, bufferlog=log, buffersize=buffersize)
-    player_control = PlayerControl(vbuffer_right, vbuffer_left)
-    yield player_control
-
-    vbuffer_left.join()
-    vbuffer_right.join()
-
-
-@fixture
-def orch(mycap, request):
-    lote, buffersize, frame_count, log = request.param
-    cap = mycap.return_value
-    semaphore = Semaphore()
-
-    mapping = FrameMapper(lote, frame_count=frame_count)
-    master = VideoBufferLeft(cap, mapping, semaphore, buffersize=buffersize, bufferlog=log, name='left')
-    servant = VideoBufferRight(cap, mapping, semaphore, buffersize=buffersize, bufferlog=log, name='right')
-    player_control = PlayerControl(servant, master)
-    _trash = Trash(cap, semaphore, frame_count=frame_count, buffersize=5)
-    yield (player_control, mapping, _trash)
-    _trash.join()
-    master.join()
-    servant.join()
+    video.join()
 
 
 @fixture
@@ -144,922 +108,826 @@ def orch_200(mycap, frame_count=200, buffersize=25, log=False):
 
 # ######### Teste do RewindCommand Sem frames ###################################
 
-@pytest.mark.parametrize('player', [([], 25)], indirect=True)
-def test_RewindCommand_sem_frames(player):
-    RewindCommand(player)
-
-    expect = True
-    player.rewind()
-    result = isinstance(player.servant, VideoBufferLeft)
-    assert expect == result
+@pytest.mark.parametrize('video', [([], 25, 100, False)], indirect=True)
+def test_RewindCommand_sem_frames(video):
+    rewind = RewindCommand(video)
+    rewind.executor()
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.parametrize('player', [([], 25)], indirect=True)
-def test_RewindCommand_sem_frames_com_read(player):
-    rewind = RewindCommand(player)
+@pytest.mark.parametrize('video', [([], 25, 100, False)], indirect=True)
+def test_RewindCommand_sem_frames_com_read(video):
+    rewind = RewindCommand(video)
 
     expect = False
     rewind.executor()
-    result, _ = player.read()
+    result, _ = video.read()
     assert expect == result
 
 
-@pytest.mark.parametrize('player', [([], 25)], indirect=True)
-def test_RewindCommand_sem_frames_com_a_seguinte_sequencia_rewind_proceed_rewind(player):
-    rewind = RewindCommand(player)
-    procees = ProceesCommand(player)
+@pytest.mark.parametrize('video', [([], 25, 100, False)], indirect=True)
+def test_RewindCommand_sem_frames_com_a_seguinte_sequencia_rewind_proceed_rewind(video):
+    rewind = RewindCommand(video)
+    procees = ProceesCommand(video)
 
     expect = False
     rewind.executor()
     procees.executor()
     rewind.executor()
-    result, _ = player.read()
+    result, _ = video.read()
     assert expect == result
 
 
 # ######### Teste do RewindCommand com 1 frame #####################################
 
-@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
-def test_RewindCommand_com_1_frame(player):
-    RewindCommand(player)
-
-    expect = True
-    player.rewind()
-    result = isinstance(player.servant, VideoBufferLeft)
-    assert expect == result
+@pytest.mark.parametrize('video', [([], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_1_frame(video):
+    RewindCommand(video)
+    video.rewind()
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
-def test_RewindCommand_com_1_frame_com_read(player):
-    rewind = RewindCommand(player)
+@pytest.mark.parametrize('video', [([0], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_1_frame_com_read(video):
+    rewind = RewindCommand(video)
     expect = False
     rewind.executor()
-    result, _ = player.read()
+    result, _ = video.read()
     assert expect == result
 
 
-@pytest.mark.parametrize('player', [([0], 25)], indirect=True)
-def test_RewindCommand_com_1_frame_com_a_seguinte_sequencia_rewind_proceed_rewind(player):
-    rewind = RewindCommand(player)
-    procees = ProceesCommand(player)
+@pytest.mark.parametrize('video', [([0], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_1_frame_com_a_seguinte_sequencia_rewind_proceed_rewind(video):
+    rewind = RewindCommand(video)
+    procees = ProceesCommand(video)
 
     expect = False
     rewind.executor()
     procees.executor()
     rewind.executor()
-    result, _ = player.read()
+    result, _ = video.read()
     assert expect == result
 
 
 # ######### Teste do RewindCommand com 2 frame #####################################
 
-@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
-def test_RewindCommand_com_2_frames(player):
-    RewindCommand(player)
-
-    expect = True
-    player.rewind()
-    result = isinstance(player.servant, VideoBufferLeft)
-    assert expect == result
+@pytest.mark.parametrize('video', [([0, 1], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_2_frames(video):
+    RewindCommand(video)
+    video.rewind()
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
-def test_RewindCommand_com_2_frames_com_read(player):
-    rewind = RewindCommand(player)
+@pytest.mark.parametrize('video', [([0, 1], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_2_frames_com_read(video):
+    rewind = RewindCommand(video)
     expect = False
     rewind.executor()
-    result, _ = player.read()
+    result, _ = video.read()
     assert expect == result
 
 
-@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
-def test_RewindCommand_com_2_frames_com_a_seguinte_sequencia_rewind_proceed_rewind(player):
-    rewind = RewindCommand(player)
-    procees = ProceesCommand(player)
+@pytest.mark.parametrize('video', [([0, 1], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_2_frames_com_a_seguinte_sequencia_rewind_proceed_rewind(video):
+    rewind = RewindCommand(video)
+    procees = ProceesCommand(video)
 
     expect = False
     rewind.executor()
     procees.executor()
     rewind.executor()
-    result, _ = player.read()
+    result, _ = video.read()
     assert expect == result
 
 
-@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
-def test_RewindCommand_com_2_frames_com_set_antes_do_executor(player):
-    rewind = RewindCommand(player)
-    procees = ProceesCommand(player)
-    player.servant.set(1)
-    player.master.set(1)
+@pytest.mark.parametrize('video', [([0, 1], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_2_frames_com_set_antes_do_executor(video):
+    rewind = RewindCommand(video)
+    procees = ProceesCommand(video)
+    video.player.servant.set(1)
+    video.player.master.set(1)
 
     expect = True
     rewind.executor()
     procees.executor()
     rewind.executor()
-    result, _ = player.read()
+    result, _ = video.read()
     assert expect == result
 
 
-@pytest.mark.parametrize('player', [([0, 1], 25)], indirect=True)
-def test_RewindCommand_com_2_frames_com_set_antes_do_executor_com_read(player):
-    rewind = RewindCommand(player)
-    procees = ProceesCommand(player)
-    player.servant.set(1)
-    player.master.set(1)
+@pytest.mark.parametrize('video', [([0, 1], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_2_frames_com_set_antes_do_executor_com_read(video):
+    rewind = RewindCommand(video)
+    procees = ProceesCommand(video)
+    video.player.servant.set(1)
+    video.player.master.set(1)
 
     expect = False
     rewind.executor()
     procees.executor()
     rewind.executor()
-    result, _ = player.read()
-    result, _ = player.read()
+    result, _ = video.read()
+    result, _ = video.read()
     assert expect == result
 
 
 # ######### Teste do RewindCommand com 3 frames #####################################
 
-@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
-def test_RewindCommand_com_3_frames(player):
-    RewindCommand(player)
-
-    expect = True
-    player.rewind()
-    result = isinstance(player.servant, VideoBufferLeft)
-    assert expect == result
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_3_frames(video):
+    RewindCommand(video)
+    video.rewind()
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
-def test_RewindCommand_com_3_frames_com_read(player):
-    rewind = RewindCommand(player)
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_3_frames_com_read(video):
+    rewind = RewindCommand(video)
     expect = False
     rewind.executor()
-    result, _ = player.read()
+    result, _ = video.read()
     assert expect == result
 
 
-@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
-def test_RewindCommand_com_3_frames_com_a_seguinte_sequencia_rewind_proceed_rewind(player):
-    rewind = RewindCommand(player)
-    procees = ProceesCommand(player)
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_3_frames_com_a_seguinte_sequencia_rewind_proceed_rewind(video):
+    rewind = RewindCommand(video)
+    procees = ProceesCommand(video)
+
+    rewind.executor()
+    procees.executor()
+    rewind.executor()
+    assert isinstance(video.player.servant, VideoBufferLeft)
+
+
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_3_frames_com_set_antes_do_executor(video):
+    rewind = RewindCommand(video)
+    procees = ProceesCommand(video)
+    video.player.servant.set(2)
+    video.player.master.set(2)
 
     expect = True
     rewind.executor()
     procees.executor()
     rewind.executor()
-    result = isinstance(player.servant, VideoBufferLeft)
+    result, _ = video.read()
     assert expect == result
 
 
-@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
-def test_RewindCommand_com_3_frames_com_set_antes_do_executor(player):
-    rewind = RewindCommand(player)
-    procees = ProceesCommand(player)
-    player.servant.set(2)
-    player.master.set(2)
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_3_frames_com_set_antes_do_executor_com_2_read(video):
+    rewind = RewindCommand(video)
+    procees = ProceesCommand(video)
+    video.player.servant.set(2)
+    video.player.master.set(2)
 
     expect = True
     rewind.executor()
     procees.executor()
     rewind.executor()
-    result, _ = player.read()
+    result, _ = video.read()
+    result, _ = video.read()
     assert expect == result
 
 
-@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
-def test_RewindCommand_com_3_frames_com_set_antes_do_executor_com_2_read(player):
-    rewind = RewindCommand(player)
-    procees = ProceesCommand(player)
-    player.servant.set(2)
-    player.master.set(2)
-
-    expect = True
-    rewind.executor()
-    procees.executor()
-    rewind.executor()
-    result, _ = player.read()
-    result, _ = player.read()
-    assert expect == result
-
-
-@pytest.mark.parametrize('player', [([0, 1, 2], 25)], indirect=True)
-def test_RewindCommand_com_3_frames_com_set_antes_do_executor_com_3_read(player):
-    rewind = RewindCommand(player)
-    procees = ProceesCommand(player)
-    player.servant.set(2)
-    player.master.set(2)
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RewindCommand_com_3_frames_com_set_antes_do_executor_com_3_read(video):
+    rewind = RewindCommand(video)
+    procees = ProceesCommand(video)
+    video.player.servant.set(2)
+    video.player.master.set(2)
 
     expect = False
     rewind.executor()
     procees.executor()
     rewind.executor()
-    result, _ = player.read()
-    result, _ = player.read()
-    result, _ = player.read()
+    result, _ = video.read()
+    result, _ = video.read()
+    result, _ = video.read()
     assert expect == result
 
 
-# ####### Testes do FrameRemoveOrchestrator com servant VideoBufferRight como padrão ###### #
+# ####### Testes do RemoveFrameCommand com servant VideoBufferRight como padrão ###### #
 
 # ####### Teste para o FrameMapper vazio ####################################
 
 #  lote, buffersize, frame_count, log = request.param
-@pytest.mark.parametrize('plr', [([], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_frame_mapper_vazio(plr):
-    remov = RemoveFrameCommand(plr)
-    plr.control.read()
-    remov.executor()
+@pytest.mark.parametrize('video', [([], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_frame_mapper_vazio(video):
+    remove = RemoveFrameCommand(video)
+    video.read()
+    remove.executor()
 
     expect_frame_id = None
-    plr.control.read()
-    result_frame_id = plr.frame_id
+    video.read()
+    result_frame_id = video.frame_id
     assert expect_frame_id == result_frame_id
 
 
 # ####### Teste para o FrameMapper com 1 frame ####################################
 
-@pytest.mark.parametrize('plr', [([0], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_1_frame_no_frame_mapper(plr):
-    remov = RemoveFrameCommand(plr)
-    plr.control.read()
-    remov.executor()
+@pytest.mark.parametrize('video', [([0], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_1_frame_no_frame_mapper(video):
+    remove = RemoveFrameCommand(video)
+    video.read()
+    remove.executor()
 
     expect_frame_id = None
     expect_VideoBufferLeft_servant = True
 
     # Como é o último frame deve ocorrer um swap entre os buffers
-    plr.control.read()
-    result_frame_id = plr.frame_id
-    result_VideoBufferLeft = isinstance(plr.control.servant, VideoBufferLeft)
+    video.read()
+    result_frame_id = video.frame_id
+    result_VideoBufferLeft = isinstance(video.player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
     assert expect_VideoBufferLeft_servant == result_VideoBufferLeft
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_1_frame_no_frame_mapper_com_rewind(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    player.read()
-    player.rewind()
-    remov.remove()
+@pytest.mark.parametrize('video', [([0], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_1_frame_no_frame_mapper_com_rewind(video):
+    remove = RemoveFrameCommand(video)
+    video.player.read()
+    video.player.rewind()
+    remove.executor()
 
     expect_frame_id = None
     expect_VideoBufferLeft_servant = False
 
     # Como é o último frame deve ocorrer um swap entre os buffers
-    player.read()
-    result_frame_id = player.frame_id
-    result_VideoBufferLeft = isinstance(player.servant, VideoBufferLeft)
+    video.read()
+    result_frame_id = video.frame_id
+    result_VideoBufferLeft = isinstance(video.player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
     assert expect_VideoBufferLeft_servant == result_VideoBufferLeft
 
 
 # ####### Teste para o FrameMapper com 2 frames ####################################
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    player.read()
-    remov.remove()
+@pytest.mark.parametrize('video', [([0, 1], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_2_frame_no_frame_mapper(video):
+    remove = RemoveFrameCommand(video)
+    video.read()
+    remove.executor()
 
     expect_frame_id = 1
     expect_VideoBufferLeft_servant = True
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_VideoBufferRight = isinstance(player.servant, VideoBufferRight)
+    video.read()
+    result_frame_id = video.frame_id
+    result_VideoBufferRight = isinstance(video.player.servant, VideoBufferRight)
     assert expect_frame_id == result_frame_id
     assert expect_VideoBufferLeft_servant == result_VideoBufferRight
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper_removendo_2x(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
+@pytest.mark.parametrize('video', [([0, 1], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_2_frame_no_frame_mapper_removendo_2x(video):
+    remove = RemoveFrameCommand(video)
     for _ in range(2):
-        player.read()
-        remov.remove()
+        video.read()
+        remove.executor()
 
     expect_frame_id = None
     expect_servant = True
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
+    video.read()
+    result_frame_id = video.player.frame_id
+    result_servant = isinstance(video.player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
     assert expect_servant == result_servant
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper_removendo_1x_com_rewind(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    [player.read() for _ in range(3)]
-    player.rewind()
+@pytest.mark.parametrize('video', [([0, 1], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_2_frame_no_frame_mapper_removendo_1x_com_rewind(video):
+    remove = RemoveFrameCommand(video)
+    [video.read() for _ in range(3)]
+    video.rewind()
 
-    player.read()
-    remov.remove()
+    video.read()
+    remove.executor()
 
     expect_frame_id = 0
-    expect_servant = True
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
+    video.read()
+    result_frame_id = video.frame_id
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper_removendo_2x_com_rewind(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    [player.read() for _ in range(3)]
-    player.rewind()
+@pytest.mark.parametrize('video', [([0, 1], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_2_frame_no_frame_mapper_removendo_2x_com_rewind(video):
+    remove = RemoveFrameCommand(video)
+    [video.read() for _ in range(3)]
+    video.rewind()
     for _ in range(2):
-        player.read()
-        remov.remove()
+        video.read()
+        remove.executor()
 
     expect_frame_id = None
     expect_servant = False
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
+    video.read()
+    result_frame_id = video.frame_id
+    result_servant = isinstance(video.player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
     assert expect_servant == result_servant
 
 
 # ####### Teste para o FrameMapper com 3 frames ####################################
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    player.read()
-    remov.remove()
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper(video):
+    remove = RemoveFrameCommand(video)
+    video.read()
+    remove.executor()
 
+    video.read()
     expect_frame_id = 1
-    expect_VideoBufferLeft_servant = True
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_VideoBufferRight = isinstance(player.servant, VideoBufferRight)
     assert expect_frame_id == result_frame_id
-    assert expect_VideoBufferLeft_servant == result_VideoBufferRight
+    assert isinstance(video.player.servant, VideoBufferRight)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_2x(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper_removendo_2x(video):
+    remove = RemoveFrameCommand(video)
     for _ in range(2):
-        player.read()
-        remov.remove()
+        video.read()
+        remove.executor()
 
+    video.read()
     expect_frame_id = 2
-    expect_servant = False
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferRight)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_3x(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper_removendo_3x(video):
+    remove = RemoveFrameCommand(video)
     for _ in range(3):
-        player.read()
-        remov.remove()
+        video.read()
+        remove.executor()
 
+    video.read()
     expect_frame_id = None
-    expect_servant = True
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_1x_com_rewind(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    [player.read() for _ in range(4)]
-    player.rewind()
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper_removendo_1x_com_rewind(video):
+    remove = RemoveFrameCommand(video)
+    [video.read() for _ in range(4)]
+    video.rewind()
 
-    player.read()
-    remov.remove()
+    video.read()
+    remove.executor()
 
+    video.read()
     expect_frame_id = 1
-    expect_servant = True
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_2x_com_rewind(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    [player.read() for _ in range(4)]
-    player.rewind()
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper_removendo_2x_com_rewind(video):
+
+    remove = RemoveFrameCommand(video)
+    [video.read() for _ in range(4)]
+    video.rewind()
     for _ in range(2):
-        player.read()
-        remov.remove()
+        video.read()
+        remove.executor()
 
+    video.read()
     expect_frame_id = 0
-    expect_servant = True
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_3x_com_rewind(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    [player.read() for _ in range(4)]
-    player.rewind()
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper_removendo_3x_com_rewind(video):
+    remove = RemoveFrameCommand(video)
+    [video.read() for _ in range(4)]
+    video.rewind()
     for _ in range(3):
-        player.read()
-        remov.remove()
+        video.read()
+        remove.executor()
 
+    video.read()
     expect_frame_id = None
-    expect_servant = False
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferRight)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_1x(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    [player.read() for _ in range(2)]
-    remov.remove()
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_1x(video):
+    remove = RemoveFrameCommand(video)
+    [video.read() for _ in range(2)]
+    remove.executor()
 
+    video.read()
     expect_frame_id = 2
-    expect_servant = False
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferRight)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_2x(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    player.read()
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_2x(video):
+    remove = RemoveFrameCommand(video)
+    video.read()
     for _ in range(2):
-        player.read()
-        remov.remove()
+        video.read()
+        remove.executor()
 
+    video.read()
     expect_frame_id = 0
-    expect_servant = True
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_3x(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    player.read()
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_3x(video):
+
+    remove = RemoveFrameCommand(video)
+    video.read()
     for _ in range(3):
-        player.read()
-        remov.remove()
+        video.read()
+        remove.executor()
 
+    video.read()
     expect_frame_id = None
-    expect_servant = False
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferRight)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_1x_com_rewind(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    [player.read() for _ in range(2)]
-    player.rewind()
-    remov.remove()
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_1x_com_rewind(video):
+    remove = RemoveFrameCommand(video)
+    [video.read() for _ in range(2)]
+    video.rewind()
+    remove.executor()
 
+    video.read()
     expect_frame_id = 0
-    expect_servant = True
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_2x_com_rewind(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    [player.read() for _ in range(2)]
-    player.rewind()
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_2x_com_rewind(video):
+    remove = RemoveFrameCommand(video)
+    [video.read() for _ in range(2)]
+    video.rewind()
     for _ in range(2):
-        player.read()
-        remov.remove()
+        video.read()
+        remove.executor()
 
+    video.read()
     expect_frame_id = 2
-    expect_servant = False
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferRight)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_3x_com_rewind(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    [player.read() for _ in range(2)]
-    player.rewind()
+@pytest.mark.parametrize('video', [([0, 1, 2], 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_3x_com_rewind(video):
+
+    remove = RemoveFrameCommand(video)
+    [video.read() for _ in range(2)]
+    video.rewind()
     for _ in range(3):
-        player.read()
-        remov.remove()
+        video.read()
+        remove.executor()
 
+    video.read()
     expect_frame_id = None
-    expect_servant = True
+    result_frame_id = video.frame_id
 
-    player.read()
-    result_frame_id = player.frame_id
-    result_servant = isinstance(player.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
-    assert expect_servant == result_servant
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.parametrize('orch', [(list(range(100)), 25, 100, False)], indirect=True)
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_frame_0_com_servant_VideoBufferRight(orch):
-    player, mapping, trash = orch
-    player.read()
-    remov = FrameRemoveOrchestrator(*orch)
-    remov.remove()
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_0_com_servant_VideoBufferRight(video):
+    video.read()
+    remove = RemoveFrameCommand(video)
+    remove.executor()
 
+    video.read()
     expect_frame_id = 1
-    player.read()
-    result_frame_id = player.frame_id
+    result_frame_id = video.frame_id
+
     assert expect_frame_id == result_frame_id
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferRight(orch_100):
-    player, mapping, trash = orch_100
-    player.servant.set(99)
-    player.master.set(99)
-    player.read()
-    remov = FrameRemoveOrchestrator(*orch_100)
-    remov.remove()
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_ultimo_frame_com_servant_VideoBufferRight(video):
 
+    video.player.servant.set(99)
+    video.player.master.set(99)
+    video.read()
+    remove = RemoveFrameCommand(video)
+    remove.executor()
+
+    video.read()
     expect_frame_id = 98
-    expect_buffer = True
-    player.read()
-    result_frame_id = player.frame_id
+    result_frame_id = video.frame_id
+
     assert expect_frame_id == result_frame_id
-    assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferRight(orch_100):
-    player, mapping, trash = orch_100
-    player.servant.set(50)
-    player.master.set(50)
-    player.read()
-    remov = FrameRemoveOrchestrator(*orch_100)
-    remov.remove()
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_do_meio_com_servant_VideoBufferRight(video):
+    video.player.servant.set(50)
+    video.player.master.set(50)
+    video.read()
+    remove = RemoveFrameCommand(video)
+    remove.executor()
 
+    video.read()
     expect_frame_id = 51
-    expect_buffer = False
-    player.read()
-    result_frame_id = player.frame_id
+    result_frame_id = video.frame_id
+
     assert expect_frame_id == result_frame_id
-    assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
+    assert isinstance(video.player.servant, VideoBufferRight)
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_VideoBufferRight(orch_100):
-    player, mapping, trash = orch_100
-    remov = FrameRemoveOrchestrator(*orch_100)
-    player.servant.set(50)
-    player.master.set(50)
-    while not player.servant.is_task_complete():
-        player.read()
-        remov.remove()
-
-    expect_is_task_complete = True
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_todos_os_frames_desde_o_inicio_com_servant_VideoBufferRight(video):
+    remove = RemoveFrameCommand(video)
+    video.player.servant.set(50)
+    video.player.master.set(50)
+    while not video.player.servant.is_task_complete():
+        video.read()
+        remove.executor()
 
     # Aqui ocorre duas trocas de buffers, a primeira ao atingir a extremidade direita,
     # a segunda ao atingir a extremidade da esquerda, portanto o buffer do final é o da direita
     # por isso o expect_buffer deve ser falso
-    expect_buffer = False
-    player.read()
-    result_is_task_complet = player.servant.is_task_complete()
-    assert expect_is_task_complete == result_is_task_complet
-    assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
-
-
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_VideoBufferRight(orch_100):
-    player, mapping, trash = orch_100
-    remov = FrameRemoveOrchestrator(*orch_100)
-    while not player.servant.is_task_complete():
-        player.read()
-        remov.remove()
-
+    video.read()
     expect_is_task_complete = True
-    expect_buffer = True
-    player.read()
-    result_is_task_complet = player.servant.is_task_complete()
+    result_is_task_complet = video.player.servant.is_task_complete()
     assert expect_is_task_complete == result_is_task_complet
-    assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
+    assert isinstance(video.player.servant, VideoBufferRight)
 
 
-# ####### Testes do FrameRemoveOrchestrator com servant VideoBufferRight como padrão ###### #
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_todos_os_frames_a_partir_da_metade_com_servant_VideoBufferRight(video):
+    remove = RemoveFrameCommand(video)
+    while not video.player.servant.is_task_complete():
+        video.read()
+        remove.executor()
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_frame_0_com_servant_VideoBufferLeft(orch_100):
-    player, mapping, trash = orch_100
-    player.rewind()
+    video.read()
+    expect_is_task_complete = True
+    result_is_task_complet = video.player.servant.is_task_complete()
 
-    player.servant.set(1)
-    player.master.set(1)
-    player.read()
+    assert expect_is_task_complete == result_is_task_complet
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
-    remov = FrameRemoveOrchestrator(*orch_100)
-    remov.remove()
+
+# ####### Testes do RemoveFrameCommand com servant VideoBufferRight como padrão ###### #
+
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_0_com_servant_VideoBufferLeft(video):
+    video.rewind()
+
+    video.player.servant.set(1)
+    video.player.master.set(1)
+    video.read()
+
+    remove = RemoveFrameCommand(video)
+    remove.executor()
 
     expect_frame_id = 1
-    player.read()
-    result_frame_id = player.frame_id
+    video.read()
+    result_frame_id = video.frame_id
     assert expect_frame_id == result_frame_id
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferLeft(orch_100):
-    player, mapping, trash = orch_100
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_ultimo_frame_com_servant_VideoBufferLeft(video):
+    video.player.servant.set(99)
+    video.player.master.set(99)
+    video.read()
+    video.rewind()
 
-    player.servant.set(99)
-    player.master.set(99)
-    player.read()
-    player.rewind()
+    remove = RemoveFrameCommand(video)
+    remove.executor()
 
-    remov = FrameRemoveOrchestrator(*orch_100)
-    remov.remove()
-
+    video.read()
     expect_frame_id = 98
-    expect_buffer = True
-    player.read()
-    result_frame_id = player.frame_id
+    result_frame_id = video.frame_id
+
     assert expect_frame_id == result_frame_id
-    assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferLeft(orch_100):
-    player, mapping, trash = orch_100
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_frame_do_meio_com_servant_VideoBufferLeft(video):
+    video.rewind()
+    video.player.servant.set(50)  # seta o frame_id 49
+    video.player.master.set(50)
+    video.read()
 
-    player.rewind()
-    player.servant.set(50)  # seta o frame_id 49
-    player.master.set(50)
-    player.read()
+    remove = RemoveFrameCommand(video)
+    remove.executor()  # Remove o frame_id 49
 
-    remov = FrameRemoveOrchestrator(*orch_100)
-    remov.remove()  # Remove o frame_id 49
-
+    video.read()
     expect_frame_id = 48
-    expect_buffer = False
-    player.read()
-    result_frame_id = player.frame_id
+    result_frame_id = video.frame_id
+
     assert expect_frame_id == result_frame_id
-    assert expect_buffer is isinstance(player.servant, VideoBufferRight)
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_VideoBufferLeft(orch_100):
-    player, mapping, trash = orch_100
-    remov = FrameRemoveOrchestrator(*orch_100)
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_todos_os_frames_a_partir_da_metade_com_servant_VideoBufferLeft(video):
+    remove = RemoveFrameCommand(video)
 
-    player.rewind()
-    player.servant.set(50)
-    player.master.set(50)
+    video.rewind()
+    video.player.servant.set(50)
+    video.player.master.set(50)
 
-    while not player.servant.is_task_complete():
-        player.read()
-        remov.remove()
-
-    expect_is_task_complete = True
+    while not video.player.servant.is_task_complete():
+        video.read()
+        remove.executor()
 
     # Aqui ocorre duas trocas de buffers, a primeira ao atingir a extremidade esquerda,
     # a segunda ao atingir a extremidade da direita, portanto o buffer do final é o da esquerda
     # por isso o expect_buffer deve ser falso
-    expect_buffer = False
-
-    player.read()
-    result_is_task_complet = player.servant.is_task_complete()
+    video.read()
+    expect_is_task_complete = True
+    result_is_task_complet = video.player.servant.is_task_complete()
 
     assert expect_is_task_complete == result_is_task_complet
-    assert expect_buffer is isinstance(player.servant, VideoBufferRight)
+    assert isinstance(video.player.servant, VideoBufferLeft)
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_VideoBufferLeft(orch_100):
-    player, mapping, trash = orch_100
-    remov = FrameRemoveOrchestrator(*orch_100)
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_todos_os_frames_desde_o_inicio_com_servant_VideoBufferLeft(video):
+    remove = RemoveFrameCommand(video)
 
-    player.rewind()
-    while not player.servant.is_task_complete():
-        player.read()
-        remov.remove()
+    video.rewind()
+    while not video.player.servant.is_task_complete():
+        video.read()
+        remove.executor()
+
+    video.read()
+    result_is_task_complet = video.player.servant.is_task_complete()
+    expect_is_task_complete = True
+
+    assert expect_is_task_complete == result_is_task_complet
+
+
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_todos_os_frames_desde_o_final_com_servant_VideoBufferLeft(video):
+    remove = RemoveFrameCommand(video)
+
+    video.player.servant.set(99)
+    video.player.master.set(99)
+    video.read()
+    video.rewind()
+
+    while not video.player.servant.is_task_complete():
+        remove.executor()
+        video.read()
 
     expect_is_task_complete = True
-    # expect_buffer = True
-
-    player.read()
-    result_is_task_complet = player.servant.is_task_complete()
-
+    result_is_task_complet = video.player.servant.is_task_complete()
     assert expect_is_task_complete == result_is_task_complet
-    # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_todos_os_frames_desde_o_final_com_servant_VideoBufferLeft(orch_100):
-    player, mapping, trash = orch_100
-    remov = FrameRemoveOrchestrator(*orch_100)
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_o_primeiro_frame_com_servant_buffer_leftt_e_depois_rewind_e_read_novamente(video):
+    remove = RemoveFrameCommand(video)
 
-    player.servant.set(99)
-    player.master.set(99)
-    player.read()
-    player.rewind()
+    video.player.servant.set(1)
+    video.rewind()
 
-    while not player.servant.is_task_complete():
-        remov.remove()
-        player.read()
+    video.read()
+    remove.executor()
+    video.rewind()
+    video.read()
 
     expect_is_task_complete = True
-    # expect_buffer = True
-
-    result_is_task_complet = player.servant.is_task_complete()
-
+    result_is_task_complet = video.player.servant.is_task_complete()
     assert expect_is_task_complete == result_is_task_complet
-    # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_o_primeiro_frame_com_servant_buffer_leftt_e_depois_rewind_e_read_novamente(orch_100):
-    player, mapping, trash = orch_100
-    remov = FrameRemoveOrchestrator(*orch_100)
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_o_ultimos_frame_e_depois_proceed_e_read_novamente(video):
+    remove = RemoveFrameCommand(video)
 
-    player.servant.set(1)
-    player.rewind()
+    video.player.servant.set(99)
+    video.player.master.set(99)
 
-    player.read()
-    remov.remove()
-    player.rewind()
-    player.read()
+    video.read()
+    remove.executor()
+    video.proceed()
+    video.read()
 
     expect_is_task_complete = True
-    # expect_buffer = True
-
-    result_is_task_complet = player.servant.is_task_complete()
-
+    result_is_task_complet = video.player.servant.is_task_complete()
     assert expect_is_task_complete == result_is_task_complet
-    # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.skip(reason='Criar os teste de exclusão primeiro')
-def test_orchestrator_restaurando_o_frame_com_os_dois_buffers_vazios_exclusao_linear_para_a_direita(orch_100):
-    player, mapping, trash = orch_100
-    orch = FrameUndoOrchestrator(*orch_100)
-    remov = FrameRemoveOrchestrator(*orch_100)
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_RemoveFrameCommand_removendo_o_ultimo_frame_com_servant_buffer_left(video):
+    remove = RemoveFrameCommand(video)
+
+    video.player.servant.set(99)
+    video.player.master.set(99)
+
+    video.read()
+    video.rewind()
+    remove.executor()
+    video.proceed()
+    video.read()
+
+    expect_is_task_complete = True
+    result_is_task_complet = video.player.servant.is_task_complete()
+    assert expect_is_task_complete == result_is_task_complet
+
+
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_UndoFrameCommand_restaurando_o_frame_com_os_dois_buffers_vazios_exclusao_linear_para_a_direita(video):
+    remove = RemoveFrameCommand(video)
+    undo = UndoFrameCommand(video)
 
     # Removendo o frame de indice 15
-    player.servant.run()
-    player.read()
-    [remov.remove() for _ in range(100)]
+    video.player.servant.run()
+    video.read()
+    [remove.executor() for _ in range(100)]
 
     expect_frame_id = 0
-    orch.undo()
-    result_frame_id = player.frame_id
+    undo.executor()
+    result_frame_id = video.frame_id
     assert result_frame_id == expect_frame_id
 
 
-@pytest.mark.skip(reason='deprecado')
-@pytest.mark.skip(reason='Criar os teste de exclusão primeiro')
-def test_orchestrator_restaurando_o_frame_com_o_indice_no_buffer_primario_do_buffer_da_direita_e_VideoBufferRight_como_servant(orch_100):
-    player, mapping, trash = orch_100
-    orch = FrameUndoOrchestrator(*orch_100)
-    remov = FrameRemoveOrchestrator(*orch_100)
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_UndoFrameCommand_restaurando_o_frame_com_o_indice_no_buffer_primario_do_buffer_da_direita_e_VideoBufferRight_como_servant(video):
+    remove = RemoveFrameCommand(video)
+    undo = UndoFrameCommand(video)
 
     # Removendo o frame de indice 15
-    [player.read() for _ in range(16)]
-    remov.remove()
+    [video.read() for _ in range(16)]
+    remove.executor()
 
     # Retornando para o frame de indice 0
-    player.rewind()
-    [player.read() for _ in range(16)]
-    player.proceed()
+    video.rewind()
+    [video.read() for _ in range(16)]
+    video.proceed()
 
     expect_frame_id = 15
-    orch.undo()
-    result_frame_id = player.frame_id
+    undo.executor()
+    result_frame_id = video.frame_id
     assert result_frame_id == expect_frame_id
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_o_ultimos_frame_e_depois_proceed_e_read_novamente(orch_100):
-    player, mapping, trash = orch_100
-    remov = FrameRemoveOrchestrator(*orch_100)
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_UndoFrameCommand_recuperando_o_frame_do_50_com_servant_VideoBufferRight_no_frame_60(video):
+    remove = RemoveFrameCommand(video)
+    undo = UndoFrameCommand(video)
+    expect = 50
 
-    player.servant.set(99)
-    player.master.set(99)
-
-    player.read()
-    remov.remove()
-    player.proceed()
-    player.read()
-
-    expect_is_task_complete = True
-    # expect_buffer = True
-
-    result_is_task_complet = player.servant.is_task_complete()
-
-    assert expect_is_task_complete == result_is_task_complet
-    # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
+    video.player.servant.set(50)
+    video.player.master.set(50)
+    video.player.servant.run()
+    video.read()
+    remove.executor()
+    [video.read() for _ in range(10)]
+    undo.executor()
+    video.read()
+    result = video.frame_id
+    assert expect == result
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_removendo_o_ultimo_frame_com_servant_buffer_left(orch_100):
-    player, mapping, trash = orch_100
-    remov = FrameRemoveOrchestrator(*orch_100)
-
-    player.servant.set(99)
-    player.master.set(99)
-
-    player.read()
-    player.rewind()
-    remov.remove()
-    player.proceed()
-    player.read()
-
-    expect_is_task_complete = True
-    # expect_buffer = True
-
-    result_is_task_complet = player.servant.is_task_complete()
-
-    assert expect_is_task_complete == result_is_task_complet
-    # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
-
-
-@pytest.mark.skip(reason='deprecado')
-def test_player_control_simulando_o_bug_ao_remover_o_1o_frame(orch_100):
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_player_control_simulando_o_bug_ao_remover_o_1o_frame(video):
 
     """
     ### Descrição do Problema
@@ -1085,32 +953,31 @@ def test_player_control_simulando_o_bug_ao_remover_o_1o_frame(orch_100):
     Para a simulação o passo 1. não é necessario, já que podemos controlar frame por frame, já o 2x rewind é
     simulado por 1x rewind seguido de 2x read
     """
-    player, mapping, trash = orch_100
-    remov = FrameRemoveOrchestrator(*orch_100)
+    remove = RemoveFrameCommand(video)
     expect = None
 
-    player.servant.run()
-    player.servant._buffer.wait_task()
+    video.player.servant.run()
+    video.player.servant._buffer.wait_task()
 
-    player.read()
-    player.read()
+    video.read()
+    video.read()
 
-    player.rewind()
-    player.read()
+    video.rewind()
+    video.read()
 
-    remov.remove()
-    player.read()
+    remove.executor()
+    video.read()
 
-    player.rewind()
-    player.read()
-    player.read()
+    video.rewind()
+    video.read()
+    video.read()
 
-    result = player.frame_id
+    result = video.frame_id
     assert expect == result
 
 
-@pytest.mark.skip(reason='deprecado')
-def test_player_control_simulando_o_bug_ao_remover_o_1o_frame_versao_2(orch_100):
+@pytest.mark.parametrize('video', [(list(range(100)), 25, 100, False)], indirect=True)
+def test_player_control_simulando_o_bug_ao_remover_o_1o_frame_versao_2(video):
 
     """
     ### Descrição do Problema
@@ -1131,48 +998,28 @@ def test_player_control_simulando_o_bug_ao_remover_o_1o_frame_versao_2(orch_100)
     Para a simulação o passo 1. não é necessario, já que podemos controlar frame por frame, já o 2x rewind é
     simulado por 1x rewind seguido de 2x read
     """
-    player, mapping, trash = orch_100
-    remov = FrameRemoveOrchestrator(*orch_100)
+    remove = RemoveFrameCommand(video)
     expect = 2
 
-    player.servant.run()
-    player.servant._buffer.wait_task()
+    video.player.servant.run()
+    video.player.servant._buffer.wait_task()
 
-    player.rewind()
-    player.read()
-    player.read()
+    video.rewind()
+    video.read()
+    video.read()
 
-    player.proceed()
-    player.read()
+    video.proceed()
+    video.read()
 
-    remov.remove()
-    player.read()
+    remove.executor()
+    video.read()
 
-    player.rewind()
-    player.read()
+    video.rewind()
+    video.read()
 
-    player.proceed()
-    player.read()
-    player.read()
+    video.proceed()
+    video.read()
+    video.read()
 
-    result = player.frame_id
-    assert expect == result
-
-
-@pytest.mark.skip(reason='deprecado')
-def test_orchestrator_undo_recuperando_o_frame_do_50_com_servant_VideoBufferRight_no_frame_60(orch_100):
-    player, mapping, trash = orch_100
-    remov = FrameRemoveOrchestrator(*orch_100)
-    undo = FrameUndoOrchestrator(*orch_100)
-    expect = 50
-
-    player.servant.set(50)
-    player.master.set(50)
-    player.servant.run()
-    player.read()
-    remov.remove()
-    [player.read() for _ in range(10)]
-    undo.undo()
-    player.read()
-    result = player.frame_id
+    result = video.frame_id
     assert expect == result
