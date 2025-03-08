@@ -107,7 +107,7 @@ class FrameMapper:
             TypeError: Se vbuffers não forem instancia de IVideoBuffer.
         """
         self.__set_mapping(frame_ids, frame_count)
-        self.__set_buffers(vbuffers)
+        # self.__set_buffers(vbuffers)
 
     def get_mapping(self) -> set:
         """
