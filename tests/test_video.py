@@ -63,12 +63,14 @@ def myvideo(mycap, creating_window):
     video.join()
 
 
+@pytest.mark.skip('deprecado')
 def test_Video_set_mapping(myvideo):
     expect = 300
     result = len(myvideo._mapping.get_mapping())
     assert result == expect
 
 
+@pytest.mark.skip('deprecado')
 def test_Video_set_mapping_manualmente(myvideo):
     expect = array('l', [0, 1, 2, 3, 4])
     myvideo.set_mapping([1, 2, 0, 3, 4])

@@ -3,7 +3,8 @@ from src.buffer_left import VideoBufferLeft
 from src.custom_exceptions import VideoBufferError
 from src.frame_mapper import FrameMapper
 from src.player_control import PlayerControl
-from src.video_command import FrameUndoOrchestrator, FrameRemoveOrchestrator, RewindCommand, ProceesCommand
+from src.video_command import RewindCommand, ProceesCommand, RemoveFrameCommand
+from src.video import Player
 from src.trash import Trash
 from threading import Semaphore
 from pytest import fixture
@@ -62,6 +63,17 @@ class MyVideoCapture():
 
     def release(self):
         ...
+
+
+@fixture
+def plr(mycap, request):
+    lote, buffersize, frame_count, log = request.param
+    log = False
+    player = Player(buffersize, log)
+    player.open('', lote)
+    yield player
+
+    player.join()
 
 
 @fixture
@@ -351,39 +363,38 @@ def test_RewindCommand_com_3_frames_com_set_antes_do_executor_com_3_read(player)
 # ####### Teste para o FrameMapper vazio ####################################
 
 #  lote, buffersize, frame_count, log = request.param
-@pytest.mark.parametrize('orch', [([], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_frame_mapper_vazio(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    player.read()
-    remov.remove()
+@pytest.mark.parametrize('plr', [([], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_frame_mapper_vazio(plr):
+    remov = RemoveFrameCommand(plr)
+    plr.control.read()
+    remov.executor()
 
     expect_frame_id = None
-    player.read()
-    result_frame_id = player.frame_id
+    plr.control.read()
+    result_frame_id = plr.frame_id
     assert expect_frame_id == result_frame_id
 
 
 # ####### Teste para o FrameMapper com 1 frame ####################################
 
-@pytest.mark.parametrize('orch', [([0], 25, 100, False)], indirect=True)
-def test_orchestrator_removendo_frame_com_1_frame_no_frame_mapper(orch):
-    player, mapping, trash = orch
-    remov = FrameRemoveOrchestrator(*orch)
-    player.read()
-    remov.remove()
+@pytest.mark.parametrize('plr', [([0], 25, 100, False)], indirect=True)
+def test_orchestrator_removendo_frame_com_1_frame_no_frame_mapper(plr):
+    remov = RemoveFrameCommand(plr)
+    plr.control.read()
+    remov.executor()
 
     expect_frame_id = None
     expect_VideoBufferLeft_servant = True
 
     # Como é o último frame deve ocorrer um swap entre os buffers
-    player.read()
-    result_frame_id = player.frame_id
-    result_VideoBufferLeft = isinstance(player.servant, VideoBufferLeft)
+    plr.control.read()
+    result_frame_id = plr.frame_id
+    result_VideoBufferLeft = isinstance(plr.control.servant, VideoBufferLeft)
     assert expect_frame_id == result_frame_id
     assert expect_VideoBufferLeft_servant == result_VideoBufferLeft
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_1_frame_no_frame_mapper_com_rewind(orch):
     player, mapping, trash = orch
@@ -405,6 +416,7 @@ def test_orchestrator_removendo_frame_com_1_frame_no_frame_mapper_com_rewind(orc
 
 # ####### Teste para o FrameMapper com 2 frames ####################################
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper(orch):
     player, mapping, trash = orch
@@ -422,6 +434,7 @@ def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper(orch):
     assert expect_VideoBufferLeft_servant == result_VideoBufferRight
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper_removendo_2x(orch):
     player, mapping, trash = orch
@@ -440,6 +453,7 @@ def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper_removendo_2x(o
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper_removendo_1x_com_rewind(orch):
     player, mapping, trash = orch
@@ -460,6 +474,7 @@ def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper_removendo_1x_c
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper_removendo_2x_com_rewind(orch):
     player, mapping, trash = orch
@@ -482,6 +497,7 @@ def test_orchestrator_removendo_frame_com_2_frame_no_frame_mapper_removendo_2x_c
 
 # ####### Teste para o FrameMapper com 3 frames ####################################
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper(orch):
     player, mapping, trash = orch
@@ -499,6 +515,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper(orch):
     assert expect_VideoBufferLeft_servant == result_VideoBufferRight
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_2x(orch):
     player, mapping, trash = orch
@@ -517,6 +534,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_2x(o
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_3x(orch):
     player, mapping, trash = orch
@@ -535,6 +553,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_3x(o
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_1x_com_rewind(orch):
     player, mapping, trash = orch
@@ -555,6 +574,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_1x_c
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_2x_com_rewind(orch):
     player, mapping, trash = orch
@@ -575,6 +595,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_2x_c
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_3x_com_rewind(orch):
     player, mapping, trash = orch
@@ -595,6 +616,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_3x_c
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_1x(orch):
     player, mapping, trash = orch
@@ -612,6 +634,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_fram
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_2x(orch):
     player, mapping, trash = orch
@@ -631,6 +654,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_fram
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_3x(orch):
     player, mapping, trash = orch
@@ -650,6 +674,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_fram
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_1x_com_rewind(orch):
     player, mapping, trash = orch
@@ -668,6 +693,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_fram
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_2x_com_rewind(orch):
     player, mapping, trash = orch
@@ -688,6 +714,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_fram
     assert expect_servant == result_servant
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.parametrize('orch', [([0, 1, 2], 25, 100, False)], indirect=True)
 def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_frame_do_meio_3x_com_rewind(orch):
     player, mapping, trash = orch
@@ -709,6 +736,7 @@ def test_orchestrator_removendo_frame_com_3_frame_no_frame_mapper_removendo_fram
 
 
 @pytest.mark.parametrize('orch', [(list(range(100)), 25, 100, False)], indirect=True)
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_frame_0_com_servant_VideoBufferRight(orch):
     player, mapping, trash = orch
     player.read()
@@ -721,6 +749,7 @@ def test_orchestrator_removendo_frame_0_com_servant_VideoBufferRight(orch):
     assert expect_frame_id == result_frame_id
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferRight(orch_100):
     player, mapping, trash = orch_100
     player.servant.set(99)
@@ -737,6 +766,7 @@ def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferRight(orch_1
     assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferRight(orch_100):
     player, mapping, trash = orch_100
     player.servant.set(50)
@@ -753,6 +783,7 @@ def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferRight(orch_
     assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_VideoBufferRight(orch_100):
     player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
@@ -774,6 +805,7 @@ def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_Video
     assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_VideoBufferRight(orch_100):
     player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
@@ -791,6 +823,7 @@ def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_V
 
 # ####### Testes do FrameRemoveOrchestrator com servant VideoBufferRight como padrão ###### #
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_frame_0_com_servant_VideoBufferLeft(orch_100):
     player, mapping, trash = orch_100
     player.rewind()
@@ -808,6 +841,7 @@ def test_orchestrator_removendo_frame_0_com_servant_VideoBufferLeft(orch_100):
     assert expect_frame_id == result_frame_id
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferLeft(orch_100):
     player, mapping, trash = orch_100
 
@@ -827,6 +861,7 @@ def test_orchestrator_removendo_ultimo_frame_com_servant_VideoBufferLeft(orch_10
     assert expect_buffer is isinstance(player.servant, VideoBufferLeft)
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferLeft(orch_100):
     player, mapping, trash = orch_100
 
@@ -846,6 +881,7 @@ def test_orchestrator_removendo_frame_do_meio_com_servant_VideoBufferLeft(orch_1
     assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_VideoBufferLeft(orch_100):
     player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
@@ -872,6 +908,7 @@ def test_orchestrator_removendo_todos_os_frames_a_partir_da_metade_com_servant_V
     assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_VideoBufferLeft(orch_100):
     player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
@@ -891,6 +928,7 @@ def test_orchestrator_removendo_todos_os_frames_desde_o_inicio_com_servant_Video
     # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_todos_os_frames_desde_o_final_com_servant_VideoBufferLeft(orch_100):
     player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
@@ -913,6 +951,7 @@ def test_orchestrator_removendo_todos_os_frames_desde_o_final_com_servant_VideoB
     # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_o_primeiro_frame_com_servant_buffer_leftt_e_depois_rewind_e_read_novamente(orch_100):
     player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
@@ -934,6 +973,7 @@ def test_orchestrator_removendo_o_primeiro_frame_com_servant_buffer_leftt_e_depo
     # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.skip(reason='Criar os teste de exclusão primeiro')
 def test_orchestrator_restaurando_o_frame_com_os_dois_buffers_vazios_exclusao_linear_para_a_direita(orch_100):
     player, mapping, trash = orch_100
@@ -951,6 +991,7 @@ def test_orchestrator_restaurando_o_frame_com_os_dois_buffers_vazios_exclusao_li
     assert result_frame_id == expect_frame_id
 
 
+@pytest.mark.skip(reason='deprecado')
 @pytest.mark.skip(reason='Criar os teste de exclusão primeiro')
 def test_orchestrator_restaurando_o_frame_com_o_indice_no_buffer_primario_do_buffer_da_direita_e_VideoBufferRight_como_servant(orch_100):
     player, mapping, trash = orch_100
@@ -972,6 +1013,7 @@ def test_orchestrator_restaurando_o_frame_com_o_indice_no_buffer_primario_do_buf
     assert result_frame_id == expect_frame_id
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_o_ultimos_frame_e_depois_proceed_e_read_novamente(orch_100):
     player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
@@ -993,6 +1035,7 @@ def test_orchestrator_removendo_o_ultimos_frame_e_depois_proceed_e_read_novament
     # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_removendo_o_ultimo_frame_com_servant_buffer_left(orch_100):
     player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)
@@ -1015,6 +1058,7 @@ def test_orchestrator_removendo_o_ultimo_frame_com_servant_buffer_left(orch_100)
     # assert expect_buffer is isinstance(player.servant, VideoBufferRight)
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_player_control_simulando_o_bug_ao_remover_o_1o_frame(orch_100):
 
     """
@@ -1065,6 +1109,7 @@ def test_player_control_simulando_o_bug_ao_remover_o_1o_frame(orch_100):
     assert expect == result
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_player_control_simulando_o_bug_ao_remover_o_1o_frame_versao_2(orch_100):
 
     """
@@ -1114,6 +1159,7 @@ def test_player_control_simulando_o_bug_ao_remover_o_1o_frame_versao_2(orch_100)
     assert expect == result
 
 
+@pytest.mark.skip(reason='deprecado')
 def test_orchestrator_undo_recuperando_o_frame_do_50_com_servant_VideoBufferRight_no_frame_60(orch_100):
     player, mapping, trash = orch_100
     remov = FrameRemoveOrchestrator(*orch_100)

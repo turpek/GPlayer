@@ -224,8 +224,6 @@ def test_trash_export_frames_id_com_20_elemento_com_undo(trash):
     result = deque()
     trash.import_frames_id(frames_id)
     trash.undo()
-    import ipdb
-    ipdb.set_trace()
     trash.export_frames_id(result)
 
     assert expect == result
