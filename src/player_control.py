@@ -314,3 +314,11 @@ class PlayerControl:
         self.master = master
         self.frame_id = None
         self.__frame = None
+
+    def swap(self):
+        self.master, self.servant = self.servant, self.master
+
+    def undo_config(self):
+        self.disable_collect()
+        self.disable_update_frame()
+        self.set_read()
