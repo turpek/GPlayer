@@ -1,21 +1,23 @@
 from loguru import logger
-from src.player_control import PlayerControl
 from src.frame_mapper import FrameMapper
-from src.trash import Trash
+from src.manager import VideoManager
 from src.playlist import Playlist
 from numpy import ndarray
 
 
 class VideoController:
     def __init__(self,
-                 player: PlayerControl,
-                 mapper: FrameMapper,
-                 trash: Trash,
-                 playlist: Playlist):
+                 playlist: Playlist,
+                 frames_mapping: FrameMapper,
+                 video_manager: VideoManager):
+        self.__playlist = playlist
+
+        video_manager.open(playlist.video_name(), frames_mapping)
+        player, mapper, trash = video_manager.get()
         self.__player = player
         self.__mapper = mapper
         self.__trash = trash
-        self.__playlist = playlist
+        self.video_manager = video_manager
 
     def set_pause(self):
         self.__player.set_pause()
@@ -105,7 +107,7 @@ class VideoController:
     def join(self):
         self.__player.master.join()
         self.__player.servant.join()
-        self.__player.trash.join()
+        self.__trash.join()
 
     @property
     def frame_id(self):
