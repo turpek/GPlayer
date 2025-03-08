@@ -1,5 +1,4 @@
 from loguru import logger
-from src.frame_mapper import FrameMapper
 from src.manager import VideoManager
 from src.playlist import Playlist
 from numpy import ndarray
@@ -8,7 +7,7 @@ from numpy import ndarray
 class VideoController:
     def __init__(self,
                  playlist: Playlist,
-                 frames_mapping: FrameMapper,
+                 frames_mapping: list[int],
                  video_manager: VideoManager):
         self.__playlist = playlist
 
@@ -112,3 +111,23 @@ class VideoController:
     @property
     def frame_id(self):
         return self.__player.frame_id
+
+
+class FakeVideoController(VideoController):
+    def __init__(self,
+                 playlist: Playlist,
+                 frames_mapping: list[int],
+                 video_manager: VideoManager):
+        super().__init__(playlist, frames_mapping, video_manager)
+
+    @property
+    def player(self):
+        return self._VideoController__player
+
+    @property
+    def mapper(self):
+        return self._VideoController__mapper
+
+    @property
+    def trash(self):
+        return self._VideoController__trash
