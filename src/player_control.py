@@ -6,7 +6,7 @@ from src.video_buffer import IVideoBuffer
 
 
 class PlayerControl:
-    def __init__(self, servant: IVideoBuffer, master: IVideoBuffer):
+    def __init__(self, servant: IVideoBuffer = None, master: IVideoBuffer = None):
         self.servant = servant
         self.master = master
 
