@@ -22,6 +22,14 @@ class Trash():
         self.__originator = TrashOriginator(self._mapping)
         self._history = list()
 
+    def reset(self, frame_count):
+        self._stack = deque(maxlen=(2 * self.__buffersize))
+        self._mapping.reset([], self.__frame_count)
+        self._state = None
+        self.__caretaker = Caretaker()
+        self.__originator = TrashOriginator(self._mapping)
+        self._history = list()
+
     def join(self):
         self._buffer.join()
 
