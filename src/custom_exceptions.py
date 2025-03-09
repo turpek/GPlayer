@@ -11,3 +11,13 @@ class VideoBufferError(Exception):
 class VideoOpenError(Exception):
     def __init__(self, message):
         self.message = message
+
+
+class SectionError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+
+class SectionIdError(Exception):
+    def __init__(self, message):
+        self.message = message
