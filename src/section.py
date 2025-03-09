@@ -1,11 +1,14 @@
 from collections import deque
+from loguru import logger
 from queue import LifoQueue, Queue
+from src.custom_exceptions import SectionError, SectionIdError
 from src.frame_mapper import FrameMapper
 from src.trash import Trash
+import bisect
 
 # Indice para fazer a leitura do dicionario da seção
 SECTION_IDS = 'SECTION_IDS'
-REMOVED_FRAMES = 'REMOVED_FRAMES'
+REMOVED_IDS = 'REMOVED_IDS'
 START_FRAME = 0  # Indice para a leitura da tupla do range de frames
 END_FRAME = 1  # Indice para a leitura da tupla do range de frames
 RANGE_FRAMES = 'RANGE_FRAME_ID'
@@ -27,39 +30,96 @@ class VideoSection:
         return self.removed_frames
 
 
-class ManagerSection:
-    def __init__(self, sections: dict):
+class SectionManager:
+    def __init__(self, data: dict):
 
-        # Carregandos os ids de seção na fila
-        right_section = Queue()
-        [right_section.put(sid) for sid in sections[SECTION_IDS]]
+        removed_ids = data[REMOVED_IDS].copy()
+        self._removed_ids = deque()
+        while len(removed_ids) > 0:
+            self._removed_ids.append(removed_ids.pop())
 
-        self.__right_section = right_section
-        self.__left_section = LifoQueue()
-        self.__current_section = self.__right_section.get()
-        self.__sections = dict()
-        self.__load_sections(sections)
+        self._right = deque(sorted(data[SECTION_IDS]))
+        self._left = deque()
+        self._sections = dict()
+        self.__load_sections(data)
+        self._section: VideoSection = self.current
 
-    def __load_sections(self, sections):
-        for sid in sections[SECTION_IDS]:
-            self.__sections[sid] = VideoSection(sections[sid])
+    def __load_sections(self, data):
+        sections_id = data[SECTION_IDS] + data[REMOVED_IDS]
+
+        if len(sections_id) == 0:
+            raise SectionIdError('there are no sections id to work with')
+
+        try:
+            for sid in sections_id:
+                self._sections[sid] = VideoSection(data[sid])
+        except KeyError:
+            raise SectionError(f"there is no data for section with id '{sid}'")
 
     @property
-    def current_id(self) -> int:
-        """Retorna o id da seção atual."""
-        return self.__current_section
+    def section_id(self):
+        if len(self._right) > 0:
+            return self._right[0]
+
+    @property
+    def current(self) -> VideoSection:
+        if self.section_id is not None:
+            return self._sections[self.section_id]
 
     def export_frames_id(self, trash: Trash):
         """Exporta os frames id excluídos para uma possível restauração futura."""
-        trash.export_frames_id(self.__sections[self.current_id].get_deque())
+        trash.export_frames_id(self.current.get_deque())
 
     def save_data(self, frame_mapper: FrameMapper, trash: Trash):
         """Salva os dados """
-        self.__sections[self.current_id].set_range_frames(frame_mapper)
+        self.current.set_range_frames(frame_mapper)
         self.export_frames_id(trash)
 
-    def next_section(self, player, frame_mapper: FrameMapper, trash: Trash):
-        if not self.__right_section.empty():
-            self.save_data(frame_mapper, trash)
-            self.__left_section.put(self.current_id)
-            self.__current_section = self.__right_section.get()
+    def next_section(self):
+        if len(self._right) > 1:
+            self._left.append(self._right.popleft())
+
+    def prev_section(self):
+        if len(self._left) > 0:
+            self._right.appendleft(self._left.pop())
+
+    def __restore_section_right(self, section_id):
+        bisect.insort_right(self._right, section_id)
+        while self.section_id != section_id:
+            self.next_section()
+
+    def __restore_section_left(self, section_id):
+        bisect.insort_right(self._left, section_id)
+        while self.section_id != section_id:
+            self.prev_section()
+
+    def restore_section(self):
+        if len(self._removed_ids) == 0:
+            logger.debug('there are no sections to restore')
+            return False
+
+        section_id = self._removed_ids.pop()
+        if len(self._right) == 0:
+            self._right.appendleft(section_id)
+        elif section_id < self.section_id:
+            self.__restore_section_left(section_id)
+        else:
+            self.__restore_section_right(section_id)
+        return True
+
+    def remove_section(self):
+        if len(self._right) > 1:
+            self._right.popleft()
+        elif len(self._right) > 0:
+            self._right.popleft()
+            self.prev_section()
+
+    def section_range(self) -> tuple[int, int]:
+        return (self.current.start_frame, self.current.end_frame)
+
+    def section_removed(self) -> list[int]:
+        return list(self.current.removed_frames)
+
+    @property
+    def removed_ids(self) -> list[int]:
+        return list(self._removed_ids)
