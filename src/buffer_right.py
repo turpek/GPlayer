@@ -263,6 +263,19 @@ class VideoBufferRight(IVideoBuffer):
         self._buffer.end_task.set()
         self._buffer.send(False)
         self.thread.join()
+        if self.cap is not None:
+            self.cap.release()
+
+    def join_like(self) -> None:
+        """
+        Encerra a thread sem fechar o VideoCapture
+
+        Returns:
+            None
+        """
+        self._buffer.end_task.set()
+        self._buffer.send(False)
+        self.thread.join()
 
     def put(self, frame_id: int, frame: ndarray) -> None:
         """Método usado para encher o buffer de maneira manual e de forma segura.

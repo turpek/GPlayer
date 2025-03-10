@@ -76,12 +76,15 @@ class VideoManager:
         if isinstance(frames_mapping, (list, tuple, array)):
             frames_mapping = set(frames_mapping) - set(removed_frames)
 
+        self.player.servant.join_like()
+        self.player.master.join_like()
         self.load_mapping(list(frames_mapping))
         self.load_buffers()
-        self.trash.reset()
+        self.trash.reset(self.frame_count)
         self.trash.import_frames_id(removed_frames)
 
     def open(self, file_name: Path, frames_mapping: list[int] | None):
+        self.file_name = file_name
         self.load_capture(file_name)
         self.load_mapping(frames_mapping)
         self.load_trash()

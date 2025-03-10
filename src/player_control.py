@@ -322,3 +322,7 @@ class PlayerControl:
         self.disable_collect()
         self.disable_update_frame()
         self.set_read()
+
+    def join(self):
+        self.servant.join()
+        self.master.join()
