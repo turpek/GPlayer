@@ -24,7 +24,7 @@ class Trash():
 
     def reset(self, frame_count):
         self._stack = deque(maxlen=(2 * self.__buffersize))
-        self._mapping.reset([], self.__frame_count)
+        self._mapping.set_mapping([], self.__frame_count, [])
         self._state = None
         self.__caretaker = Caretaker()
         self.__originator = TrashOriginator(self._mapping)

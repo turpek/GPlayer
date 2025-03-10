@@ -1,7 +1,14 @@
 from loguru import logger
 from src.manager import VideoManager
 from src.playlist import Playlist
+from src.section import SectionManager
 from numpy import ndarray
+
+fake = {'SECTION_IDS': [0, 1, 2],
+        'REMOVED_IDS': [],
+        0: {'RANGE_FRAME_ID': (0, 1), 'REMOVED_FRAMES': []},
+        1: {'RANGE_FRAME_ID': (4704, 4901), 'REMOVED_FRAMES': [4750, 4751, 4752, 4753, 4754, 4755]},
+        2: {'RANGE_FRAME_ID': (4902, 5023), 'REMOVED_FRAMES': []}}
 
 
 class VideoController:
@@ -17,6 +24,7 @@ class VideoController:
         self.__mapper = mapper
         self.__trash = trash
         self.video_manager = video_manager
+        self.section = SectionManager(fake)
 
     def set_pause(self):
         self.__player.set_pause()
@@ -91,6 +99,23 @@ class VideoController:
             logger.info(f'prev_video: {self.__playlist.video_name()}')
         else:
             logger.debug('is already at the beginning of the playlist')
+
+    def next_section(self):
+        self.section.save_data(self.__mapper, self.__trash)
+        self.section.next_section()
+        start, end = self.section.section_range()
+        removidos = self.section.current.get_deque()
+        import ipdb
+        ipdb.set_trace()
+        self.video_manager.create(list(range(start, end)), removidos)
+        logger.info('proxima seção')
+
+    def prev_section(self):
+        self.section.save_data(self.__mapper, self.__trash)
+        self.section.prev_section()
+        start, end = self.section.section_range()
+        self.video_manager.create(list(range(start, end)), self.section.current.get_deque())
+        logger.info('seção anterior')
 
     def read(self):
         return self.__player.read()

@@ -4,9 +4,11 @@ from src.video_command import (
     Invoker,
     DecreaseSpeedCommand,
     IncreaseSpeedCommand,
+    NextSectionCommand,
     NextVideoCommand,
     PauseDelayCommand,
     PrevVideoCommand,
+    PrevSectionCommand,
     RemoveFrameCommand,
     RestoreDelayCommand,
     RewindCommand,
@@ -102,6 +104,8 @@ class VideoCon:
         command.set_command(ord('u'), UndoFrameCommand(video_controller))
         command.set_command(ord('n'), NextVideoCommand(video_controller))
         command.set_command(ord('p'), PrevVideoCommand(video_controller))
+        command.set_command(ord('k'), NextSectionCommand(video_controller))
+        # command.set_command(ord('j'), PrevSectionCommand(video_controller))
 
     def control(self, key):
         self.command.executor_command(key)

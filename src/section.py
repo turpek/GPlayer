@@ -26,7 +26,7 @@ class VideoSection:
         self.end_frame = frame_mapper[-1]
 
     def get_deque(self) -> deque:
-        self.removed_frames = deque()
+        # self.removed_frames = deque()
         return self.removed_frames
 
 
