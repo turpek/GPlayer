@@ -102,7 +102,7 @@ class VideoBufferLeft(IVideoBuffer):
         """
         if self.thread is None:
             logger.debug('iniciando a Thread')
-            args = (self.cap, self._buffer)
+            args = (self._buffer,)
             self.thread = Thread(target=reader, args=args)
             self.thread.start()
 
@@ -267,7 +267,7 @@ class VideoBufferLeft(IVideoBuffer):
                 end_frame = self.__special_case
 
             mapping = self.__mapping.get_mapping()
-            values = (start_frame, end_frame, mapping)
+            values = (self.cap, start_frame, end_frame, mapping)
 
             # O método send deve ser usado somente em 2 casos:
             #   1o. Para enviar os dados para a thread

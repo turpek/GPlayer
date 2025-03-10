@@ -7,7 +7,7 @@ import cv2
 import traceback
 
 
-def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
+def reader_task(buffer: Buffer, data: tuple) -> None:
     """Função responsável por ler os frames através do modulo da Opencv.
 
         Args:
@@ -23,7 +23,7 @@ def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
     # O fluxo principal do programa deve passar o frame_id "start_frame" que
     # define o  frame incial, ja mapping_frames é um set contendo todos os frames a serem lidos.
     buffer.set()
-    start_frame, last_frame, mapping_frames = data
+    cap, start_frame, last_frame, mapping_frames = data
     frame_id, qsize = start_frame, 0
     start = time()
 
@@ -67,7 +67,7 @@ def reader_task(cap: VideoCapture, buffer: Buffer, data: tuple) -> None:
         print(f'{count / (end - start):.2f} FPS')
 
 
-def reader(cap: VideoCapture, buffer: Buffer) -> None:
+def reader(buffer: Buffer) -> None:
     """Um invólucro que chama a função responsável por ler os frames através do modulo da Opencv.
 
         Args:
@@ -76,8 +76,8 @@ def reader(cap: VideoCapture, buffer: Buffer) -> None:
     """
 
     try:
-        if not cap.isOpened():
-            raise VideoOpenError('Não foi possível abrir o arquivo.')
+        # if not cap.isOpened():
+        #    raise VideoOpenError('Não foi possível abrir o arquivo.')
 
         # Bloco "príncipal" da função, que é responsavel por ativar a leitura dos
         # frames por meio da função reader_task.
@@ -85,7 +85,7 @@ def reader(cap: VideoCapture, buffer: Buffer) -> None:
 
             data = buffer.recv()
             if hasattr(data, '__contains__'):
-                reader_task(cap, buffer, data)
+                reader_task(buffer, data)
             else:
                 break
 
@@ -94,6 +94,6 @@ def reader(cap: VideoCapture, buffer: Buffer) -> None:
         buffer._error.put(e, exc_info)
     finally:
         buffer.set()
-        if cap is not None:
-            cap.release()
+        # if cap is not None:
+        #    cap.release()
         buffer.clear()
