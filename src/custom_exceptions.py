@@ -21,3 +21,8 @@ class SectionError(Exception):
 class SectionIdError(Exception):
     def __init__(self, message):
         self.message = message
+
+
+class SimpleStackError(Exception):
+    def __init__(self, message):
+        self.message = message
