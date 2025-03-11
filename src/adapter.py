@@ -1,23 +1,5 @@
-from abc import ABC, abstractmethod
 from collections import deque
-
-
-class ISectionAdapter(ABC):
-    @abstractmethod
-    def start(self) -> int:
-        ...
-
-    @abstractmethod
-    def end(self) -> int:
-        ...
-
-    @abstractmethod
-    def removed_frames(self) -> deque:
-        ...
-
-    @abstractmethod
-    def black_list_frames(self) -> list:
-        ...
+from src.interfaces import ISectionAdapter
 
 
 class SectionUnionAdapter(ISectionAdapter):

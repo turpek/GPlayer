@@ -1,11 +1,5 @@
-from abc import ABC, abstractmethod
+from src.interfaces import Command
 from src.video_controller import VideoController
-
-
-class Command(ABC):
-    @abstractmethod
-    def executor(self):
-        ...
 
 
 class PauseCommand(Command):

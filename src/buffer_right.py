@@ -25,7 +25,7 @@ from numpy import ndarray
 from src.buffer import BufferRight
 from src.frame_mapper import FrameMapper
 from src.reader import reader
-from src.video_buffer import IVideoBuffer
+from src.interfaces import IVideoBuffer
 from src.custom_exceptions import VideoBufferError
 from threading import Semaphore, Thread
 import bisect

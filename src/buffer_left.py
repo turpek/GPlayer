@@ -25,7 +25,7 @@ from src.buffer import BufferLeft
 from src.custom_exceptions import VideoBufferError
 from src.frame_mapper import FrameMapper
 from src.reader import reader
-from src.video_buffer import IVideoBuffer
+from src.interfaces import IVideoBuffer
 from threading import Semaphore, Thread
 from loguru import logger
 import cv2

@@ -1,6 +1,6 @@
 from array import array
 from src.custom_exceptions import InvalidFrameIdError
-from src.video_buffer import IVideoBuffer
+from src.interfaces import IVideoBuffer
 import bisect
 
 

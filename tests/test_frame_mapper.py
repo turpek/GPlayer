@@ -1,7 +1,7 @@
 from pytest import fixture, raises
 from src.custom_exceptions import InvalidFrameIdError
 from src.frame_mapper import FrameMapper
-from src.video_buffer import IFakeVideoBuffer
+from src.interfaces import IFakeVideoBuffer
 import pytest
 
 

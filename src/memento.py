@@ -1,12 +1,6 @@
-from src.frame_mapper import FrameMapper
-from abc import ABC, abstractmethod
 from collections import deque
-
-
-class IMemento(ABC):
-    @abstractmethod
-    def get_state(self) -> int:
-        ...
+from src.frame_mapper import FrameMapper
+from src.interfaces import IMemento, IOriginator
 
 
 class TrashMemento(IMemento):
@@ -15,16 +9,6 @@ class TrashMemento(IMemento):
 
     def get_state(self) -> int:
         return self._state
-
-
-class IOriginator(ABC):
-    @abstractmethod
-    def save(self) -> IMemento:
-        ...
-
-    @abstractmethod
-    def undo(self, memento: IMemento):
-        ...
 
 
 class TrashOriginator(IOriginator):
