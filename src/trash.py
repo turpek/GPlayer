@@ -93,10 +93,10 @@ class Trash():
 
     def import_frames_id(self, frames_id: deque) -> None:
         """
-        Importar os frames_id de uma fila para uma pilha
+        Importar os frames_id de uma pilha para uma outra pilha
 
         Args:
-            frames_id (Queue): uma fila que contém números inteiros que representam o
+            frames_id (deque): uma fila que contém números inteiros que representam o
                 os frame_id excluidos, e que podem ser restaurados.
 
         Returns:
