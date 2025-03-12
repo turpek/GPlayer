@@ -61,6 +61,17 @@ class ISectionAdapter(ABC):
         ...
 
 
+class ISectionManagerAdapter(ABC):
+
+    @abstractmethod
+    def get_sections(self):
+        ...
+
+    @abstractmethod
+    def removed_sections(self):
+        ...
+
+
 class IMementoHandler(ABC):
 
     @abstractmethod

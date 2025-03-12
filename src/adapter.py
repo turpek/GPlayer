@@ -1,5 +1,11 @@
+from __future__ import annotations
 from collections import deque
-from src.interfaces import ISectionAdapter
+from src.interfaces import ISectionAdapter, ISectionManagerAdapter
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.section import Section
 
 
 class SectionUnionAdapter(ISectionAdapter):
@@ -60,3 +66,15 @@ class FakeSectionAdapter(ISectionAdapter):
 
     def black_list_frames(self) -> list:
         return self.__black_list
+
+
+class FakeSectionManagerAdapter(ISectionManagerAdapter):
+    def __init__(self, data):
+        self._sections = [s for s in data['SECTIONS']]
+        self._removed_sections = [r for r in data['REMOVED']]
+
+    def get_sections(self) -> list:
+        return self._sections
+
+    def removed_sections(self) -> list:
+        return self._removed_sections

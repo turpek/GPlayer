@@ -1,12 +1,12 @@
 from __future__ import annotations
 from collections import deque
-from loguru import logger
-from queue import LifoQueue, Queue
-from src.adapter import ISectionAdapter, SectionUnionAdapter
-from src.custom_exceptions import SectionError, SectionIdError
+# from loguru import logger
+from src.adapter import ISectionAdapter, ISectionManagerAdapter, SectionUnionAdapter
+from src.custom_exceptions import SectionManagerError
 from src.frame_mapper import FrameMapper
-from src.trash import Trash
-import bisect
+from src.memento import Caretaker, SectionOriginator
+from src.utils import SimpleStack
+# from src.trash import Trash
 
 
 class VideoSection:
@@ -62,96 +62,93 @@ class VideoSection:
         return self.__removed_frame
 
 
+class SectionWrapper:
+    def __init__(self, section_1: VideoSection, section_2: VideoSection = None):
+        self.__check_section(section_1)
+        if section_2 is not None:
+            self.__check_section(section_2)
+
+        self.__lower = section_1
+        self.__upper = section_2
+        if isinstance(section_2, VideoSection) and section_2 < section_1:
+            self.__lower = section_2
+            self.__upper = section_1
+
+    def __check_section(self, section):
+        if not isinstance(section, VideoSection):
+            raise TypeError(f' section expected "{VideoSection.__nama__}" but received "{section.__name__}"!')
+
+    @property
+    def section_1(self) -> VideoSection:
+        return self.__lower
+
+    @property
+    def section_2(self) -> VideoSection | None:
+        return self.__upper
+
+
 class SectionManager:
-    def __init__(self, data: dict):
+    def __init__(
+        self,
+        manager_adapter: ISectionManagerAdapter,
+        section_adapter: ISectionAdapter
+    ):
+        self._right = SimpleStack(VideoSection)
+        self._left = SimpleStack(VideoSection)
+        self.removed_sections = SimpleStack(SectionWrapper)
 
-        removed_ids = data[REMOVED_IDS].copy()
-        self._removed_ids = deque()
-        while len(removed_ids) > 0:
-            self._removed_ids.append(removed_ids.pop())
+        self._caretaker = Caretaker()
+        self._originator = SectionOriginator()
 
-        self._right = deque(sorted(data[SECTION_IDS]))
-        self._left = deque()
-        self._sections = dict()
-        self.__load_sections(data)
-        self._section: VideoSection = self.current
+        # O ISectionManagerAdapter deve retorna uma lista ordenada, além disso
+        # devemos considerar está lista como uma "pilha", portando a remoção
+        # deve ser feita no topo!
+        datas = manager_adapter.get_sections()
+        while len(datas):
+            self._right.push(VideoSection(section_adapter(datas.pop())))
 
-    def __load_sections(self, data):
-        sections_id = data[SECTION_IDS] + data[REMOVED_IDS]
+        self.__load_removed_sections(manager_adapter, section_adapter)
 
-        if len(sections_id) == 0:
-            raise SectionIdError('there are no sections id to work with')
+        if self._right.empty() and self.removed_sections.empty():
+            raise SectionManagerError('there are no sections id to work with')
 
-        try:
-            for sid in sections_id:
-                self._sections[sid] = VideoSection(data[sid])
-        except KeyError:
-            raise SectionError(f"there is no data for section with id '{sid}'")
+    def __load_removed_sections(
+        self,
+        manager_adapter: ISectionManagerAdapter,
+        section_adapter: ISectionAdapter
+    ) -> None:
 
-    @property
-    def section_id(self):
-        if len(self._right) > 0:
-            return self._right[0]
-
-    @property
-    def current(self) -> VideoSection:
-        if self.section_id is not None:
-            return self._sections[self.section_id]
-
-    def export_frames_id(self, trash: Trash):
-        """Exporta os frames id excluídos para uma possível restauração futura."""
-        trash.export_frames_id(self.current.get_deque())
-
-    def save_data(self, frame_mapper: FrameMapper, trash: Trash):
-        """Salva os dados """
-        self.current.set_range_frames(frame_mapper)
-        self.export_frames_id(trash)
-
-    def next_section(self):
-        if len(self._right) > 1:
-            self._left.append(self._right.popleft())
-
-    def prev_section(self):
-        if len(self._left) > 0:
-            self._right.appendleft(self._left.pop())
-
-    def __restore_section_right(self, section_id):
-        bisect.insort_right(self._right, section_id)
-        while self.section_id != section_id:
-            self.next_section()
-
-    def __restore_section_left(self, section_id):
-        bisect.insort_right(self._left, section_id)
-        while self.section_id != section_id:
-            self.prev_section()
-
-    def restore_section(self):
-        if len(self._removed_ids) == 0:
-            logger.debug('there are no sections to restore')
-            return False
-
-        section_id = self._removed_ids.pop()
-        if len(self._right) == 0:
-            self._right.appendleft(section_id)
-        elif section_id < self.section_id:
-            self.__restore_section_left(section_id)
-        else:
-            self.__restore_section_right(section_id)
-        return True
-
-    def remove_section(self):
-        if len(self._right) > 1:
-            self._right.popleft()
-        elif len(self._right) > 0:
-            self._right.popleft()
-            self.prev_section()
-
-    def section_range(self) -> tuple[int, int]:
-        return (self.current.start_frame, self.current.end_frame)
-
-    def section_removed(self) -> list[int]:
-        return list(self.current.removed_frames)
+        # Devemos considerar a lista retornada pelo removed_sections como uma pilha,
+        # portanto a remoção deve ser feita no topo, além disso a lista deve seguir o
+        # seguinte padrão list[VideoSection, VideoSection | None]
+        rdatas = manager_adapter.removed_sections()
+        while len(rdatas):
+            section_1, section_2 = rdatas.pop()
+            data = (VideoSection(section_adapter(section_1)), section_2)
+            if section_2 is not None:
+                data[1] = VideoSection(section_adapter(section_2))
+            self.removed_sections.push(SectionWrapper(*data))
 
     @property
-    def removed_ids(self) -> list[int]:
-        return list(self._removed_ids)
+    def section_id(self) -> int:
+        return self._right.top.id_
+
+    def __next_section(self, min_size: int) -> None:
+        if len(self._right) > min_size:
+            self._left.push(self._right.pop())
+
+    def next_section(self) -> None:
+        """Passa para a próxima seção se existir."""
+
+        # Como a seção atual está sempre no topo da pilha não
+        # podemos remover a última seção da mesma, pois ficariamos
+        # sem seção para consultar
+        self.__next_section(1)
+
+    def prev_section(self) -> None:
+        """Retorna para a seção anterior."""
+        if not self._left.empty():
+            self._right.push(self._left.pop())
+
+    def remove_section(self) -> None:
+        ...
