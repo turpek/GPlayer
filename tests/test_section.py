@@ -1,10 +1,14 @@
 import pytest
 from collections import deque
-from src.adapter import FakeSectionAdapter
+from src.adapter import FakeSectionAdapter, FakeSectionManagerAdapter
 from src.section import SectionManager, VideoSection
-from src.custom_exceptions import SectionError, SectionIdError
+from src.custom_exceptions import SectionError, SectionManagerError
 from pytest import fixture
 import numpy as np
+
+
+black_list_100 = [200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298]
+
 
 FAKES = {
     'SECTION_IDS': [1, 2, 4],
@@ -17,11 +21,57 @@ FAKES = {
     6: {'RANGE_FRAME_ID': (500, 599), 'REMOVED_FRAMES': [], 'BLACK_LIST': []},
 }
 
-FAKES_SEM_REMOVIDOS = {
-    'SECTION_IDS': [1, 2],
-    'REMOVED_IDS': [],
-    1: {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
-    2: {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+
+FAKEMAN0 = {
+    'SECTIONS': [
+        {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+        {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+        {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+        {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []},
+        {'RANGE_FRAME_ID': (403, 497), 'REMOVED_FRAMES': [498, 401, 499, 402], 'BLACK_LIST': [400]},
+        {'RANGE_FRAME_ID': (500, 599), 'REMOVED_FRAMES': [], 'BLACK_LIST': []}
+    ],
+    'REMOVED': []
+}
+
+FAKEMAN = {
+    'SECTIONS': [
+        {
+            'RANGE_FRAME_ID': (100, 497),
+            'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134, 396, 397, 398, 399, 498, 401, 499, 402],
+            'BLACK_LIST': black_list_100 + [400]},
+        {
+            'RANGE_FRAME_ID': (500, 599),
+            'REMOVED_FRAMES': [],
+            'BLACK_LIST': []}
+    ],
+    'REMOVED': [
+        [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            None
+        ],
+        [
+            {
+                'RANGE_FRAME_ID': (100, 399),
+                'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134, 396, 397, 398, 399],
+                'BLACK_LIST': [black_list_100]
+            },
+            {
+                'RANGE_FRAME_ID': (403, 497),
+                'REMOVED_FRAMES': [498, 401, 499, 402],
+                'BLACK_LIST': [400]
+            }
+        ],
+        [
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': [black_list_100]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []},
+        ],
+        [
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            None
+        ]
+
+    ]
 }
 
 
@@ -254,403 +304,228 @@ def test_VideoSection_comparacao_secao2_nao_igual_secao1_usando_int():
 
 # ################ Testes para o SectionManager #####################33
 
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_com_dados_vazios_mas_sem_id():
+def test_SectionManager_com_dados_vazios():
     expect = 'there are no sections id to work with'
-    with pytest.raises(SectionIdError) as excinfo:
-        data = {'SECTION_IDS': [], 'REMOVED_IDS': []}
-        SectionManager(data)
+    with pytest.raises(SectionManagerError) as excinfo:
+        data = {'SECTIONS': [], 'REMOVED': []}
+        SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
     result = f'{excinfo.value}'
     assert expect == result
 
 
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_com_dados_vazios_mas_com_id():
-    sid = 6
-    expect = f"there is no data for section with id '{sid}'"
-    with pytest.raises(SectionError) as excinfo:
-        data = {'SECTION_IDS': [sid], 'REMOVED_IDS': []}
-        SectionManager(data)
-    result = f'{excinfo.value}'
+def test_SectionManager_com_sections_vazios():
+    data = {
+        'SECTIONS': [],
+        'REMOVED':
+        [
+            [
+                {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+                None
+            ]
+        ]
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    assert secman.removed_sections.empty()
+
+
+def test_SectionManager_primeira_section():
+    result = 0
+    data = {
+        'SECTIONS': [{'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []}],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    expect = secman.section_id
     assert expect == result
 
 
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_com_dados_vazios_mas_com_id_para_restaurar():
-    sid = 6
-    expect = f"there is no data for section with id '{sid}'"
-    with pytest.raises(SectionError) as excinfo:
-        data = {'SECTION_IDS': [], 'REMOVED_IDS': [sid]}
-        SectionManager(data)
-    result = f'{excinfo.value}'
-    assert expect == result
-
-
-@pytest.mark.parametrize('mock_config', [(list(range(100)), [0, 1, 2, 3, 4, 5])], indirect=True)
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_save_data_removendo_os_5_primeiros_frames(sections, mock_config):
-    mapping, trash = mock_config
-    expect_range = (6, 99)
-    expect_removed = [5, 4, 3, 2, 1, 0]
-
-    sections.save_data(mapping, trash)
-    result_range = sections.section_range()
-    result_removed = sections.section_removed()
-
-    assert expect_range == result_range
-    assert expect_removed == result_removed
-
-
-@pytest.mark.parametrize('mock_config', [(list(range(100, 200)), [134, 135, 136, 148, 149, 150])], indirect=True)
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_save_data_restaurando_tudo(sections, mock_config):
-    mapping, trash = mock_config
-    expect = []
-
-    trash = MockTrash()
-    trash._set_data(deque())
-    sections.save_data(mapping, trash)
-    result = sections.section_removed()
-
-    assert expect == result
-
-
-@pytest.mark.parametrize('mock_config', [(list(range(200, 300)), [200, 201])], indirect=True)
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_save_data_restaurando_o_1o_e_removendo_o_ultimo(sections, mock_config):
-    mapping, trash = mock_config
-    expect_range = (200, 298)
-    expect_removed = [299]
-
-    trash = MockTrash()
-    trash._set_data(deque([299]))
-    mapping = MockFrameMapper(list(range(200, 299)))
-    sections.save_data(mapping, trash)
-    result_range = sections.section_range()
-    result_removed = sections.section_removed()
-
-    assert expect_range == result_range
-    assert expect_removed == result_removed
-
-
-@pytest.mark.parametrize('mock_config', [(list(range(300, 396)), [396, 397, 398, 399])], indirect=True)
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_save_data_restaurando_os_ultimos_e_removendo_o_1o(sections, mock_config):
-    mapping, trash = mock_config
-    expect_range = (301, 399)
-    expect_removed = [300]
-
-    trash = MockTrash()
-    trash._set_data(deque([300]))
-    mapping = MockFrameMapper(list(range(301, 400)))
-    sections.save_data(mapping, trash)
-    result_range = sections.section_range()
-    result_removed = sections.section_removed()
-
-    assert expect_range == result_range
-    assert expect_removed == result_removed
-
-
-@pytest.mark.skip(reason='refatorar')
 def test_SectionManager_next_section_1x():
-    expect = 2
-    expect_range = (100, 199)
-
-    sections = SectionManager(FAKES)
-    sections.next_section()
-
-    result = sections.section_id
-    result_range = sections.section_range()
-
+    result = 100
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman.next_section()
+    expect = secman.section_id
     assert expect == result
-    assert expect_range == result_range
 
 
-@pytest.mark.skip(reason='refatorar')
 def test_SectionManager_next_section_2x():
-    expect = 4
-    expect_range = (300, 395)
-
-    sections = SectionManager(FAKES)
-    for _ in range(2):
-        sections.next_section()
-
-    result = sections.section_id
-    result_range = sections.section_range()
-
+    result = 200
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    [secman.next_section() for _ in range(2)]
+    expect = secman.section_id
     assert expect == result
-    assert expect_range == result_range
 
 
-@pytest.mark.skip(reason='refatorar')
+def test_SectionManager_next_section_ate_o_final_5x():
+    result = 500
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    [secman.next_section() for _ in range(5)]
+    expect = secman.section_id
+    assert expect == result
+
+
+def test_SectionManager_next_section_no_final():
+    result = 500
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    [secman.next_section() for _ in range(5)]
+    secman.next_section()
+    expect = secman.section_id
+    assert expect == result
+
+
 def test_SectionManager_prev_section_no_inicio():
-    expect = 1
-    expect_range = (0, 99)
-
-    sections = SectionManager(FAKES)
-    sections.prev_section()
-
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_next_section_no_final_1x():
-    expect = 2
-    expect_range = (100, 199)
-    sections = SectionManager(FAKES)
-
-    for _ in range(2):
-        sections.next_section()
-    sections.prev_section()
-
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_next_section_no_final_2x():
-    expect = 1
-    expect_range = (0, 99)
-    sections = SectionManager(FAKES)
-
-    for _ in range(2):
-        sections.next_section()
-    for _ in range(2):
-        sections.prev_section()
-
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_next_section_no_final_3x():
-    expect = 1
-    expect_range = (0, 99)
-    sections = SectionManager(FAKES)
-
-    for _ in range(2):
-        sections.next_section()
-    for _ in range(2):
-        sections.prev_section()
-
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_restore_section_sem_nenhuma_secao_excluida():
-    expect = 1
-
-    sections = SectionManager(FAKES_SEM_REMOVIDOS)
-    sections.restore_section()
-    result = sections.section_id
+    result = 0
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman.prev_section()
+    expect = secman.section_id
     assert expect == result
 
 
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_restore_section_sem_nenhuma_secao_1x():
-    expect = 6
-    expect_range = (500, 599)
+def test_SectionManager_prev_section_1x_apos_2x_next_section():
+    result = 100
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    [secman.next_section() for _ in range(2)]
+    secman.prev_section()
+    expect = secman.section_id
+    assert expect == result
 
+
+def test_SectionManager_prev_section_1x_no_final():
+    result = 401
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    [secman.next_section() for _ in range(5)]
+    secman.prev_section()
+    expect = secman.section_id
+    assert expect == result
+
+
+def test_SectionManager_prev_section_2x_no_final():
+    result = 300
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    [secman.next_section() for _ in range(5)]
+    [secman.prev_section() for _ in range(2)]
+    expect = secman.section_id
+    assert expect == result
+
+
+def test_SectionManager_prev_section_5x_voltando_para_o_inicio():
+    result = 0
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    [secman.next_section() for _ in range(5)]
+    [secman.prev_section() for _ in range(5)]
+    expect = secman.section_id
+    assert expect == result
+
+
+def test_SectionManager_remove_section_com_removed_section_vazia():
     data = {
-        'SECTION_IDS': [], 'REMOVED_IDS': [6],
-        6: {'RANGE_FRAME_ID': (500, 599), 'REMOVED_FRAMES': []}
+        'SECTIONS': [{'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []}],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.remove_section()
+    assert secman.removed_sections.empty()
+
+
+def test_SectionManager_remove_section_com_removed_sections_vazia():
+    data = {
+        'SECTIONS': [],
+        'REMOVED':
+        [
+            [
+                {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+                None
+            ]
+        ]
     }
 
-    sections = SectionManager(data)
-    sections.restore_section()
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.remove_section()
+    assert secman.removed_sections.empty()
 
 
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_restore_section_1x():
-    expect = 5
-    expect_range = (403, 497)
-
-    sections = SectionManager(FAKES)
-    sections.restore_section()
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_restore_section_2x():
-    expect = 3
-    expect_range = (202, 299)
-
-    sections = SectionManager(FAKES)
-    [sections.restore_section() for _ in range(2)]
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_restore_section_sem_nenhuma_secao_2x():
-    expect = 3
-    expect_range = (202, 299)
-
-    data = {
-        'SECTION_IDS': [], 'REMOVED_IDS': [6, 3],
-        6: {'RANGE_FRAME_ID': (500, 599), 'REMOVED_FRAMES': []},
-        3: {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200]},
-    }
-
-    sections = SectionManager(data)
-    [sections.restore_section() for _ in range(2)]
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_restore_section_3x():
-    expect = 6
-    expect_range = (500, 599)
-
-    sections = SectionManager(FAKES)
-    [sections.restore_section() for _ in range(3)]
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_restore_section_2x_next_1x():
-    expect = 4
-    expect_range = (300, 395)
-
-    sections = SectionManager(FAKES)
-    [sections.restore_section() for _ in range(2)]
-    sections.next_section()
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_restore_section_2x_prev_1x():
-    expect = 2
-    expect_range = (100, 199)
-
-    sections = SectionManager(FAKES)
-    [sections.restore_section() for _ in range(2)]
-    sections.prev_section()
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_restore_section_3x_next_1x():
-    expect = 6
-    expect_range = (500, 599)
-
-    sections = SectionManager(FAKES)
-    [sections.restore_section() for _ in range(3)]
-    sections.next_section()
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_restore_section_3x_prev_2x():
-    expect = 4
-    expect_range = (300, 395)
-
-    sections = SectionManager(FAKES)
-    [sections.restore_section() for _ in range(3)]
-    [sections.prev_section() for _ in range(2)]
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_restore_section_3x_prev_5x():
-    expect = 1
-    expect_range = (0, 99)
-
-    sections = SectionManager(FAKES)
-    [sections.restore_section() for _ in range(3)]
-    [sections.prev_section() for _ in range(5)]
-    result = sections.section_id
-    result_range = sections.section_range()
-
-    assert expect == result
-    assert expect_range == result_range
-
-
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_remove_section_vazia():
-    expect = None
-
-    data = {
-        'SECTION_IDS': [], 'REMOVED_IDS': [6, 3],
-        6: {'RANGE_FRAME_ID': (500, 599), 'REMOVED_FRAMES': []},
-        3: {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200]},
-    }
-    sections = SectionManager(data)
-    sections.remove_section()
-    result = sections.section_id
-
+def test_SectionManager_remove_section_1_secao():
+    expect = 100
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman.remove_section()
+    result = secman.section_id
     assert expect == result
 
 
-@pytest.mark.skip(reason='refatorar')
-def test_SectionManager_remove_section():
-    expect = 2
-
-    sections = SectionManager(FAKES)
-    sections.remove_section()
-    result = sections.section_id
-
+def test_SectionManager_remove_section_2_secao():
+    expect = 200
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    [secman.remove_section() for _ in range(2)]
+    result = secman.section_id
     assert expect == result
 
 
-@pytest.mark.skip(reason='refatorar')
 def test_SectionManager_remove_section_ultimo_secao():
-    expect = 2
-
-    sections = SectionManager(FAKES)
-    [sections.next_section() for _ in range(2)]
-    sections.remove_section()
-    result = sections.section_id
-
+    expect = 401
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    [secman.next_section() for _ in range(5)]
+    secman.remove_section()
+    result = secman.section_id
     assert expect == result
+
+
+def test_SectionManager_remove_section_todas_as_secoes():
+    expect = None
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    [secman.remove_section() for _ in range(6)]
+    result = secman.section_id
+    assert expect == result
+
+
+def test_SectionManager_remove_section_todas_as_secoes_a_partir_do_ultima():
+    expect = None
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    [secman.next_section() for _ in range(5)]
+    [secman.remove_section() for _ in range(6)]
+    result = secman.section_id
+    assert expect == result
+
+
+def test_SectionManager_restore_section_sem_nenhuma_secao_excluida():
+    expect = False
+    data = {
+        'SECTIONS': [{'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []}],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    result = secman.restore_section()
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_e_secao_vazia():
+    expect = 100
+    data = {
+        'SECTIONS': [],
+        'REMOVED':
+        [
+            [
+                {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+                None
+            ]
+        ]
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    assert secman.restore_section()
+
+    result = secman.section_id
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados():
+    data = {
+        'SECTIONS': [{'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []}],
+        'REMOVED':
+        [
+            [
+                {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+                None
+            ]
+        ]
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.restore_section()
+    assert not secman.next_section()

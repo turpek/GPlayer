@@ -1,11 +1,11 @@
 from __future__ import annotations
 from collections import deque
-# from loguru import logger
+from loguru import logger
 from src.adapter import ISectionAdapter, ISectionManagerAdapter, SectionUnionAdapter
 from src.custom_exceptions import SectionManagerError
 from src.frame_mapper import FrameMapper
 from src.memento import Caretaker, SectionOriginator
-from src.utils import SimpleStack
+from src.utils import SimpleStack, SectionMementoHandler
 # from src.trash import Trash
 
 
@@ -99,6 +99,7 @@ class SectionManager:
 
         self._caretaker = Caretaker()
         self._originator = SectionOriginator()
+        self.__memento_handler = SectionMementoHandler(self._originator, self._caretaker)
 
         # O ISectionManagerAdapter deve retorna uma lista ordenada, além disso
         # devemos considerar está lista como uma "pilha", portando a remoção
@@ -111,6 +112,8 @@ class SectionManager:
 
         if self._right.empty() and self.removed_sections.empty():
             raise SectionManagerError('there are no sections id to work with')
+
+        self.load_mementos()
 
     def __load_removed_sections(
         self,
@@ -129,26 +132,67 @@ class SectionManager:
                 data[1] = VideoSection(section_adapter(section_2))
             self.removed_sections.push(SectionWrapper(*data))
 
+    def load_mementos(self):
+        self.__memento_handler.load_mementos(self.removed_sections)
+
+    def store_mementos(self):
+        self.__memento_handler.store_mementos(self.removed_sections)
+
     @property
     def section_id(self) -> int:
-        return self._right.top.id_
+        if not self._right.empty():
+            return self._right.top.id_
 
-    def __next_section(self, min_size: int) -> None:
+    def __next_section(self, min_size: int) -> bool:
         if len(self._right) > min_size:
             self._left.push(self._right.pop())
+            return True
+        return False
 
-    def next_section(self) -> None:
+    def next_section(self) -> bool:
         """Passa para a próxima seção se existir."""
 
         # Como a seção atual está sempre no topo da pilha não
         # podemos remover a última seção da mesma, pois ficariamos
         # sem seção para consultar
-        self.__next_section(1)
+        return self.__next_section(1)
 
-    def prev_section(self) -> None:
+    def prev_section(self) -> bool:
         """Retorna para a seção anterior."""
         if not self._left.empty():
             self._right.push(self._left.pop())
+            return True
+        return False
 
-    def remove_section(self) -> None:
-        ...
+    def __check_right(self):
+        """Para o caso do última frame ser removido, devemos voltar para a seção anterior."""
+        if self._right.empty() and not self._left.empty():
+            self.prev_section()
+
+    def remove_section(self) -> bool:
+        if self._right.empty():
+            logger.debug('there are no more sections to remove')
+            return False
+        self._originator.set_state(self._right.pop())
+        self._caretaker.save(self._originator)
+        self.__check_right()
+        return True
+
+    def __check_restore_left(self, section: VideoSection) -> bool:
+        return self._left.top is not None and section < self._left.top
+
+    def __restore_left(self, section) -> None:
+        while self._left.empty():
+            self.prev_section()
+            if self._left.top < section:
+                break
+
+    def restore_section(self):
+        """Restaura a última seção excluida."""
+        if self._caretaker.undo(self._originator):
+            data = self._originator.get_state()
+            section_1 = data.section_1
+            if self.__check_restore_left(section_1):
+                self.__restore_left()
+            return True
+        return False
