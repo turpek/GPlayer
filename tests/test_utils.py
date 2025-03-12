@@ -314,8 +314,8 @@ def test_SectionMementoHandler_importar_dados_de_memento_1(removed_sections):
     assert not removed_sections.empty()
     assert not caretaker.can_undo()
 
-    result = removed_sections.top.section_2
-    result_id = removed_sections.top.section_1.id_
+    result = removed_sections.top.section_1
+    result_id = removed_sections.top.section_2.id_
     assert expect == result
     assert expect_id == result_id
 
