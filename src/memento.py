@@ -45,3 +45,5 @@ class Caretaker:
         if self.can_undo():
             memento = self._mementos.pop()
             originator.undo(memento)
+            return True
+        return False
