@@ -223,3 +223,14 @@ class SectionManager:
             self._right.push(section_2)
             return True
         return False
+
+    def join_section(self) -> bool:
+        if self._left.empty():
+            logger.debug('Not the previous section to join')
+            return False
+        else:
+            lower = self._left.pop()
+            upper = self._right.pop()
+            self._right.push(lower + upper)
+            self.__remove_section(lower, upper)
+            return True
