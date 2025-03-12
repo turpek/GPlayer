@@ -76,7 +76,7 @@ class SectionWrapper:
 
     def __check_section(self, section):
         if not isinstance(section, VideoSection):
-            raise TypeError(f' section expected "{VideoSection.__nama__}" but received "{section.__name__}"!')
+            raise TypeError(f' section expected "{VideoSection.__name__}" but received "{type(section).__name__}"!')
 
     @property
     def section_1(self) -> VideoSection:
@@ -201,11 +201,6 @@ class SectionManager:
 
     def restore_section(self):
         """Restaura a última seção excluida."""
-        right = self._right._SimpleStack__stack
-        left = self._left._SimpleStack__stack
-        print()
-        print(right)
-        print(left)
         if self._caretaker.undo(self._originator):
             data = self._originator.get_state()
             section_1 = data.section_1
