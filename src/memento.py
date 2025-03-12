@@ -1,9 +1,22 @@
+from __future__ import annotations
 from collections import deque
 from src.frame_mapper import FrameMapper
 from src.interfaces import IMemento, IOriginator
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.section import SectionWrapper
 
 
 class TrashMemento(IMemento):
+    def __init__(self, state: int):
+        self._state = state
+
+    def get_state(self) -> int:
+        return self._state
+
+
+class SectionMemento(IMemento):
     def __init__(self, state: int):
         self._state = state
 
@@ -27,6 +40,22 @@ class TrashOriginator(IOriginator):
         self.__mapping.add(self.__state)
 
     def get_state(self) -> int:
+        return self.__state
+
+class SectionOriginator(IOriginator):
+    def __init__(self):
+        self.__state = None
+
+    def set_state(self, state: SectionWrapper) -> None:
+        self.__state = state
+
+    def save(self) -> SectionMemento:
+        return SectionMemento(self.__state)
+
+    def undo(self, memento: SectionMemento) -> None:
+        self.__state = memento.get_state()
+
+    def get_state(self) -> SectionWrapper:
         return self.__state
 
 
