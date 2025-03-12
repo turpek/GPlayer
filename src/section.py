@@ -169,14 +169,21 @@ class SectionManager:
         if self._right.empty() and not self._left.empty():
             self.prev_section()
 
+    def __remove_section(
+        self,
+        section_1: VideoSection,
+        section_2: VideoSection = None
+    ) -> None:
+        data = SectionWrapper(section_1, section_2)
+        self._originator.set_state(data)
+        self._caretaker.save(self._originator)
+
     def remove_section(self) -> bool:
         if self._right.empty():
             logger.debug('there are no more sections to remove')
             return False
-        self._originator.set_state(self._right.pop())
-        self._caretaker.save(self._originator)
+        self.__remove_section(self._right.pop())
         self.__check_right()
-        return True
 
     def __restore_right(self, section) -> None:
         while self.__next_section(0):
