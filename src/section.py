@@ -70,7 +70,7 @@ class SectionWrapper:
 
         self.__lower = section_1
         self.__upper = section_2
-        if isinstance(section_2, VideoSection) and section_2 < section_1:
+        if section_2 is None or section_2 < section_1:
             self.__lower = section_2
             self.__upper = section_1
 
@@ -127,7 +127,7 @@ class SectionManager:
         rdatas = manager_adapter.removed_sections()
         while len(rdatas):
             section_1, section_2 = rdatas.pop()
-            data = (VideoSection(section_adapter(section_1)), section_2)
+            data = [VideoSection(section_adapter(section_1)), section_2]
             if section_2 is not None:
                 data[1] = VideoSection(section_adapter(section_2))
             self.removed_sections.push(SectionWrapper(*data))
@@ -178,21 +178,41 @@ class SectionManager:
         self.__check_right()
         return True
 
-    def __check_restore_left(self, section: VideoSection) -> bool:
-        return self._left.top is not None and section < self._left.top
+    def __restore_right(self, section) -> None:
+        while self.__next_section(0):
+            if self._right.empty():
+                break
+            elif section < self._right.top:
+                break
 
     def __restore_left(self, section) -> None:
-        while self._left.empty():
-            self.prev_section()
-            if self._left.top < section:
+        while self.prev_section():
+            if self._left.empty():
+                break
+            elif self._left.top < section:
                 break
 
     def restore_section(self):
         """Restaura a última seção excluida."""
+        right = self._right._SimpleStack__stack
+        left = self._left._SimpleStack__stack
+        print()
+        print(right)
+        print(left)
         if self._caretaker.undo(self._originator):
             data = self._originator.get_state()
             section_1 = data.section_1
-            if self.__check_restore_left(section_1):
-                self.__restore_left()
+            section_2 = data.section_2
+
+            if self._left.top is not None and section_2 < self._left.top:
+                self.__restore_left(section_2)
+            elif self._right.top is not None and self._right.top < section_2:
+                self.__restore_right(section_2)
+
+            if isinstance(section_1, VideoSection):
+                self._left.pop()
+                self._left.push(section_1)
+
+            self._right.push(section_2)
             return True
         return False
