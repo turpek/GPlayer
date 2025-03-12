@@ -1,33 +1,65 @@
+from __future__ import annotations
 from collections import deque
 from loguru import logger
 from queue import LifoQueue, Queue
+from src.adapter import ISectionAdapter, SectionUnionAdapter
 from src.custom_exceptions import SectionError, SectionIdError
 from src.frame_mapper import FrameMapper
 from src.trash import Trash
 import bisect
 
-# Indice para fazer a leitura do dicionario da seção
-SECTION_IDS = 'SECTION_IDS'
-REMOVED_IDS = 'REMOVED_IDS'
-START_FRAME = 0  # Indice para a leitura da tupla do range de frames
-END_FRAME = 1  # Indice para a leitura da tupla do range de frames
-RANGE_FRAMES = 'RANGE_FRAME_ID'
-REMOVED_FRAMES = 'REMOVED_FRAMES'
-
 
 class VideoSection:
-    def __init__(self, section: dict):
-        self.start_frame = section[RANGE_FRAMES][START_FRAME]
-        self.end_frame = section[RANGE_FRAMES][END_FRAME]
-        self.removed_frames = deque(section[REMOVED_FRAMES])
+    def __init__(self, adapter: ISectionAdapter):
+        self.__start = adapter.start()
+        self.__end = adapter.end()
+        self.__removed_frame = adapter.removed_frames()
+        self.black_list_frames = adapter.black_list_frames()
+        self.__id = self.__calculate_id()
 
-    def set_range_frames(self, frame_mapper: FrameMapper):
-        self.start_frame = frame_mapper[0]
-        self.end_frame = frame_mapper[-1]
+    def __repr__(self):
+        return f"VideoSection('{self.id_}')"
 
-    def get_deque(self) -> deque:
-        # self.removed_frames = deque()
-        return self.removed_frames
+    def __add__(self, obj: VideoSection) -> VideoSection:
+        return VideoSection(SectionUnionAdapter(self, obj))
+
+    def __eq__(self, obj: int | VideoSection) -> bool:
+        if isinstance(obj, VideoSection):
+            return self.id_ == obj.id_
+        return self.id_ == obj
+
+    def __lt__(self, obj: VideoSection) -> bool:
+        return self.id_ < obj.id_
+
+    def __calculate_id(self):
+        if len(self.get_trash()) > 0:
+            removed = min(self.get_trash())
+            return min(self.start, removed)
+        return self.start
+
+    @property
+    def start(self):
+        return self.__start
+
+    @property
+    def end(self):
+        return self.__end
+
+    @property
+    def id_(self):
+        return self.__id
+
+    def update_range(self, frame_map: FrameMapper):
+        """Atualiza o range da seção, ou seja, o start e end dos frames"""
+        self.__start = frame_map[0]
+        self.__end = frame_map[-1]
+
+    def get_trash(self) -> deque:
+        """
+        Devolve uma pilha dos frames removidos, portanto os elementos
+        no topo do deque foram os primeiros removidos
+        """
+        return self.__removed_frame
 
 
 class SectionManager:
