@@ -2,13 +2,16 @@ from loguru import logger
 from src.manager import VideoManager
 from src.playlist import Playlist
 from src.section import SectionManager
+from src.adapter import FakeSectionAdapter, FakeSectionManagerAdapter
 from numpy import ndarray
 
-fake = {'SECTION_IDS': [0, 1, 2],
-        'REMOVED_IDS': [],
-        0: {'RANGE_FRAME_ID': (0, 1), 'REMOVED_FRAMES': []},
-        1: {'RANGE_FRAME_ID': (4704, 4901), 'REMOVED_FRAMES': [4750, 4751, 4752, 4753, 4754, 4755]},
-        2: {'RANGE_FRAME_ID': (4902, 5023), 'REMOVED_FRAMES': []}}
+fake = {
+    'SECTIONS':
+    [{'RANGE_FRAME_ID': (0, 1), 'REMOVED_FRAMES': [], 'BLACK_LIST': []},
+     {'RANGE_FRAME_ID': (4704, 4901), 'REMOVED_FRAMES': [4750, 4751, 4752, 4753, 4754, 4755], 'BLACK_LIST': []},
+     {'RANGE_FRAME_ID': (4902, 5023), 'REMOVED_FRAMES': [], 'BLACK_LIST': []}],
+    'REMOVED': []
+}
 
 
 class VideoController:
@@ -24,7 +27,7 @@ class VideoController:
         self.__mapper = mapper
         self.__trash = trash
         self.video_manager = video_manager
-        self.section = SectionManager(fake)
+        self.section = SectionManager(FakeSectionManagerAdapter(fake), FakeSectionAdapter)
 
     def set_pause(self):
         self.__player.set_pause()
