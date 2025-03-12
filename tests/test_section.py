@@ -496,7 +496,8 @@ def test_SectionManager_restore_section_sem_nenhuma_secao_excluida():
     assert expect == result
 
 
-def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_e_secao_vazia():
+def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_e_secao_vazia_insercao_pilha_atual():
+    # Caso zero a inserção ocorre na posição atual da pilha superior, pois as dua pilha estão vazias
     expect = 100
     data = {
         'SECTIONS': [],
@@ -515,9 +516,150 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_e_sec
     assert expect == result
 
 
-def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados():
+# ############ Inserção ocorre na pilha superior #############
+
+def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_insercao_na_pilha_atual():
+    # Caso 1a a inserção ocorre na pilha superior, pois a pilha inferior está vazia
+    expect = 0
     data = {
-        'SECTIONS': [{'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []}],
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED':
+        [
+            [
+                {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+                None
+            ]
+        ]
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.restore_section()
+    result = secman.section_id
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha_inferior_vazia_insercao_pilha_atual():
+    # Caso 1a a inserção ocorre na pilha superior, pois a pilha inferior está vazia
+    expect = 0
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED':
+        [
+            [
+                {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+                None
+            ]
+        ]
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.restore_section()
+    result = secman.section_id
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha_inferior_vazia_insercao_pilha_superior():
+    # Caso 1b a inserção ocorre na pilha superior, pois a pilha inferior está vazia
+    expect = 300
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED':
+        [
+            [
+                {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+                None
+            ]
+        ]
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha_inferior_vazia_insercao_pilha_superior_ultimo_elemento():
+    # Caso 1b a inserção ocorre na pilha superior, pois a pilha inferior está vazia
+    expect = 300
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]}
+        ],
+        'REMOVED':
+        [
+            [
+                {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []},
+                None
+            ]
+        ]
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha_inferior_nao_vazia_insercao_pilha_superior():
+    # Caso 1b a inserção ocorre na pilha superior, pois a pilha inferior está vazia
+    expect = 300
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED':
+        [
+            [
+                {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+                None
+            ]
+        ]
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.next_section()
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+# ####### Inserção ocorre na pilha inferior
+
+def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_insercao_na_pilha_atual_com_pilha_inferior_nao_vazia():
+    # Caso 2b a inserção ocorre na pilha atual, pois o elemento esta na posicao correta
+    expect = 200
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
         'REMOVED':
         [
             [
@@ -527,5 +669,553 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados():
         ]
     }
     secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.next_section()
     secman.restore_section()
-    assert not secman.next_section()
+    secman.next_section()
+    result = secman.section_id
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha_inferior_nao_vazia_insercao_pilha_inferior():
+    # Caso 1b a inserção ocorre na pilha superior, pois a pilha inferior está vazia
+    expect = 200
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED':
+        [
+            [
+                {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+                None
+            ]
+        ]
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(2)]
+
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha_inferior_nao_vazia_insercao_pilha_inferior_no_inicio():
+    # Caso 1b a inserção ocorre na pilha superior, pois a pilha inferior está vazia
+    expect = 100
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []},
+        ],
+        'REMOVED':
+        [
+            [
+                {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+                None
+            ]
+        ]
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(3)]
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_manual_do_1_elemento_e_insercao_na_posicao_atual():
+    expect = 100
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.remove_section()
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_insercao_na_pilha_superior():
+    expect = 300
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(2)]
+    secman.remove_section()
+
+    secman.prev_section()
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_insercao_na_pilha_inferior():
+    expect = 200
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.next_section()
+    secman.remove_section()
+    [secman.next_section() for _ in range(2)]
+
+    secman.prev_section()
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_insercao_sem_prev_section():
+    expect = 300
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(3)]
+    secman.remove_section()
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_insercao_com_prev_section():
+    expect = 300
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(3)]
+    secman.remove_section()
+    secman.prev_section()
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_1_e_restaurando_1_elemento():
+    expect = 300
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.remove_section() for _ in range(4)]
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_ultimo_e_restaurando_1_elemento():
+    expect = 0
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(3)]
+    [secman.remove_section() for _ in range(4)]
+    secman.restore_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_1_e_restaurando_todos():
+    expect = 100
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.remove_section() for _ in range(4)]
+    [secman.restore_section() for _ in range(4)]
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_ultimo_e_restaurando_todos():
+    expect = 300
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(4)]
+    [secman.remove_section() for _ in range(4)]
+    [secman.restore_section() for _ in range(4)]
+
+    # Devemos checar o id da próxima seção para verificar se a seção restaurada
+    # está no lugar certo
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+# ###################### Unindo a seção atual com a seção anterior #####################
+
+def test_SectionManager_unindo_a_primeira_secao_com_a_anterior():
+    expect = 100
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.join_section()
+
+    # Devemos checar o id da próxima seção para verificar se a seção foi
+    # unida corretamente
+    secman.next_section()
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_unindo_a_segunda_secao_com_a_anterior():
+    expect = 0
+    expect_next = 200
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.next_section()
+    secman.join_section()
+
+    result = secman.section_id
+    secman.next_section()
+    result_next = secman.section_id
+
+    assert expect == result
+    assert expect_next == result_next
+
+
+def test_SectionManager_unindo_a_ultima_secao_com_a_anterior():
+    expect = 200
+    expect_next = 200
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(3)]
+    secman.join_section()
+
+    result = secman.section_id
+    secman.next_section()
+    result_next = secman.section_id
+
+    assert expect == result
+    assert expect_next == result_next
+
+
+def test_SectionManager_unindo_todas_as_secoes_a_partir_da_ultima():
+    expect = 0
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(3)]
+    [secman.join_section() for _ in range(3)]
+
+    result = secman.section_id
+
+    assert expect == result
+
+
+def test_SectionManager_restaura_a_1_secao_unida_com_2_elementos():
+    expect_prev = 0
+    expect = 100
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.next_section()
+    secman.join_section()
+    secman.restore_section()
+    result = secman.section_id
+    secman.prev_section()
+    result_prev = secman.section_id
+
+    assert expect == result
+    assert expect_prev == result_prev
+
+
+def test_SectionManager_restaura_a_1_secao_unida():
+    expect_prev = 0
+    expect = 100
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman.next_section()
+    secman.join_section()
+    secman.restore_section()
+    result = secman.section_id
+    secman.prev_section()
+    result_prev = secman.section_id
+
+    assert expect == result
+    assert expect_prev == result_prev
+
+
+def test_SectionManager_restaura_a_secao_do_meio_unida():
+    expect_prev = 100
+    expect = 200
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(2)]
+    secman.join_section()
+    secman.restore_section()
+    result = secman.section_id
+    secman.prev_section()
+    result_prev = secman.section_id
+
+    assert expect == result
+    assert expect_prev == result_prev
+
+
+def test_SectionManager_restaura_a_ultima_secao_unida():
+    expect_prev = 200
+    expect = 300
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(3)]
+    secman.join_section()
+    secman.restore_section()
+    result = secman.section_id
+    secman.prev_section()
+    result_prev = secman.section_id
+
+    assert expect == result
+    assert expect_prev == result_prev
+
+
+def test_SectionManager_restaura_a_ultima_secao_unida_quando_unimos_todas_as_secoes():
+    expect_prev = 0
+    expect = 100
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(3)]
+    [secman.join_section() for _ in range(3)]
+    secman.restore_section()
+    result = secman.section_id
+    secman.prev_section()
+    result_prev = secman.section_id
+
+    assert expect == result
+    assert expect_prev == result_prev
+
+
+def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_secoes():
+    expect_prev = 200
+    expect = 300
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(3)]
+    [secman.join_section() for _ in range(3)]
+    [secman.restore_section() for _ in range(3)]
+    result = secman.section_id
+    secman.prev_section()
+    result_prev = secman.section_id
+
+    assert expect == result
+    assert expect_prev == result_prev
+
+
+def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_secoes_e_removemos_a_ultima_secao():
+    expect_prev = 200
+    expect = 300
+    data = {
+        'SECTIONS': [
+            {'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': []},
+            {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+            {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+        ],
+        'REMOVED': []
+    }
+    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    [secman.next_section() for _ in range(3)]
+    [secman.join_section() for _ in range(3)]
+    secman.remove_section()
+    [secman.restore_section() for _ in range(4)]
+    result = secman.section_id
+    secman.prev_section()
+    result_prev = secman.section_id
+
+    assert expect == result
+    assert expect_prev == result_prev
+
+
+def test_SectionManager_restaura_caso_geral():
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN), FakeSectionAdapter)
+    secman.restore_section()
+    secman.restore_section()
+    secman.restore_section()
+    secman.restore_section()
