@@ -37,17 +37,6 @@ class IOriginator(ABC):
         ...
 
 
-class IMementoHandler(ABC):
-
-    @abstractmethod
-    def export_mementos(self, originator: IOriginator):
-        ...
-
-    @abstractmethod
-    def import_mementos(self, originator: IOriginator):
-        ...
-
-
 class Command(ABC):
     @abstractmethod
     def executor(self):
@@ -72,3 +61,12 @@ class ISectionAdapter(ABC):
         ...
 
 
+class IMementoHandler(ABC):
+
+    @abstractmethod
+    def store_mementos(self, section):
+        ...
+
+    @abstractmethod
+    def load_mementos(self, section):
+        ...
