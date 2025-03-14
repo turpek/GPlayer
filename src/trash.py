@@ -91,6 +91,12 @@ class Trash():
         """
         return not self.empty() or self.__caretaker.can_undo()
 
+    def get_originator(self) -> TrashOriginator:
+        return self.__originator
+
+    def get_caretaker(self) -> Caretaker:
+        return self.__caretaker
+
     def import_frames_id(self, frames_id: deque) -> None:
         """
         Importar os frames_id de uma pilha para uma outra pilha
