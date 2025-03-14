@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.section import Section, SectionWrapper
-    from src.memento import TrashOriginator
+    from src.memento import TrashOriginator, SectionOriginator
 
 
 class SimpleStack:
@@ -61,7 +61,7 @@ class FrameMementoHandler(IMementoHandler):
 
 
 class SectionMementoHandler(IMementoHandler):
-    def __init__(self, originator: TrashOriginator, caretaker: Caretaker):
+    def __init__(self, originator: SectionOriginator, caretaker: Caretaker):
         self.__caretaker = caretaker
         self.__originator = originator
 
