@@ -7,8 +7,9 @@ from src.memento import Caretaker
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.section import Section, SectionWrapper
+    from src.section import VideoSection, SectionWrapper
     from src.memento import TrashOriginator, SectionOriginator
+    from src.trash import Trash
 
 
 class SimpleStack:
@@ -44,16 +45,24 @@ class SimpleStack:
 
 
 class FrameMementoHandler(IMementoHandler):
-    def __init__(self, originator: TrashOriginator, caretaker: Caretaker):
+    def __init__(self, originator: TrashOriginator, caretaker: Caretaker, trash: Trash = None):
         self.__caretaker = caretaker
         self.__originator = originator
+        self.__trash = trash
 
-    def store_mementos(self, section: Section):
+    def store_mementos(self, section: VideoSection):
+        frames_id = deque()
         removed_frames = section.get_trash()
-        while self.__caretaker.undo(self.__originator):
-            removed_frames.append(self.__originator.get_state())
+        while self.__caretaker.can_undo():
+            self.__caretaker.undo(self.__originator)
+            frames_id.append(self.__originator.get_state())
 
-    def load_mementos(self, section: Section):
+        while self.__trash.can_undo():
+            frames_id.appendleft(self.__trash._stack.popleft())
+        while len(frames_id):
+            removed_frames.append(frames_id.popleft())
+
+    def load_mementos(self, section: VideoSection):
         removed_frames = section.get_trash()
         while len(removed_frames) > 0:
             self.__originator.set_state(removed_frames.pop())
