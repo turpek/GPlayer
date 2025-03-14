@@ -18,13 +18,21 @@ from src.video_command import (
     UndoFrameCommand
 )
 from src.manager import VideoManager
+from src.adapter import ISectionManagerAdapter
 from src.video_controller import VideoController
 from time import sleep
 import cv2
 
 
 class VideoCon:
-    def __init__(self, video: str | Playlist, *, frames_mapping: list[int] = None, buffersize: int = 60, log: bool = False):
+    def __init__(
+            self,
+            video: str | Playlist, *,
+            frames_mapping: list[int] = None,
+            section: ISectionManagerAdapter = None,
+            buffersize: int = 60,
+            log: bool = False
+    ):
 
         self.__playlist = video if isinstance(video, Playlist) else Playlist([video])
         self.__log = log

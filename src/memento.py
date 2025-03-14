@@ -42,6 +42,7 @@ class TrashOriginator(IOriginator):
     def get_state(self) -> int:
         return self.__state
 
+
 class SectionOriginator(IOriginator):
     def __init__(self):
         self.__state = None
