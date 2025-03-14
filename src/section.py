@@ -5,8 +5,8 @@ from src.adapter import ISectionAdapter, ISectionManagerAdapter, SectionUnionAda
 from src.custom_exceptions import SectionManagerError
 from src.frame_mapper import FrameMapper
 from src.memento import Caretaker, SectionOriginator
-from src.utils import SimpleStack, SectionMementoHandler
-# from src.trash import Trash
+from src.utils import FrameMementoHandler, SimpleStack, SectionMementoHandler
+from src.trash import Trash
 
 
 class VideoSection:
@@ -100,6 +100,7 @@ class SectionManager:
         self._caretaker = Caretaker()
         self._originator = SectionOriginator()
         self.__memento_handler = SectionMementoHandler(self._originator, self._caretaker)
+        self.__frame_memento_handler = None
 
         # O ISectionManagerAdapter deve retorna uma lista ordenada, além disso
         # devemos considerar está lista como uma "pilha", portando a remoção
@@ -132,6 +133,18 @@ class SectionManager:
                 data[1] = VideoSection(section_adapter(section_2))
             self.removed_sections.push(SectionWrapper(*data))
 
+    def load_mementos_frames(self, trash: Trash):
+        trash_originator = trash.get_originator()
+        trash_caretaker = trash.get_caretaker()
+        frame_handler = FrameMementoHandler(trash_originator, trash_caretaker)
+        frame_handler.load_mementos(self._right.top)
+
+    def store_mementos_frames(self, trash: Trash):
+        trash_originator = trash.get_originator()
+        trash_caretaker = trash.get_caretaker()
+        frame_handler = FrameMementoHandler(trash_originator, trash_caretaker, trash)
+        frame_handler.store_mementos(self._right.top)
+
     def load_mementos(self):
         self.__memento_handler.load_mementos(self.removed_sections)
 
@@ -142,6 +155,9 @@ class SectionManager:
     def section_id(self) -> int:
         if not self._right.empty():
             return self._right.top.id_
+
+    def get_section(self) -> VideoSection:
+        return self._right.top
 
     def __next_section(self, min_size: int) -> bool:
         if len(self._right) > min_size:
@@ -229,3 +245,17 @@ class SectionManager:
             self._right.push(lower + upper)
             self.__remove_section(lower, upper)
             return True
+
+    def next_section(self, trash: Trash):
+        self.store_mementos_frames(trash)
+        self._next_section()
+        self.load_mementos()
+        trash.reset(None)
+        self.load_mementos_frames(trash)
+
+    def prev_section(self, trash: Trash):
+        self.store_mementos_frames(trash)
+        self._prev_section()
+        self.load_mementos()
+        trash.reset(None)
+        self.load_mementos_frames(trash)
