@@ -149,7 +149,7 @@ class SectionManager:
             return True
         return False
 
-    def next_section(self) -> bool:
+    def _next_section(self) -> bool:
         """Passa para a próxima seção se existir."""
 
         # Como a seção atual está sempre no topo da pilha não
@@ -157,7 +157,7 @@ class SectionManager:
         # sem seção para consultar
         return self.__next_section(1)
 
-    def prev_section(self) -> bool:
+    def _prev_section(self) -> bool:
         """Retorna para a seção anterior."""
         if not self._left.empty():
             self._right.push(self._left.pop())
@@ -167,7 +167,7 @@ class SectionManager:
     def __check_right(self):
         """Para o caso do última frame ser removido, devemos voltar para a seção anterior."""
         if self._right.empty() and not self._left.empty():
-            self.prev_section()
+            self._prev_section()
 
     def __remove_section(
         self,
@@ -193,7 +193,7 @@ class SectionManager:
                 break
 
     def __restore_left(self, section) -> None:
-        while self.prev_section():
+        while self._prev_section():
             if self._left.empty():
                 break
             elif self._left.top < section:
@@ -206,9 +206,9 @@ class SectionManager:
             section_1 = data.section_1
             section_2 = data.section_2
 
-            if self._left.top is not None and section_2 < self._left.top:
+            if not self._left.empty() and section_2 < self._left.top:
                 self.__restore_left(section_2)
-            elif self._right.top is not None and self._right.top < section_2:
+            elif not self._right.empty() and self._right.top < section_2:
                 self.__restore_right(section_2)
 
             if isinstance(section_1, VideoSection):
