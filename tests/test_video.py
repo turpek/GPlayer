@@ -30,6 +30,9 @@ class MyVideoCapture():
                 return False
         return False
 
+    def grab(self):
+        ...
+
     def get(self, flag):
         if cv2.CAP_PROP_FRAME_COUNT == flag:
             return float(len(self.frames))
