@@ -1,15 +1,19 @@
 from __future__ import annotations
 from collections import deque
+from loguru import logger
+from pathlib import Path
 from src.interfaces import ISectionAdapter, ISectionManagerAdapter
-
 from typing import TYPE_CHECKING
+
+import json
+
 
 if TYPE_CHECKING:
     from src.section import Section
 
 
 class SectionUnionAdapter(ISectionAdapter):
-    def __init__(self, section_1, section_2):
+    def __init__(self, section_1: Section | None, section_2: Section):
 
         lower, upper = self.__get_sections(section_1, section_2)
 
@@ -46,6 +50,34 @@ class SectionUnionAdapter(ISectionAdapter):
     def black_list_frames(self) -> list:
         return self.__black_list
 
+
+class JsonSectionManagerAdapter(ISectionManagerAdapter):
+    def __init__(self, filename: str | Path, ):
+        self.__file = Path(filename)
+        self.__data = None
+        try:
+            with open(str(self.__file), "r", encoding="utf-8") as file:
+                self.__data = json.load(file)
+        except FileNotFoundError:
+            logger.warning("JSON file not found. Starting with empty section data.")
+            self.__data = {'SECTIONS': [], 'REMOVED': {}}
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON: {e}")
+            raise ValueError(f"Invalid JSON format: {e}")
+
+        data = self.__data
+        self._sections = [s for s in data['SECTIONS']]
+        self._removed_sections = [r for r in data['REMOVED']]
+
+    def get_sections(self) -> list[dict]:
+        return self._sections
+
+    def removed_sections(self) -> list[dict]:
+        return self._removed_sections
+
+    def save_sections(self) -> None:
+        with open(self.filepath, "w", encoding="utf-8") as file:
+            json.dump(sections, file, indent=4, ensure_ascii=False)
 
 class FakeSectionAdapter(ISectionAdapter):
     def __init__(self, data):
