@@ -26,3 +26,8 @@ class SectionManagerError(Exception):
 class SimpleStackError(Exception):
     def __init__(self, message):
         self.message = message
+
+
+class FrameWrapperError(Exception):
+    def __init__(self, message):
+        self.message = message
