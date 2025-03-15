@@ -1,11 +1,19 @@
+
 from collections import deque
-from src.custom_exceptions import SimpleStackError
-from src.utils import SimpleStack, FrameMementoHandler, SectionMementoHandler
+from src.custom_exceptions import FrameWrapperError, SimpleStackError
+from src.utils import (
+    FrameMementoHandler,
+    FrameWrapper,
+    SectionMementoHandler,
+    SimpleStack
+)
 from src.memento import Caretaker, TrashOriginator, SectionOriginator
 from src.section import VideoSection, SectionWrapper
 from src.adapter import FakeSectionAdapter
 from pytest import fixture, raises
 import pytest
+import numpy as np
+
 
 FAKES = {
     'SECTION_IDS': [1, 2, 4],
@@ -388,4 +396,35 @@ def test_SectionMementoHandler_importar_dados_de_memento_4_elementos_e_exportar(
     # Agora vem o teste
     handler.load_mementos(removed_sections)
     result = len(removed_sections)
+    assert expect == result
+
+
+# ################ Testes para a classe FrameWrapper ######################
+
+def test_FrameWrapper_instanciar_classe_com_frame():
+    expect = 0
+    frame = FrameWrapper(0, np.zeros((2, 2)))
+    result = frame.id_
+
+    assert expect == result
+
+
+def test_FrameWrapper_instanciar_classe_sem_frame():
+    expect = None
+    frame = FrameWrapper(0, None)
+    result = frame.get_frame()
+    assert expect == result
+
+
+def test_FrameWrapper_set_frame():
+    frame = FrameWrapper(0, np.zeros((2, 2)))
+    assert isinstance(frame.get_frame(), np.ndarray)
+
+
+def test_FrameWrapper_set_frame_ja_definido():
+    expect = "frame is already defined"
+    with raises(FrameWrapperError) as excinfo:
+        frame = FrameWrapper(0, np.zeros((2, 2)))
+        frame.set_frame(np.zeros((2, 2)))
+    result = f'{excinfo.value}'
     assert expect == result
