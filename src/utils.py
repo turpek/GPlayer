@@ -1,13 +1,13 @@
 from __future__ import annotations
 from collections import deque
-from src.custom_exceptions import SimpleStackError
+from src.custom_exceptions import FrameWrapperError, SimpleStackError
 from src.interfaces import IMementoHandler
 from src.memento import Caretaker
-
+from numpy import ndarray
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.section import VideoSection, SectionWrapper
+    from src.section import VideoSection
     from src.memento import TrashOriginator, SectionOriginator
     from src.trash import Trash
 
@@ -51,16 +51,19 @@ class FrameMementoHandler(IMementoHandler):
         self.__trash = trash
 
     def store_mementos(self, section: VideoSection):
-        frames_id = deque()
         removed_frames = section.get_trash()
-        while self.__caretaker.can_undo():
-            self.__caretaker.undo(self.__originator)
-            frames_id.append(self.__originator.get_state())
+        while self.__caretaker.undo(self.__originator):
+            removed_frames.append(self.__originator.get_state())
+        # frames_id = deque()
+        # removed_frames = section.get_trash()
+        # while self.__caretaker.can_undo():
+        #     self.__caretaker.undo(self.__originator)
+        #     frames_id.append(self.__originator.get_state())
 
-        while self.__trash.can_undo():
-            frames_id.appendleft(self.__trash._stack.popleft())
-        while len(frames_id):
-            removed_frames.append(frames_id.popleft())
+        # while self.__trash.can_undo():
+        #     frames_id.appendleft(self.__trash._stack.popleft())
+        # while len(frames_id):
+        #     removed_frames.append(frames_id.popleft())
 
     def load_mementos(self, section: VideoSection):
         removed_frames = section.get_trash()
@@ -82,3 +85,34 @@ class SectionMementoHandler(IMementoHandler):
         while not removed_sections.empty():
             self.__originator.set_state(removed_sections.pop())
             self.__caretaker.save(self.__originator)
+
+
+class FrameWrapper:
+    def __init__(self, frame_id: int, frame: ndarray = None):
+        self.__frame_id = frame_id
+        self.__frame = frame
+
+    def __repr__(self):
+        return f"FrameWrapper('{self.__frame_id}')"
+
+    def __eq__(self, obj: FrameWrapper | int) -> bool:
+        if isinstance(obj, FrameWrapper):
+            return self.id_ == obj.id_
+        return self.id_ == obj
+
+    def __lt__(self, obj: FrameWrapper | int) -> bool:
+        if isinstance(obj, FrameWrapper):
+            return self.id_ < obj.id_
+        return self.id_ < obj
+
+    def set_frame(self, frame: ndarray) -> None:
+        if isinstance(self.__frame, ndarray):
+            raise FrameWrapperError("frame is already defined")
+        self.__frame = frame
+
+    @property
+    def id_(self):
+        return self.__frame_id
+
+    def get_frame(self):
+        return self.__frame
