@@ -1,8 +1,10 @@
 
 from collections import deque
+from .uteis import MyVideoCapture
 from src.custom_exceptions import FrameWrapperError, SimpleStackError
 from src.utils import (
     FrameMementoHandler,
+    FrameStack,
     FrameWrapper,
     SectionMementoHandler,
     SimpleStack
@@ -10,7 +12,10 @@ from src.utils import (
 from src.memento import Caretaker, TrashOriginator, SectionOriginator
 from src.section import VideoSection, SectionWrapper
 from src.adapter import FakeSectionAdapter
+from src.trash import Trash
+from threading import Semaphore
 from pytest import fixture, raises
+from unittest.mock import patch
 import pytest
 import numpy as np
 
@@ -57,6 +62,21 @@ def removed_sections(request):
             section_2 = VideoSection(FakeSectionAdapter(FAKES[k]))
         removed_sections_.push(SectionWrapper(section_1, section_2))
     yield removed_sections_
+
+
+@fixture
+def mycap():
+    with patch('cv2.VideoCapture', return_value=MyVideoCapture()) as mock:
+        yield mock
+
+
+@fixture
+def trash(mycap):
+    cap = mycap.return_value
+    semaphore = Semaphore()
+    _trash = Trash(cap, semaphore, frame_count=3000, buffersize=5, bufferlog=False)
+    yield _trash
+    _trash.join()
 
 
 def test_SimpleStack_top_sem_push():
@@ -428,3 +448,248 @@ def test_FrameWrapper_set_frame_ja_definido():
         frame.set_frame(np.zeros((2, 2)))
     result = f'{excinfo.value}'
     assert expect == result
+
+
+# ################ Testes para o FrameStack ###################
+
+def test_FrameStack_vazia():
+    frames = FrameStack(6)
+    assert frames.empty()
+
+
+def test_FrameStack_maxlen():
+    expect = 6
+    frames = FrameStack(expect)
+    result = frames.maxlen
+    assert expect == result
+
+
+def test_FramasStack_colocar_frame():
+    frames = FrameStack(6)
+    frames.push(FrameWrapper(0, np.zeros((2, 2))))
+    assert len(frames) == 1
+    assert not frames.empty()
+
+
+def test_FramasStack_retirar_frame():
+    expect = 0
+    frames = FrameStack(6)
+    frames.push(FrameWrapper(0, np.zeros((2, 2))))
+    result = frames.pop()
+    assert result == expect
+
+
+def test_FrameStack_can_update_memento_sem_mementos_e_stack_vazia(trash):
+    expect = False
+    frames = FrameStack(10)
+    result = frames.can_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_can_update_memento_com_mementos_maior_que_maxlen_da_stack_e_stack_cheia(trash):
+    expect = False
+    frames = FrameStack(10)
+    [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(25, 15, -1)]
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(15, 5, -1)]
+    result = frames.can_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_can_update_memento_com_mementos_vazios_stack_cheia(trash):
+    expect = False
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(15, 5, -1)]
+    result = frames.can_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_can_update_memento_com_mementos_vazios_stack_pela_metade(trash):
+    expect = False
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(15, 10, -1)]
+    result = frames.can_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_can_update_memento_com_mementos_vazios_stack_vazia(trash):
+    expect = False
+    frames = FrameStack(10)
+    result = frames.can_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_can_update_memento_com_mementos_maior_que_maxlen_da_stack_e_stack_pela_metade(trash):
+    expect = True
+    frames = FrameStack(10)
+    [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(25, 15, -1)]
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(15, 10, -1)]
+    result = frames.can_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_can_update_memento_com_mementos_maior_que_maxlen_da_stack_e_stack_menor_que_metade(trash):
+    expect = True
+    frames = FrameStack(10)
+    [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(25, 15, -1)]
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(15, 11, -1)]
+    result = frames.can_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_can_update_memento_com_mementos_maior_que_maxlen_da_stack_e_stack_vazia(trash):
+    expect = True
+    frames = FrameStack(10)
+    [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(25, 15, -1)]
+    result = frames.can_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_can_update_memento_com_mementos_vazio_e_stack_na_metade(trash):
+    expect = False
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(15, 10, -1)]
+    result = frames.can_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_can_update_memento_com_mementos_vazio_e_stack_menor_que_a_metade(trash):
+    expect = False
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(15, 12, -1)]
+    result = frames.can_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_salvando_mementos_retirados(trash):
+    expect = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    frames = FrameStack(10)
+    frames._memento_save(expect.copy(), trash)
+    result = [trash._memento_undo() for _ in range(10)]
+    assert expect == result
+
+
+def test_FrameStack_salvando_mementos_retirados_vazio(trash):
+    expect = []
+    frames = FrameStack(10)
+    frames._memento_save(expect.copy(), trash)
+    result = list(filter(None, [trash._memento_undo() for _ in range(10)]))
+    assert expect == result
+
+
+def test_FrameStack_update_mementos_com_stack_e_trash_vazios(trash):
+    expect = {}
+    frames = FrameStack(10)
+    result = frames.update_mementos(trash)
+    assert expect == result
+
+
+def test_FrameStack_update_mementos_com_stack_cheia_e_trash_vazia(trash):
+    expect = {}
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 10, -1)]
+    result = frames.update_mementos(trash)
+    assert expect == result
+
+
+def test_FrameStack_check_update_memento_com_stack_e_trash_vazia(trash):
+    expect = False
+    frames = FrameStack(10)
+    result = frames._check_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_check_update_memento_com_stack_cheia_e_trash_vazia(trash):
+    expect = False
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 10, -1)]
+    result = frames._check_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_check_update_memento_com_stack_cheia_e_trash_cheio(trash):
+    expect = False
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 10, -1)]
+    [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(40, 10, -1)]
+    result = frames._check_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_check_update_memento_com_stack_abaixo_da_metade_de_maxlen_e_trash_vazia(trash):
+    expect = False
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 16, -1)]
+    result = frames._check_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_check_update_memento_com_stack_abaixo_da_metade_de_maxlen_e_trash_com_1_elemento(trash):
+    expect = True
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 16, -1)]
+    trash.move(21, np.zeros((2, 2)))
+    result = frames._check_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_check_update_memento_com_stack_abaixo_da_metade_de_maxlen_e_trash_cheio(trash):
+    expect = True
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 16, -1)]
+    [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(40, 16, -1)]
+    result = frames._check_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_check_update_memento_com_stack_com_metade_de_maxlen_e_trash_vazio(trash):
+    expect = False
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 15, -1)]
+    result = frames._check_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_check_update_memento_com_stack_com_metade_de_maxlen_e_trash_cheio(trash):
+    expect = True
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 15, -1)]
+    [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(40, 16, -1)]
+    result = frames._check_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_check_update_memento_com_stack_com_mais_da_metade_de_maxlen_e_trash_vazio(trash):
+    expect = False
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 14, -1)]
+    result = frames._check_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_check_update_memento_com_stack_com_mais_da_metade_de_maxlen_e_trash_cheio(trash):
+    expect = True
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 14, -1)]
+    [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(40, 16, -1)]
+    result = frames._check_update_memento(trash)
+    assert expect == result
+
+
+def test_FrameStack_update_mementos_com_stack_cheia_e_trash_maior_que_maxlen(trash):
+    expect = {}
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 10, -1)]
+    [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(40, 20, -1)]
+    result = frames.update_mementos(trash)
+    assert expect == result
+
+
+def test_FrameStack_update_mementos_com_stack_igual_a_metade_de_maxlen_e_trash_maior_que_maxlen(trash):
+    expect_keys = {21, 22, 23, 24, 25}
+    frames = FrameStack(10)
+    [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 15, -1)]
+    [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(40, 15, -1)]
+    result = frames.update_mementos(trash)
+    import ipdb
+    ipdb.set_trace()
+    assert expect_keys == set(result.keys())
