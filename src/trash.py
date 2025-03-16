@@ -5,7 +5,6 @@ from src.buffer_right import VideoBufferRight
 from src.frame_mapper import FrameMapper
 from src.memento import Caretaker, TrashOriginator
 from threading import Semaphore
-from queue import Queue
 from numpy import ndarray
 
 
@@ -33,12 +32,13 @@ class Trash():
     def join(self):
         self._buffer.join()
 
-    def __memento_save(self, frame_id: int) -> None:
+    def _memento_save(self, frame_id: int) -> None:
         self.__originator.set_state(frame_id)
         self.__caretaker.save(self.__originator)
 
-    def _memento_undo(self):
+    def _memento_undo(self) -> int:
         self.__caretaker.undo(self.__originator)
+        return self.__originator.get_state()
 
     def empty(self) -> bool:
         return len(self._stack) == 0
@@ -53,7 +53,7 @@ class Trash():
             fid = self._stack.popleft()
             logger.info(self._dframes.keys())
             del self._dframes[fid]
-            self.__memento_save(fid)
+        self._memento_save(frame_id)
 
         self._stack.append(frame_id)
         self._dframes[frame_id] = frame
@@ -66,8 +66,7 @@ class Trash():
             for _ in range(bsize):
                 if not self.__caretaker.can_undo():
                     break
-                self._memento_undo()
-                self._stack.appendleft(self.__originator.get_state())
+                self._stack.appendleft(self._memento_undo())
             self._buffer.set(self._mapping[0])
             self._buffer.run()
             while not self._buffer.is_task_complete():
@@ -109,7 +108,7 @@ class Trash():
             None
         """
         while len(frames_id):
-            self.__memento_save(frames_id.pop())
+            self._memento_save(frames_id.pop())
 
     def export_frames_id(self, frames_id: deque) -> None:
         """
@@ -123,8 +122,7 @@ class Trash():
             None
         """
         while self.__caretaker.can_undo():
-            self._memento_undo()
-            frames_id.append(self.__originator.get_state())
+            frames_id.append(self._memento_undo())
 
         while self.can_undo():
             frames_id.appendleft(self._stack.popleft())
