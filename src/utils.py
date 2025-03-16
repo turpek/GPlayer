@@ -116,3 +116,53 @@ class FrameWrapper:
 
     def get_frame(self):
         return self.__frame
+
+
+class FrameStack:
+    def __init__(self, maxlen):
+        self.__stack = deque(maxlen=maxlen)
+        self.__maxlen = maxlen
+
+    def __len__(self):
+        return len(self.__stack)
+
+    @property
+    def maxlen(self):
+        return self.__maxlen
+
+    def empty(self):
+        return len(self) == 0
+
+    def pop(self) -> tuple[int, ndarray]:
+        return self.__stack.pop()
+
+    def push(self, frame: FrameWrapper) -> None:
+        self.__stack.append(frame)
+
+    def can_update_memento(self, trash: Trash) -> bool:
+        return trash.can_undo() and len(self) <= self.maxlen // 2
+
+    def _check_update_memento(self, trash: Trash) -> bool:
+        return trash.can_undo() and len(self) < self.maxlen
+
+    def _memento_save(self, list_frames: list, trash: Trash) -> None:
+        while len(list_frames) > 0:
+            trash._memento_save(list_frames.pop())
+
+    def _create_wrapper(self, frame_id: int) -> FrameWrapper:
+        frame = FrameWrapper(frame_id, None)
+        self.__stack.appendleft(frame)
+        return frame
+
+    def update_mementos(self, trash: Trash):
+        frames_map = {}
+        if self.can_update_memento(trash):
+            temp = []
+            while self._check_update_memento(trash):
+                frame_id = trash._memento_undo()
+                temp.append(frame_id)
+                if frame_id not in self.__stack:
+                    frames_map[frame_id] = self._create_wrapper(frame_id)
+                print(frame_id)
+            self._memento_save(temp, trash)
+        return frames_map
