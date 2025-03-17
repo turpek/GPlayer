@@ -31,3 +31,8 @@ class SimpleStackError(Exception):
 class FrameWrapperError(Exception):
     def __init__(self, message):
         self.message = message
+
+
+class FrameStackError(Exception):
+    def __init__(self, message):
+        self.message = message
