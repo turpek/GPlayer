@@ -1,6 +1,6 @@
 from __future__ import annotations
 from collections import deque
-from src.custom_exceptions import FrameWrapperError, SimpleStackError
+from src.custom_exceptions import FrameStackError, FrameWrapperError, SimpleStackError
 from src.interfaces import IMementoHandler
 from src.memento import Caretaker
 from numpy import ndarray
@@ -54,16 +54,6 @@ class FrameMementoHandler(IMementoHandler):
         removed_frames = section.get_trash()
         while self.__caretaker.undo(self.__originator):
             removed_frames.append(self.__originator.get_state())
-        # frames_id = deque()
-        # removed_frames = section.get_trash()
-        # while self.__caretaker.can_undo():
-        #     self.__caretaker.undo(self.__originator)
-        #     frames_id.append(self.__originator.get_state())
-
-        # while self.__trash.can_undo():
-        #     frames_id.appendleft(self.__trash._stack.popleft())
-        # while len(frames_id):
-        #     removed_frames.append(frames_id.popleft())
 
     def load_mementos(self, section: VideoSection):
         removed_frames = section.get_trash()
@@ -133,10 +123,17 @@ class FrameStack:
     def empty(self):
         return len(self) == 0
 
-    def pop(self) -> tuple[int, ndarray]:
+    def pop(self) -> FrameWrapper:
+        if self.empty():
+            raise FrameStackError("Pop failed: Stack is empty.")
         return self.__stack.pop()
 
     def push(self, frame: FrameWrapper) -> None:
+        if not isinstance(frame, FrameWrapper):
+            raise TypeError(
+                f'Expected type "{FrameWrapper.__name__}", '
+                f'but received "{type(frame).__name__}".'
+            )
         self.__stack.append(frame)
 
     def can_update_memento(self, trash: Trash) -> bool:
@@ -162,7 +159,7 @@ class FrameStack:
                 frame_id = trash._memento_undo()
                 temp.append(frame_id)
                 if frame_id not in self.__stack:
+                    trash._mapping.add(frame_id)
                     frames_map[frame_id] = self._create_wrapper(frame_id)
-                print(frame_id)
             self._memento_save(temp, trash)
         return frames_map
