@@ -27,7 +27,6 @@ class SectionMemento(IMemento):
 class TrashOriginator(IOriginator):
     def __init__(self, mapping: FrameMapper):
         self.__state = None
-        self.__mapping = mapping
 
     def set_state(self, state: int):
         self.__state = state
@@ -37,7 +36,6 @@ class TrashOriginator(IOriginator):
 
     def undo(self, memento: TrashMemento) -> None:
         self.__state = memento.get_state()
-        self.__mapping.add(self.__state)
 
     def get_state(self) -> int:
         return self.__state
