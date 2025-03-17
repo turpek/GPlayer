@@ -37,6 +37,7 @@ def reader_task(buffer: Buffer, data: tuple) -> None:
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_id)
 
     # Bloco onde os frames são lidos e armazenados na fila
+    ret = None
     while True:
 
         if frame_id in mapping_frames:
@@ -90,6 +91,8 @@ def reader(buffer: Buffer) -> None:
                 break
 
     except Exception as e:
+        import ipdb
+        ipdb.set_trace()
         exc_info = traceback.format_exc()
         buffer._error.put(e, exc_info)
     finally:
