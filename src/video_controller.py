@@ -72,18 +72,21 @@ class VideoController:
             # primeiro frame_id no buffer master, assim ocorrendo um duplicação de frames.
             if swap_buffer:
                 self.__player.swap()
+            self.__player.set_read()
         else:
             # Criar um erro personalizado aqui
             ...
-        self.__player.set_read()
 
     def undo(self):
-        frame_id, frame = self.__trash.undo()
-        if isinstance(frame, ndarray):
+        if self.__trash.can_undo():
+            self.__player.servant._buffer.end_task.set()
+            self.__player.servant._buffer.wait_task()
+            frame_id, frame = self.__trash.undo()
+            logger.error(f'frame {frame_id} restored')
             self.__mapper.add(frame_id)
             self.__player.restore_frame(frame_id, frame)
             self.__player.undo_config()
-            logger.info(f'frame {frame_id} restored')
+            self.__player.infos()
         else:
             logger.debug('unable to undo removal')
 
@@ -108,8 +111,6 @@ class VideoController:
         self.section.next_section()
         start, end = self.section.section_range()
         removidos = self.section.current.get_deque()
-        import ipdb
-        ipdb.set_trace()
         self.video_manager.create(list(range(start, end)), removidos)
         logger.info('proxima seção')
 
