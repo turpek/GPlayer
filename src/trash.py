@@ -3,6 +3,7 @@ from collections import deque
 from loguru import logger
 from src.buffer_right import VideoBufferRight
 from src.frame_mapper import FrameMapper
+from src.utils import FrameWrapper, FrameStack
 from src.memento import Caretaker, TrashOriginator
 from threading import Semaphore
 from numpy import ndarray
@@ -12,7 +13,7 @@ class Trash():
     def __init__(self, cap: VideoCapture, semaphore: Semaphore, frame_count, buffersize=5, bufferlog=False):
         self.__buffersize = buffersize
         self.__frame_count = frame_count
-        self._stack = deque(maxlen=(2 * buffersize))
+        self._stack = FrameStack(2 * buffersize)
         self._dframes = dict()
         self._mapping = FrameMapper([], frame_count)
         self._buffer = VideoBufferRight(cap, self._mapping, semaphore, buffersize=buffersize, bufferlog=bufferlog)
@@ -22,7 +23,7 @@ class Trash():
         self._history = list()
 
     def reset(self, frame_count):
-        self._stack = deque(maxlen=(2 * self.__buffersize))
+        self._stack = FrameStack(2 * self.__buffersize)
         self._mapping.set_mapping([], self.__frame_count, [])
         self._state = None
         self.__caretaker = Caretaker()
@@ -47,37 +48,26 @@ class Trash():
         return len(self._stack) == self._stack.maxlen
 
     def move(self, frame_id, frame) -> None:
-        if not isinstance(frame, ndarray):
-            return None
-        elif len(self._stack) == self._stack.maxlen:
-            fid = self._stack.popleft()
-            logger.info(self._dframes.keys())
-            del self._dframes[fid]
-        self._memento_save(frame_id)
-
-        self._stack.append(frame_id)
-        self._dframes[frame_id] = frame
-        self._history.append(frame_id)
+        if isinstance(frame, ndarray):
+            self._memento_save(frame_id)
+            self._stack.push(FrameWrapper(frame_id, frame))
 
     def undo(self) -> tuple[int, ndarray] | None:
-        bsize = self._stack.maxlen // 2
         logger.debug('iniciando a restauracao do frame')
-        if len(self._stack) <= bsize and self.__caretaker.can_undo():
-            for _ in range(bsize):
-                if not self.__caretaker.can_undo():
-                    break
-                self._stack.appendleft(self._memento_undo())
-            self._buffer.set(self._mapping[0])
-            self._buffer.run()
-            while not self._buffer.is_task_complete():
-                fid, frame = self._buffer.get()
-                self._mapping.remove(fid)
-                self._dframes[fid] = frame
-        if not self.empty():
-            frame_id = self._stack.pop()
-            frame = self._dframes[frame_id]
-            del self._dframes[frame_id]
-            return frame_id, frame
+        if self.can_undo():
+            frames = self._stack.update_mementos(self)
+            frame = self._stack.pop()
+            self._memento_undo()
+            if frames:
+                print('>>>>>>>>>>>>>> VAMOS RESTAURAR <<<<<<<<<<<<<<')
+                self._buffer.set(self._mapping[0])
+                self._buffer.run()
+                while not self._buffer.is_task_complete():
+                    fid, update_frame = self._buffer.get()
+                    # print(f'RESTAURADO {fid}')
+                    self._mapping.remove(fid)
+                    frames[fid].set_frame(update_frame)
+            return frame.id_, frame.get_frame()
         return None, None
 
     def can_undo(self) -> bool:
@@ -88,7 +78,7 @@ class Trash():
             True: se tiver frames
             False: se não houver frames
         """
-        return not self.empty() or self.__caretaker.can_undo()
+        return self.__caretaker.can_undo()
 
     def get_originator(self) -> TrashOriginator:
         return self.__originator
