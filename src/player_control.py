@@ -100,8 +100,8 @@ class PlayerControl:
         if isinstance(frame, ndarray):
             ls = [x[0] for x in self.servant._buffer._primary]
             ms = [x[0] for x in self.master._buffer._primary]
-            logger.info('servant', ls[:10])
-            logger.info('master:', ms[:10])
+            logger.info(f'servant: {ls[:10]}')
+            logger.info(f'master: {ms[:10]}')
             return True, frame
         return False, None
 
@@ -234,6 +234,8 @@ class PlayerControl:
         logger.debug(f'servo {self.servant}')
         if isinstance(self.__frame, ndarray) and not self.pause():
             frame_id, frame = self.frame_id, self.__frame
+            if not self.master._buffer.empty() and self.master[0] == self.frame_id:
+                self.master._buffer.get()
             self.__frame = None
             self.frame_id = None
             return frame_id, frame
@@ -253,7 +255,6 @@ class PlayerControl:
     def set_frame(self, frame_id: int) -> None:
         logger.debug(f'setting the frame for the frame_id {frame_id}')
         self.servant.set(frame_id)
-        self.master.set(frame_id)
 
     def _backward(self, frame_id: int) -> bool:
         """
@@ -304,9 +305,24 @@ class PlayerControl:
             return True
         return start_frame < frame_id and end_frame > frame_id
 
+    def __set_frame(self, frame_id) -> None:
+        if isinstance(self.servant, VideoBufferRight):
+            if self.servant.mapper_id(0) == frame_id:
+                self.servant.set(frame_id)
+                self.master.set(frame_id)
+            elif self.servant.mapper_id(-1) == frame_id:
+                self.servant.set(frame_id)
+                self.master.set(frame_id)
+            else:
+                self.servant.set(frame_id + 1)
+                self.master.set(frame_id)
+        else:
+            self.servant.set(frame_id)
+            self.master.set(frame_id)
+
     def restore_frame(self, frame_id: int, frame: ndarray) -> None:
         logger.debug(f'starting frame restoration {frame_id}')
-        self.set_frame(frame_id)
+        self.__set_frame(frame_id)
         self.update_frame(frame_id, frame)
 
     def set_buffers(self, servant: VideoBufferRight, master: VideoBufferLeft):
