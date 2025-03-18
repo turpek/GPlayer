@@ -126,9 +126,10 @@ def test_buffer_VideoBufferLeft_get_com_o_buffer_vazio(myvideo):
 
 @pytest.mark.parametrize('myvideo', [([], 5)], indirect=True)
 def test_buffer_VideoBufferLeft_put_com_o_buffer_vazio(myvideo):
-    expect = 'frame_id does not belong to map'
+    frame_id = 5
+    expect = f'frame_id "{frame_id}" does not belong to map'
     with raises(VideoBufferError) as excinfo:
-        myvideo.put(5, np.zeros((2, 2)))
+        myvideo.put(frame_id, np.zeros((2, 2)))
     result = f'{excinfo.value}'
     assert result == expect
 
@@ -901,7 +902,7 @@ def test_buffer_VideoBufferLeft_colocando_um_frame_id_menor_que_o_ultimo_frame_i
     [myvideo.put(*frame) for frame in lote(10, 35, 1)]
 
     frame_id = 5
-    expect = 'frame_id does not belong to map'
+    expect = f'frame_id "{frame_id}" does not belong to map'
     with raises(VideoBufferError) as excinfo:
         myvideo.put(frame_id, np.zeros((2, 2)))
     assert excinfo.value.message == expect
