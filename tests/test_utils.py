@@ -1,7 +1,7 @@
 
 from collections import deque
 from .uteis import MyVideoCapture
-from src.custom_exceptions import FrameWrapperError, SimpleStackError
+from src.custom_exceptions import FrameStackError, FrameWrapperError, SimpleStackError
 from src.utils import (
     FrameMementoHandler,
     FrameStack,
@@ -471,6 +471,15 @@ def test_FramasStack_colocar_frame():
     assert not frames.empty()
 
 
+def test_FrameStack_retirar_frame_com_pilha_vazia():
+    expect = "Pop failed: Stack is empty."
+    with raises(FrameStackError) as excinfo:
+        frames = FrameStack(6)
+        frames.pop()
+    result = str(excinfo.value)
+    assert expect == result
+
+
 def test_FramasStack_retirar_frame():
     expect = 0
     frames = FrameStack(6)
@@ -690,6 +699,4 @@ def test_FrameStack_update_mementos_com_stack_igual_a_metade_de_maxlen_e_trash_m
     [frames.push(FrameWrapper(frame_id, np.zeros((2, 2)))) for frame_id in range(20, 15, -1)]
     [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(40, 15, -1)]
     result = frames.update_mementos(trash)
-    import ipdb
-    ipdb.set_trace()
     assert expect_keys == set(result.keys())
