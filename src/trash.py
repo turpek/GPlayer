@@ -59,7 +59,6 @@ class Trash():
             frame = self._stack.pop()
             self._memento_undo()
             if frames:
-                print('>>>>>>>>>>>>>> VAMOS RESTAURAR <<<<<<<<<<<<<<')
                 self._buffer.set(self._mapping[0])
                 self._buffer.run()
                 while not self._buffer.is_task_complete():

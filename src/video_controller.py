@@ -86,7 +86,6 @@ class VideoController:
             self.__mapper.add(frame_id)
             self.__player.restore_frame(frame_id, frame)
             self.__player.undo_config()
-            self.__player.infos()
         else:
             logger.debug('unable to undo removal')
 
