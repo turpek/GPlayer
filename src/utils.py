@@ -171,7 +171,7 @@ class FrameStack:
 
 
 class VideoInfo:
-    def __init__(self, path: Path, label: str, format_file: str = 'JSON'):
+    def __init__(self, path: Path, label: str, format_file: str = '.json'):
         self.__path = path
         self.__suffix = path.suffix
         self.__label = label

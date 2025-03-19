@@ -19,15 +19,21 @@ class VideoController:
                  playlist: Playlist,
                  frames_mapping: list[int],
                  video_manager: VideoManager):
-        self.__playlist = playlist
 
-        video_manager.open(playlist.video_name(), frames_mapping)
+        # Abrindo o vídeo e atualizando informaçẽos do vídeo
+        video_info = playlist.get_video_info()
+        self.__section_manager = video_manager.open(
+            video_info.path, video_info.label, video_info.format_file
+        )
+        video_manager.load_video_info(video_info)
+
         player, mapper, trash = video_manager.get()
+
+        self.__playlist = playlist
         self.__player = player
         self.__mapper = mapper
         self.__trash = trash
         self.video_manager = video_manager
-        self.section = SectionManager(FakeSectionManagerAdapter(fake), FakeSectionAdapter)
 
     def set_pause(self):
         self.__player.set_pause()
@@ -106,19 +112,14 @@ class VideoController:
             logger.debug('is already at the beginning of the playlist')
 
     def next_section(self):
-        self.section.save_data(self.__mapper, self.__trash)
-        self.section.next_section()
-        start, end = self.section.section_range()
-        removidos = self.section.current.get_deque()
-        self.video_manager.create(list(range(start, end)), removidos)
-        logger.info('proxima seção')
+        logger.info('Proxima seção')
+        self.__section_manager.next_section(self.__trash)
+        self.video_manager.create(self.__section_manager)
 
     def prev_section(self):
-        self.section.save_data(self.__mapper, self.__trash)
-        self.section.prev_section()
-        start, end = self.section.section_range()
-        self.video_manager.create(list(range(start, end)), self.section.current.get_deque())
-        logger.info('seção anterior')
+        logger.info('Seção  anterior')
+        self.__section_manager.prev_section(self.__trash)
+        self.video_manager.create(self.__section_manager)
 
     def read(self):
         return self.__player.read()

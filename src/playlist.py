@@ -65,6 +65,9 @@ class Playlist:
         if self.__video_file:
             return self.__video_file.path
 
+    def get_video_info(self) -> VideoInfo:
+        return self.__video_file
+
     def next_video(self, video_player: VideoCon) -> None:
         """
         Passa para o próximo vídeo da lista de reprodução, para isso passa o nome do

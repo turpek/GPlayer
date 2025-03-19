@@ -113,7 +113,7 @@ class VideoCon:
         command.set_command(ord('n'), NextVideoCommand(video_controller))
         command.set_command(ord('p'), PrevVideoCommand(video_controller))
         command.set_command(ord('k'), NextSectionCommand(video_controller))
-        # command.set_command(ord('j'), PrevSectionCommand(video_controller))
+        command.set_command(ord('j'), PrevSectionCommand(video_controller))
 
     def control(self, key):
         self.command.executor_command(key)
