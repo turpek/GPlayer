@@ -66,10 +66,11 @@ def video(mycap, request):
     frames_mapping, buffersize, frame_count, log = request.param
     log = False
     with patch('src.manager.cv2.VideoCapture', return_value=MyVideoCapture()) as _:
-        manager = VideoManager(buffersize, log)
-        playlist = Playlist(['video-01.mp4'])
-        video = VideoController(playlist, frames_mapping, manager)
-        yield video
+        with patch('src.manager.SectionManager.get_mapping', return_value=frames_mapping) as _:
+            manager = VideoManager(buffersize, log)
+            playlist = Playlist(['video-01.mp4'])
+            video = VideoController(playlist, frames_mapping, manager)
+            yield video
 
     video.join()
 
