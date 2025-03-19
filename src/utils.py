@@ -197,12 +197,14 @@ class VideoInfo:
         return self.__fps
 
     @property
-    def count_frame(self) -> int:
+    def frame_count(self) -> int:
         return self.__frame_count
 
     @property
     def format_file(self) -> str:
         return self.__format_file
 
-    def get_section_manager_adapter(self):
-        ...
+    def load_video_property(self, cap: cv2.VideoCapture) -> None:
+        if not self.frame_count:
+            self.__frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            self.__fps = cap.get(cv2.CAP_PROP_FPS)
