@@ -4,6 +4,7 @@ from loguru import logger
 from pathlib import Path
 from src.interfaces import ISectionAdapter, ISectionManagerAdapter
 from typing import TYPE_CHECKING
+from src.utils import FrameWrapper
 
 import json
 
@@ -51,21 +52,29 @@ class SectionUnionAdapter(ISectionAdapter):
         return self.__black_list
 
 
-class JsonSectionManagerAdapter(ISectionManagerAdapter):
-    def __init__(self, filename: str | Path, ):
-        self.__file = Path(filename)
-        self.__data = None
-        try:
-            with open(str(self.__file), "r", encoding="utf-8") as file:
-                self.__data = json.load(file)
-        except FileNotFoundError:
-            logger.warning("JSON file not found. Starting with empty section data.")
-            self.__data = {'SECTIONS': [], 'REMOVED': {}}
-        except json.JSONDecodeError as e:
-            logger.error(f"Error decoding JSON: {e}")
-            raise ValueError(f"Invalid JSON format: {e}")
+class JSONSectionAdapter(ISectionAdapter):
+    def __init__(self, data):
+        start, end = data['RANGE_FRAME_ID']
+        self.__start = start
+        self.__end = end
+        self.__removed_frames = deque(data['REMOVED_FRAMES'])
+        self.__black_list = data['BLACK_LIST']
 
-        data = self.__data
+    def start(self) -> int:
+        return self.__start
+
+    def end(self) -> int:
+        return self.__end
+
+    def removed_frames(self) -> deque:
+        return self.__removed_frames
+
+    def black_list_frames(self) -> list:
+        return self.__black_list
+
+
+class JSONSectionManagerAdapter(ISectionManagerAdapter):
+    def __init__(self, data):
         self._sections = [s for s in data['SECTIONS']]
         self._removed_sections = [r for r in data['REMOVED']]
 
@@ -75,9 +84,10 @@ class JsonSectionManagerAdapter(ISectionManagerAdapter):
     def removed_sections(self) -> list[dict]:
         return self._removed_sections
 
-    def save_sections(self) -> None:
-        with open(self.filepath, "w", encoding="utf-8") as file:
-            json.dump(sections, file, indent=4, ensure_ascii=False)
+    @property
+    def section_adapter(self) -> JSONSectionAdapter:
+        return JSONSectionAdapter
+
 
 class FakeSectionAdapter(ISectionAdapter):
     def __init__(self, data):
