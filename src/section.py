@@ -16,6 +16,7 @@ class VideoSection:
         self.__removed_frame = adapter.removed_frames()
         self.black_list_frames = adapter.black_list_frames()
         self.__id = self.__calculate_id()
+        self.__mapping = self.__calculate_mapping(self.__removed_frame)
 
     def __repr__(self):
         return f"VideoSection('{self.id_}')"
@@ -36,6 +37,13 @@ class VideoSection:
             removed = min(self.get_trash())
             return min(self.start, removed)
         return self.start
+
+    def __calculate_mapping(self, removed):
+        if self.start is None:
+            return []
+        frames_id = set(range(self.start, self.end))
+        removeds = set(list(removed) + self.black_list_frames)
+        return list(frames_id - removeds)
 
     @property
     def start(self):
@@ -59,7 +67,11 @@ class VideoSection:
         Devolve uma pilha dos frames removidos, portanto os elementos
         no topo do deque foram os primeiros removidos
         """
+        self.__mapping = self.__calculate_mapping(self.__removed_frame)
         return self.__removed_frame
+
+    def get_mapping(self):
+        return self.__mapping
 
 
 class SectionWrapper:
@@ -158,6 +170,12 @@ class SectionManager:
 
     def get_section(self) -> VideoSection:
         return self._right.top
+
+    def get_mapping(self) -> list:
+        return self._right.top.get_mapping()
+
+    def update_mapping(self) -> None:
+        self._right.top.update_mapping()
 
     def __next_section(self, min_size: int) -> bool:
         if len(self._right) > min_size:
@@ -259,3 +277,11 @@ class SectionManager:
         self.load_mementos()
         trash.reset(None)
         self.load_mementos_frames(trash)
+
+    def load_trash(self, trash: Trash):
+        self.load_mementos()
+        trash.reset(None)
+        self.load_mementos_frames(trash)
+
+    def set_mapping(self, mapping):
+        self._right

@@ -8,6 +8,7 @@ from threading import Semaphore
 from src.buffer_left import VideoBufferLeft
 from src.buffer_right import VideoBufferRight
 from src.frame_mapper import FrameMapper
+from src.section import SectionManager
 from src.player_control import PlayerControl
 from src.trash import Trash
 
@@ -22,6 +23,7 @@ class VideoManager:
         self.frame_count = None
         self.semaphore = Semaphore()
         self.player = PlayerControl()
+        self.__section_manager = None
 
     def set_mapping(self, frame_ids: list = None) -> None:
         """
@@ -46,16 +48,15 @@ class VideoManager:
         self.__cap = cv2.VideoCapture(str(self.path))
         self.frame_count = int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    def load_mapping(self, frames_mapping: FrameMapper):
-        if frames_mapping is None:
-            frames_mapping = list(range(self.frame_count))
-        self.mapping = self.set_mapping(frames_mapping)
+    def load_mapping(self, section_manager: SectionManager):
+        self.mapping = self.set_mapping(section_manager.get_mapping())
 
-    def load_trash(self):
+    def load_trash(self, section_manager: SectionManager):
         self.trash = Trash(self.__cap,
                            self.semaphore,
                            self.frame_count,
                            buffersize=20)
+        section_manager.load_mementos_frames(self.trash)
 
     def load_player(self, servant: VideoBufferRight, master: VideoBufferLeft):
         self.player.set_buffers(servant, master)
