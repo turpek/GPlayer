@@ -169,13 +169,16 @@ class FrameStack:
 
 
 class VideoInfo:
-    def __init__(self, path: Path, label: str):
+    def __init__(self, path: Path, label: str, format_file: str = 'JSON'):
         self.__path = path
         self.__suffix = path.suffix
         self.__label = label
         self.__fps = None
         self.__frame_count = None
-        self.__secman_adapter = None  # Adaptador do gerenciador de seção
+        self.__format_file = format_file
+
+    def __repr__(self):
+        return f"VideoInfo('{self.path}')"
 
     @property
     def path(self) -> Path:
@@ -197,16 +200,9 @@ class VideoInfo:
     def count_frame(self) -> int:
         return self.__frame_count
 
-    def load_video_property(self) -> None:
-        if not self.path.exists():
-            raise FileNotFoundError(f'Unable to open "{self.path}": file not found or corrupt.')
-
-        cap = cv2.VideoCapture(str(self.path))
-        if not cap.isOpened():
-            raise ValueError(f'Could not open "{self.path}": invalid format or corrupt file.')
-        self.__frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        self.__fps = cap.get(cv2.CAP_PROP_FPS)
-        cap.release()
+    @property
+    def format_file(self) -> str:
+        return self.__format_file
 
     def get_section_manager_adapter(self):
         ...
