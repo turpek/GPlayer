@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from collections import deque
 from pathlib import Path
+from src.utils import VideoInfo
 
 
 if TYPE_CHECKING:
@@ -28,9 +29,16 @@ class Playlist:
                 tem a relação de 1:1 com o argumento `videos`. se o elemento for None, o mesmo
                 assumerá o valor de 'section_x' onde x é um valor inteiro
         """
-        self.__right_videos = deque([Path(v) for v in videos], maxlen=len(videos))
-        self.__left_videos = deque([], maxlen=len(videos))
+        self.__right_videos = deque(maxlen=len(videos))
+        self.__left_videos = deque(maxlen=len(videos))
         self.__video_file = None
+
+        if labels:
+            for video, label in zip(videos, labels):
+                self.__right_videos.append(VideoInfo(Path(video), label))
+        else:
+            for video in videos:
+                self.__right_videos.append(VideoInfo(Path(video), 'video_01'))
 
         self.__next_video_name()
 
@@ -55,7 +63,7 @@ class Playlist:
             None: para a lista de reprodução vazia.
         """
         if self.__video_file:
-            return self.__video_file
+            return self.__video_file.path
 
     def next_video(self, video_player: VideoCon) -> None:
         """
