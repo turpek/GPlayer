@@ -105,8 +105,12 @@ class FakeSectionManagerAdapter(ISectionManagerAdapter):
         self._sections = [s for s in data['SECTIONS']]
         self._removed_sections = [r for r in data['REMOVED']]
 
-    def get_sections(self) -> list:
+    def get_sections(self) -> list[dict]:
         return self._sections
 
-    def removed_sections(self) -> list:
+    def removed_sections(self) -> list[tuple[dict, dict | None]]:
         return self._removed_sections
+
+    @property
+    def section_adapter(self) -> FakeSectionAdapter:
+        return FakeSectionAdapter

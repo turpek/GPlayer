@@ -100,11 +100,7 @@ class SectionWrapper:
 
 
 class SectionManager:
-    def __init__(
-        self,
-        manager_adapter: ISectionManagerAdapter,
-        section_adapter: ISectionAdapter
-    ):
+    def __init__(self, manager_adapter: ISectionManagerAdapter):
         self._right = SimpleStack(VideoSection)
         self._left = SimpleStack(VideoSection)
         self.removed_sections = SimpleStack(SectionWrapper)
@@ -117,6 +113,7 @@ class SectionManager:
         # O ISectionManagerAdapter deve retorna uma lista ordenada, além disso
         # devemos considerar está lista como uma "pilha", portando a remoção
         # deve ser feita no topo!
+        section_adapter = manager_adapter.section_adapter
         datas = manager_adapter.get_sections()
         while len(datas):
             self._right.push(VideoSection(section_adapter(datas.pop())))
