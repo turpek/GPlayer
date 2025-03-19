@@ -54,15 +54,17 @@ class FrameMementoHandler(IMementoHandler):
         self.__trash = trash
 
     def store_mementos(self, section: VideoSection):
-        removed_frames = section.get_trash()
-        while self.__caretaker.undo(self.__originator):
-            removed_frames.append(self.__originator.get_state())
+        if section is not None:
+            removed_frames = section.get_trash()
+            while self.__caretaker.undo(self.__originator):
+                removed_frames.append(self.__originator.get_state())
 
     def load_mementos(self, section: VideoSection):
-        removed_frames = section.get_trash()
-        while len(removed_frames) > 0:
-            self.__originator.set_state(removed_frames.pop())
-            self.__caretaker.save(self.__originator)
+        if section is not None:
+            removed_frames = section.get_trash()
+            while len(removed_frames) > 0:
+                self.__originator.set_state(removed_frames.pop())
+                self.__caretaker.save(self.__originator)
 
 
 class SectionMementoHandler(IMementoHandler):
