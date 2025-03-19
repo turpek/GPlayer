@@ -2,7 +2,6 @@ import cv2
 
 from array import array
 from collections import deque
-from pathlib import Path
 from threading import Semaphore
 
 from src.buffer_left import VideoBufferLeft
@@ -11,6 +10,7 @@ from src.frame_mapper import FrameMapper
 from src.section import SectionManager
 from src.player_control import PlayerControl
 from src.trash import Trash
+from src.utils import VideoInfo
 
 
 class VideoManager:
@@ -43,10 +43,11 @@ class VideoManager:
         else:
             return FrameMapper(frame_ids, frame_count)
 
-    def load_capture(self, file_name: Path):
-        self.path = file_name
+    def load_capture(self, video_info: VideoInfo):
+        self.path = video_info.path
         self.__cap = cv2.VideoCapture(str(self.path))
-        self.frame_count = int(self.__cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        video_info.load_video_property(self.__cap)
+        self.frame_count = video_info.frame_count
 
     def load_mapping(self, section_manager: SectionManager):
         self.mapping = self.set_mapping(section_manager.get_mapping())
@@ -84,10 +85,9 @@ class VideoManager:
         self.trash.reset(self.frame_count)
         self.trash.import_frames_id(removed_frames)
 
-    def open(self, file_name: Path, frames_mapping: list[int] | None):
-        self.file_name = file_name
-        self.load_capture(file_name)
-        self.load_mapping(frames_mapping)
+    def open(self, video_info: VideoInfo):
+        self.load_capture(video_info)
+        self.load_mapping(video_info)
         self.load_trash()
         self.load_buffers()
 

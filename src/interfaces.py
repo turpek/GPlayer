@@ -81,3 +81,10 @@ class IMementoHandler(ABC):
     @abstractmethod
     def load_mementos(self, section):
         ...
+
+
+class IDataReader(ABC):
+
+    @abstractmethod
+    def read(self, filename: str):
+        ...

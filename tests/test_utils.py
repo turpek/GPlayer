@@ -7,15 +7,18 @@ from src.utils import (
     FrameStack,
     FrameWrapper,
     SectionMementoHandler,
-    SimpleStack
+    SimpleStack,
+    VideoInfo
 )
 from src.memento import Caretaker, TrashOriginator, SectionOriginator
 from src.section import VideoSection, SectionWrapper
 from src.adapter import FakeSectionAdapter
 from src.trash import Trash
+from .uteis import MyVideoCapture
 from threading import Semaphore
 from pytest import fixture, raises
 from unittest.mock import patch
+from pathlib import Path
 import pytest
 import numpy as np
 
@@ -77,6 +80,15 @@ def trash(mycap):
     _trash = Trash(cap, semaphore, frame_count=3000, buffersize=5, bufferlog=False)
     yield _trash
     _trash.join()
+
+
+@fixture
+def video_info(mycap, request):
+    path, label, exists_return = request.param
+    with patch('src.utils.cv2.VideoCapture', return_value=MyVideoCapture()) as _:
+        with patch('src.utils.Path.exists', return_value=exists_return) as _:
+            vinfo = VideoInfo(Path(path), label)
+            yield vinfo
 
 
 def test_SimpleStack_top_sem_push():
@@ -700,3 +712,83 @@ def test_FrameStack_update_mementos_com_stack_igual_a_metade_de_maxlen_e_trash_m
     [trash.move(frame_id, np.zeros((2, 2))) for frame_id in range(40, 15, -1)]
     result = frames.update_mementos(trash)
     assert expect_keys == set(result.keys())
+
+
+# ############ Teste para a classe `VideoInfo` ################# #
+
+@pytest.mark.parametrize('video_info', [('video-01.mp4', None, True)], indirect=True)
+def test_VideoInfo_path(video_info):
+    expect = Path('video-01.mp4')
+    result = video_info.path
+    assert expect == result
+
+
+@pytest.mark.parametrize('video_info', [('video-01.mp4', None, True)], indirect=True)
+def test_VideoInfo_label_como_None_sem_ler_dados_de_secao(video_info):
+    expect = None
+    result = video_info.label
+    assert expect == result
+
+
+@pytest.mark.parametrize('video_info', [('video-01.mp4', 'vid_001', True)], indirect=True)
+def test_VideoInfo_label_sem_ler_dados_de_secao(video_info):
+    expect = 'vid_001'
+    result = video_info.label
+    assert expect == result
+
+
+@pytest.mark.parametrize('video_info', [('video-01.mp4', None, True)], indirect=True)
+def test_VideoInfo_suffix(video_info):
+    expect = '.mp4'
+    result = video_info.suffix
+    assert expect == result
+
+
+@pytest.mark.parametrize('video_info', [('video-01.mp4', None, True)], indirect=True)
+def test_VideoInfo_fps_sem_ler_metadados_do_video(video_info):
+    expect = None
+    result = video_info.fps
+    assert expect == result
+
+
+@pytest.mark.parametrize('video_info', [('video-01.mp4', None, True)], indirect=True)
+def test_VideoInfo_count_frame_sem_ler_metadados_do_video(video_info):
+    expect = None
+    result = video_info.count_frame
+    assert expect == result
+
+
+@pytest.mark.parametrize('video_info', [('video-01.mp4', None, False)], indirect=True)
+def test_VideoInfo_load_video_property_arquivo_nao_encontrado(video_info):
+    expect = 'Unable to open "video-01.mp4": file not found or corrupt.'
+    with raises(FileNotFoundError) as excinfo:
+        video_info.load_video_property()
+    result = str(excinfo.value)
+    assert expect == result
+
+
+def test_VideoInfo_load_video_property_arquivo_corrompido():
+    expect = 'Could not open "video-01.mp4": invalid format or corrupt file.'
+    with raises(ValueError) as excinfo:
+        with patch('src.utils.cv2.VideoCapture', return_value=MyVideoCapture(isopened=False)) as _:
+            with patch('src.utils.Path.exists', return_value=True) as _:
+                video_info = VideoInfo(Path('video-01.mp4'), None)
+                video_info.load_video_property()
+    result = str(excinfo.value)
+    assert expect == result
+
+
+@pytest.mark.parametrize('video_info', [('video-01.mp4', None, True)], indirect=True)
+def test_VideoInfo_count_frame_apos_ler_metadados_do_video(video_info):
+    expect = 500
+    video_info.load_video_property()
+    result = video_info.count_frame
+    assert expect == result
+
+
+@pytest.mark.parametrize('video_info', [('video-01.mp4', None, True)], indirect=True)
+def test_VideoInfo_fps_apos_ler_metadados_do_video(video_info):
+    expect = 24
+    video_info.load_video_property()
+    result = video_info.fps
+    assert expect == result

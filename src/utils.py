@@ -4,7 +4,10 @@ from src.custom_exceptions import FrameStackError, FrameWrapperError, SimpleStac
 from src.interfaces import IMementoHandler
 from src.memento import Caretaker
 from numpy import ndarray
+from pathlib import Path
 from typing import TYPE_CHECKING
+
+import cv2
 
 if TYPE_CHECKING:
     from src.section import VideoSection
@@ -163,3 +166,47 @@ class FrameStack:
                     frames_map[frame_id] = self._create_wrapper(frame_id)
             self._memento_save(temp, trash)
         return frames_map
+
+
+class VideoInfo:
+    def __init__(self, path: Path, label: str):
+        self.__path = path
+        self.__suffix = path.suffix
+        self.__label = label
+        self.__fps = None
+        self.__frame_count = None
+        self.__secman_adapter = None  # Adaptador do gerenciador de seção
+
+    @property
+    def path(self) -> Path:
+        return self.__path
+
+    @property
+    def label(self) -> str:
+        return self.__label
+
+    @property
+    def suffix(self) -> str:
+        return self.__suffix
+
+    @property
+    def fps(self) -> float:
+        return self.__fps
+
+    @property
+    def count_frame(self) -> int:
+        return self.__frame_count
+
+    def load_video_property(self) -> None:
+        if not self.path.exists():
+            raise FileNotFoundError(f'Unable to open "{self.path}": file not found or corrupt.')
+
+        cap = cv2.VideoCapture(str(self.path))
+        if not cap.isOpened():
+            raise ValueError(f'Could not open "{self.path}": invalid format or corrupt file.')
+        self.__frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.__fps = cap.get(cv2.CAP_PROP_FPS)
+        cap.release()
+
+    def get_section_manager_adapter(self):
+        ...

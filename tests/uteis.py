@@ -3,10 +3,10 @@ import cv2
 
 
 class MyVideoCapture():
-    def __init__(self):
+    def __init__(self, isopened=True):
         self.frames = [np.zeros((2, 2)) for x in range(500)]
         self.index = 0
-        self.isopened = True
+        self.isopened = isopened
 
     def read(self):
         if self.index < len(self.frames):
@@ -32,10 +32,13 @@ class MyVideoCapture():
             return len(self.frames)
         elif cv2.CAP_PROP_POS_FRAMES == flag:
             return self.index
+        elif cv2.CAP_PROP_FPS == flag:
+            return 24
         return False
 
     def isOpened(self):
         return self.isopened
 
     def release(self):
+        self.isopened = False
         ...

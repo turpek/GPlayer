@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class Playlist:
-    def __init__(self, videos: list[str | Path]):
+    def __init__(self, videos: list[str | Path], labels: list[str | None] = None):
         """
         Playlist é a classe responsavel por gerencia a lista de reprodução de vídeos.
         Com ela é possível fazer
@@ -24,6 +24,9 @@ class Playlist:
 
         Args:
             videos (list[str | Path]): é o caminho até o arquivo de vídeo.
+            lables (list[str | None] = None): são os rótulos das seções dos vídeos, a mesmas
+                tem a relação de 1:1 com o argumento `videos`. se o elemento for None, o mesmo
+                assumerá o valor de 'section_x' onde x é um valor inteiro
         """
         self.__right_videos = deque([Path(v) for v in videos], maxlen=len(videos))
         self.__left_videos = deque([], maxlen=len(videos))
