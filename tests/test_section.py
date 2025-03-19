@@ -58,7 +58,7 @@ FAKEMAN = {
             {
                 'RANGE_FRAME_ID': (100, 399),
                 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134, 396, 397, 398, 399],
-                'BLACK_LIST': [black_list_100]
+                'BLACK_LIST': black_list_100
             },
             {
                 'RANGE_FRAME_ID': (403, 497),
@@ -67,7 +67,7 @@ FAKEMAN = {
             }
         ],
         [
-            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': [black_list_100]},
+            {'RANGE_FRAME_ID': (100, 199), 'REMOVED_FRAMES': [150, 149, 148, 147, 136, 135, 134], 'BLACK_LIST': black_list_100},
             {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []},
         ],
         [
@@ -366,7 +366,7 @@ def test_SectionManager_com_dados_vazios():
     expect = 'there are no sections id to work with'
     with pytest.raises(SectionManagerError) as excinfo:
         data = {'SECTIONS': [], 'REMOVED': []}
-        SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+        SectionManager(FakeSectionManagerAdapter(data))
     result = f'{excinfo.value}'
     assert expect == result
 
@@ -382,7 +382,7 @@ def test_SectionManager_com_sections_vazios():
             ]
         ]
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     assert secman.removed_sections.empty()
 
 
@@ -392,14 +392,14 @@ def test_SectionManager_primeira_section():
         'SECTIONS': [{'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []}],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     expect = secman.section_id
     assert expect == result
 
 
 def test_SectionManager_next_section_1x():
     result = 100
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     secman._next_section()
     expect = secman.section_id
     assert expect == result
@@ -407,7 +407,7 @@ def test_SectionManager_next_section_1x():
 
 def test_SectionManager_next_section_2x():
     result = 200
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman._next_section() for _ in range(2)]
     expect = secman.section_id
     assert expect == result
@@ -415,7 +415,7 @@ def test_SectionManager_next_section_2x():
 
 def test_SectionManager_next_section_ate_o_final_5x():
     result = 500
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman._next_section() for _ in range(5)]
     expect = secman.section_id
     assert expect == result
@@ -423,7 +423,7 @@ def test_SectionManager_next_section_ate_o_final_5x():
 
 def test_SectionManager_next_section_no_final():
     result = 500
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman._next_section() for _ in range(5)]
     secman._next_section()
     expect = secman.section_id
@@ -432,7 +432,7 @@ def test_SectionManager_next_section_no_final():
 
 def test_SectionManager_prev_section_no_inicio():
     result = 0
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     secman._prev_section()
     expect = secman.section_id
     assert expect == result
@@ -440,7 +440,7 @@ def test_SectionManager_prev_section_no_inicio():
 
 def test_SectionManager_prev_section_1x_apos_2x_next_section():
     result = 100
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman._next_section() for _ in range(2)]
     secman._prev_section()
     expect = secman.section_id
@@ -449,7 +449,7 @@ def test_SectionManager_prev_section_1x_apos_2x_next_section():
 
 def test_SectionManager_prev_section_1x_no_final():
     result = 401
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman._next_section() for _ in range(5)]
     secman._prev_section()
     expect = secman.section_id
@@ -458,7 +458,7 @@ def test_SectionManager_prev_section_1x_no_final():
 
 def test_SectionManager_prev_section_2x_no_final():
     result = 300
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman._next_section() for _ in range(5)]
     [secman._prev_section() for _ in range(2)]
     expect = secman.section_id
@@ -467,7 +467,7 @@ def test_SectionManager_prev_section_2x_no_final():
 
 def test_SectionManager_prev_section_5x_voltando_para_o_inicio():
     result = 0
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman._next_section() for _ in range(5)]
     [secman._prev_section() for _ in range(5)]
     expect = secman.section_id
@@ -479,7 +479,7 @@ def test_SectionManager_remove_section_com_removed_section_vazia():
         'SECTIONS': [{'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []}],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman.remove_section()
     assert secman.removed_sections.empty()
 
@@ -496,14 +496,14 @@ def test_SectionManager_remove_section_com_removed_sections_vazia():
         ]
     }
 
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman.remove_section()
     assert secman.removed_sections.empty()
 
 
 def test_SectionManager_remove_section_1_secao():
     expect = 100
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     secman.remove_section()
     result = secman.section_id
     assert expect == result
@@ -511,7 +511,7 @@ def test_SectionManager_remove_section_1_secao():
 
 def test_SectionManager_remove_section_2_secao():
     expect = 200
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman.remove_section() for _ in range(2)]
     result = secman.section_id
     assert expect == result
@@ -519,7 +519,7 @@ def test_SectionManager_remove_section_2_secao():
 
 def test_SectionManager_remove_section_ultimo_secao():
     expect = 401
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman._next_section() for _ in range(5)]
     secman.remove_section()
     result = secman.section_id
@@ -528,7 +528,7 @@ def test_SectionManager_remove_section_ultimo_secao():
 
 def test_SectionManager_remove_section_todas_as_secoes():
     expect = None
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman.remove_section() for _ in range(6)]
     result = secman.section_id
     assert expect == result
@@ -536,7 +536,7 @@ def test_SectionManager_remove_section_todas_as_secoes():
 
 def test_SectionManager_remove_section_todas_as_secoes_a_partir_do_ultima():
     expect = None
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman._next_section() for _ in range(5)]
     [secman.remove_section() for _ in range(6)]
     result = secman.section_id
@@ -549,7 +549,7 @@ def test_SectionManager_restore_section_sem_nenhuma_secao_excluida():
         'SECTIONS': [{'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []}],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     result = secman.restore_section()
     assert expect == result
 
@@ -567,7 +567,7 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_e_sec
             ]
         ]
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     assert secman.restore_section()
 
     result = secman.section_id
@@ -593,7 +593,7 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_inser
             ]
         ]
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman.restore_section()
     result = secman.section_id
     assert expect == result
@@ -616,7 +616,7 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha
             ]
         ]
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman.restore_section()
     result = secman.section_id
     assert expect == result
@@ -639,7 +639,7 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha
             ]
         ]
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman.restore_section()
 
     # Devemos checar o id da próxima seção para verificar se a seção restaurada
@@ -667,7 +667,7 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha
             ]
         ]
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman.restore_section()
 
     # Devemos checar o id da próxima seção para verificar se a seção restaurada
@@ -695,7 +695,7 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha
             ]
         ]
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman._next_section()
     secman.restore_section()
 
@@ -726,7 +726,7 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_inser
             ]
         ]
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman._next_section()
     secman.restore_section()
     secman._next_section()
@@ -751,7 +751,7 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha
             ]
         ]
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(2)]
 
     secman.restore_section()
@@ -781,7 +781,7 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha
             ]
         ]
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
     secman.restore_section()
 
@@ -804,7 +804,7 @@ def test_SectionManager_restore_section_excluida_manual_do_1_elemento_e_insercao
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman.remove_section()
     secman.restore_section()
 
@@ -827,7 +827,7 @@ def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_in
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(2)]
     secman.remove_section()
 
@@ -853,7 +853,7 @@ def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_in
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman._next_section()
     secman.remove_section()
     [secman._next_section() for _ in range(2)]
@@ -880,7 +880,7 @@ def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_ins
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
     secman.remove_section()
     secman.restore_section()
@@ -904,7 +904,7 @@ def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_ins
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
     secman.remove_section()
     secman._prev_section()
@@ -929,7 +929,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman.remove_section() for _ in range(4)]
     secman.restore_section()
 
@@ -952,7 +952,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
     [secman.remove_section() for _ in range(4)]
     secman.restore_section()
@@ -976,7 +976,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman.remove_section() for _ in range(4)]
     [secman.restore_section() for _ in range(4)]
 
@@ -999,7 +999,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(4)]
     [secman.remove_section() for _ in range(4)]
     [secman.restore_section() for _ in range(4)]
@@ -1025,7 +1025,7 @@ def test_SectionManager_unindo_a_primeira_secao_com_a_anterior():
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman.join_section()
 
     # Devemos checar o id da próxima seção para verificar se a seção foi
@@ -1048,7 +1048,7 @@ def test_SectionManager_unindo_a_segunda_secao_com_a_anterior():
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman._next_section()
     secman.join_section()
 
@@ -1072,7 +1072,7 @@ def test_SectionManager_unindo_a_ultima_secao_com_a_anterior():
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
     secman.join_section()
 
@@ -1095,7 +1095,7 @@ def test_SectionManager_unindo_todas_as_secoes_a_partir_da_ultima():
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
     [secman.join_section() for _ in range(3)]
 
@@ -1114,7 +1114,7 @@ def test_SectionManager_restaura_a_1_secao_unida_com_2_elementos():
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman._next_section()
     secman.join_section()
     secman.restore_section()
@@ -1138,7 +1138,7 @@ def test_SectionManager_restaura_a_1_secao_unida():
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     secman._next_section()
     secman.join_section()
     secman.restore_section()
@@ -1162,7 +1162,7 @@ def test_SectionManager_restaura_a_secao_do_meio_unida():
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(2)]
     secman.join_section()
     secman.restore_section()
@@ -1186,7 +1186,7 @@ def test_SectionManager_restaura_a_ultima_secao_unida():
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
     secman.join_section()
     secman.restore_section()
@@ -1210,7 +1210,7 @@ def test_SectionManager_restaura_a_ultima_secao_unida_quando_unimos_todas_as_sec
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
     [secman.join_section() for _ in range(3)]
     secman.restore_section()
@@ -1234,7 +1234,7 @@ def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_sec
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
     [secman.join_section() for _ in range(3)]
     [secman.restore_section() for _ in range(3)]
@@ -1258,7 +1258,7 @@ def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_sec
         ],
         'REMOVED': []
     }
-    secman = SectionManager(FakeSectionManagerAdapter(data), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
     [secman.join_section() for _ in range(3)]
     secman.remove_section()
@@ -1272,7 +1272,7 @@ def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_sec
 
 
 def test_SectionManager_restaura_caso_geral():
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN))
     secman.restore_section()
     secman.restore_section()
     secman.restore_section()
@@ -1282,7 +1282,7 @@ def test_SectionManager_restaura_caso_geral():
 # ############## Teste de integração entre o `Trash` e `SectionManager`
 
 def test_SectionManager_carregar_frames_no_memento_do_trash(trash):
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     secman.load_mementos_frames(trash)
     assert trash.can_undo()
 
@@ -1292,7 +1292,7 @@ def test_SectionManager_carregar_frames_no_memento_do_trash(trash):
 
 
 def test_SectionManager_proxima_secao_atualizando_o_trash(trash):
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     secman.load_mementos_frames(trash)
 
     secman.next_section(trash)
@@ -1302,7 +1302,7 @@ def test_SectionManager_proxima_secao_atualizando_o_trash(trash):
 
 
 def test_SectionManager_secao_anterior_atualizando_o_trash(trash):
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     secman.load_mementos_frames(trash)
     secman.next_section(trash)
 
@@ -1313,7 +1313,7 @@ def test_SectionManager_secao_anterior_atualizando_o_trash(trash):
 
 
 def test_SectionManager_remover_1o_frame_mover_proxima_secao_e_voltar(trash):
-    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0), FakeSectionAdapter)
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     secman.load_mementos_frames(trash)
     trash.move(0, np.zeros((2, 2)))
     secman.next_section(trash)
