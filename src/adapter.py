@@ -94,6 +94,7 @@ class JSONSectionSave:
 
     @staticmethod
     def save(file_path: Path, label: str, data: dict):
+        logger.info(f'saving section data to "{file_path}" with label "{label}".')
         data_file = JSONReader.read(str(file_path))
         data_file[label] = data
         JSONWriter.write(str(file_path), data_file)
