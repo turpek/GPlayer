@@ -7,7 +7,7 @@ from src.utils import VideoInfo
 
 if TYPE_CHECKING:
     # Para poder usar o `VideoCon` com dica
-    from src.video import VideoCon
+    from src.manager import VideoManager
 
 
 class Playlist:
@@ -68,7 +68,7 @@ class Playlist:
     def get_video_info(self) -> VideoInfo:
         return self.__video_file
 
-    def next_video(self, video_player: VideoCon) -> None:
+    def next_video(self) -> None:
         """
         Passa para o próximo vídeo da lista de reprodução, para isso passa o nome do
         arquivo para o método open do ´VideoCon´, caso a lista de reprodução seja vazia,
@@ -81,9 +81,8 @@ class Playlist:
             None
         """
         self.__next_video_name()
-        video_player.open(self.video_name(), None)
 
-    def prev_video(self, video_player: VideoCon) -> None:
+    def prev_video(self) -> None:
         """
         Passa para o vídeo anterior da lista de reprodução, para isso passa o nome do
         arquivo para o método open do ´VideoCon´, caso a lista de reprodução seja vazia,
@@ -96,7 +95,6 @@ class Playlist:
             None
         """
         self.__prev_video_name()
-        video_player.open(self.video_name(), None)
 
     def is_beginning(self) -> bool:
         """

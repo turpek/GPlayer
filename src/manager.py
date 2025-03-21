@@ -22,6 +22,7 @@ class VideoManager:
         self.__buffersize = buffersize
         self.mapping = None
         self.path = None
+        self.trash = None
         self.frame_count = None
         self.semaphore = Semaphore()
         self.player = PlayerControl()
@@ -60,6 +61,8 @@ class VideoManager:
 
     def load_trash(self, section_manager: SectionManager):
         args = (self.__cap, self.semaphore, self.frame_count)
+        if isinstance(self.trash, Trash):
+            self.trash._buffer.join_like()
         self.trash = Trash(*args, buffersize=20)
         section_manager.load_mementos_frames(self.trash)
 
