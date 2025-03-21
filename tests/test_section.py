@@ -1,7 +1,7 @@
 import pytest
 from collections import deque
 from src.adapter import FakeSectionAdapter, FakeSectionManagerAdapter
-from src.section import SectionManager, VideoSection
+from src.section import SectionManager, VideoSection, SectionWrapper
 from src.custom_exceptions import SectionManagerError
 from src.trash import Trash
 from pytest import fixture
@@ -358,6 +358,47 @@ def test_VideoSection_comparacao_secao2_nao_igual_secao1_usando_int():
     section_1 = VideoSection(FakeSectionAdapter(FAKES[3]))
     section_2 = VideoSection(FakeSectionAdapter(FAKES[4]))
     assert not section_2 == section_1.id_
+
+
+def test_VideoSection_to_dict():
+    expect_range = (202, 299)
+    expect_removed = [201, 200]
+    expect_black = [210, 211, 212, 213, 214, 215]
+
+    section = VideoSection(FakeSectionAdapter(FAKES[3]))
+    data = section.to_dict()
+    result_range = data['RANGE_FRAME_ID']
+    result_removed = data['REMOVED_FRAMES']
+    result_black = data['BLACK_LIST']
+
+    assert expect_range == result_range
+    assert expect_removed == result_removed
+    assert expect_black == result_black
+
+
+# ############### Teste para `SectionWrapper` ####################
+
+def test_SectionWrapper_to_dict():
+    expect = [
+        {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+        {'RANGE_FRAME_ID': (300, 395), 'REMOVED_FRAMES': [396, 397, 398, 399], 'BLACK_LIST': []}
+    ]
+    section_1 = VideoSection(FakeSectionAdapter(FAKES[3]))
+    section_2 = VideoSection(FakeSectionAdapter(FAKES[4]))
+    wrapper = SectionWrapper(section_1, section_2)
+    result = wrapper.to_dict()
+    assert expect == result
+
+
+def test_SectionWrapper_to_dict_com_None():
+    expect = [
+        {'RANGE_FRAME_ID': (202, 299), 'REMOVED_FRAMES': [201, 200], 'BLACK_LIST': [210, 211, 212, 213, 214, 215]},
+        None
+    ]
+    section_1 = VideoSection(FakeSectionAdapter(FAKES[3]))
+    wrapper = SectionWrapper(section_1)
+    result = wrapper.to_dict()
+    assert expect == result
 
 
 # ################ Testes para o SectionManager #####################33
@@ -1320,4 +1361,33 @@ def test_SectionManager_remover_1o_frame_mover_proxima_secao_e_voltar(trash):
     secman.prev_section(trash)
     expect = 0
     result, _ = trash.undo()
+    assert expect == result
+
+
+def test_SectionManager_to_dict_SECTIONS(trash):
+    expect = FAKEMAN['SECTIONS']
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN))
+    result = secman.to_dict(trash)
+    assert expect == result['SECTIONS']
+
+
+def test_SectionManager_to_dict_SECTIONS_com_next_3x(trash):
+    expect = FAKEMAN['SECTIONS']
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN))
+    [secman.next_section(trash) for _ in range(3)]
+    result = secman.to_dict(trash)
+    assert expect == result['SECTIONS']
+
+
+def test_SectionManager_to_dict_REMOVED_sections(trash):
+    expect = FAKEMAN['REMOVED']
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN))
+    result = secman.to_dict(trash)
+    assert expect == result['REMOVED']
+
+
+def test_SectionManager_to_dict_sections(trash):
+    expect = FAKEMAN
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN))
+    result = secman.to_dict(trash)
     assert expect == result
