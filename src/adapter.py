@@ -5,6 +5,7 @@ from pathlib import Path
 from src.interfaces import ISectionAdapter, ISectionManagerAdapter
 from typing import TYPE_CHECKING
 from src.utils import FrameWrapper
+from src.readers import JSONReader, JSONWriter
 
 import json
 
@@ -89,6 +90,15 @@ class JSONSectionManagerAdapter(ISectionManagerAdapter):
         return JSONSectionAdapter
 
 
+class JSONSectionSave:
+
+    @staticmethod
+    def save(file_path: Path, label: str, data: dict):
+        data_file = JSONReader.read(str(file_path))
+        data_file[label] = data
+        JSONWriter.write(str(file_path), data_file)
+
+
 class FakeSectionAdapter(ISectionAdapter):
     def __init__(self, data):
         start, end = data['RANGE_FRAME_ID']
@@ -124,3 +134,4 @@ class FakeSectionManagerAdapter(ISectionManagerAdapter):
     @property
     def section_adapter(self) -> FakeSectionAdapter:
         return FakeSectionAdapter
+

@@ -35,6 +35,13 @@ class VideoController:
         self.__trash = trash
         self.video_manager = video_manager
 
+    def __save_section_manager(self):
+        video_info = self.__playlist.get_video_info()
+        label = video_info.label
+        format_file = video_info.format_file
+        file_path = video_info.path.with_suffix(format_file)
+        self.video_manager.save_section(self.__section_manager, file_path, label)
+
     def set_pause(self):
         self.__player.set_pause()
 
@@ -47,6 +54,7 @@ class VideoController:
         self.__player.set_read()
 
     def set_quit(self):
+        self.__save_section_manager()
         self.__player.set_quit()
 
     def increase_speed(self):

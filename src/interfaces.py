@@ -92,3 +92,10 @@ class IDataReader(ABC):
     @abstractmethod
     def read(self, filename: str):
         ...
+
+
+class IDataWriter(ABC):
+
+    @abstractmethod
+    def write(self, file_path: str, data):
+        ...

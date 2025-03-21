@@ -1,5 +1,6 @@
 from __future__ import annotations
 from collections import deque
+from copy import deepcopy
 from loguru import logger
 from src.adapter import ISectionAdapter, ISectionManagerAdapter, SectionUnionAdapter
 from src.custom_exceptions import SectionManagerError
@@ -73,6 +74,14 @@ class VideoSection:
     def get_mapping(self):
         return self.__mapping
 
+    def to_dict(self) -> dict:
+        """ Retorna o estado atual da `VideoSection` como um dicionário."""
+        data_section = dict()
+        data_section['RANGE_FRAME_ID'] = (self.start, self.end)
+        data_section['REMOVED_FRAMES'] = list(self.get_trash())
+        data_section['BLACK_LIST'] = self.black_list_frames
+        return data_section
+
 
 class SectionWrapper:
     def __init__(self, section_1: VideoSection, section_2: VideoSection = None):
@@ -91,12 +100,22 @@ class SectionWrapper:
             raise TypeError(f' section expected "{VideoSection.__name__}" but received "{type(section).__name__}"!')
 
     @property
-    def section_1(self) -> VideoSection:
+    def section_1(self) -> VideoSection | None:
+        """Devolve a seção com o meno ID ou None caso uma da seções não esteja definida."""
         return self.__lower
 
     @property
-    def section_2(self) -> VideoSection | None:
+    def section_2(self) -> VideoSection:
+        """Devolve a seção com o maior ID."""
         return self.__upper
+
+    def to_dict(self) -> dict:
+        """Método que retorna os estados atuais das seções como um dicionário."""
+        data_2 = self.section_2.to_dict()
+        if self.section_1 is None:
+            return [data_2, None]
+        data_1 = self.section_1.to_dict()
+        return [data_1, data_2]
 
 
 class SectionManager:
@@ -242,6 +261,9 @@ class SectionManager:
             elif not self._right.empty() and self._right.top < section_2:
                 self.__restore_right(section_2)
 
+            # A escolha de poder fazer section_1 ser None, nos permite
+            # simplificar a `restore_section`, já que section_2 sempre deve
+            # ser sempre maior que section_1, portando ficar na pilha _right.
             if isinstance(section_1, VideoSection):
                 self._left.pop()
                 self._left.push(section_1)
@@ -282,3 +304,30 @@ class SectionManager:
 
     def set_mapping(self, mapping):
         self._right
+
+    def to_dict(self, trash: Trash):
+        self.store_mementos_frames(trash)
+        right = deepcopy(self._right)
+        left = deepcopy(self._left)
+        self.load_mementos_frames(trash)
+
+        data_sections = list()
+        while not left.empty():
+            right.push(left.pop())
+        while not right.empty():
+            data = right.pop()
+            data_sections.append(data.to_dict())
+
+        self.store_mementos()
+        removed_sections = deepcopy(self.removed_sections)
+        self.load_mementos()
+
+        data_removed = list()
+        while not removed_sections.empty():
+            data_wrapper = removed_sections.pop()
+            data_removed.append(data_wrapper.to_dict())
+
+        return {
+            'SECTIONS': data_sections,
+            'REMOVED': data_removed
+        }

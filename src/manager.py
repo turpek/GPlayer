@@ -95,5 +95,12 @@ class VideoManager:
     def load_video_info(self, video_info: VideoInfo):
         video_info.load_video_property(self.__cap)
 
+    def save_section(self,
+                     section_manager: SectionManager,
+                     file_path: Path,
+                     label: str) -> None:
+        data_section = section_manager.to_dict(self.trash)
+        SectionService.save_section_manager(file_path, label, data_section)
+
     def get(self):
         return (self.player, self.mapping, self.trash)
