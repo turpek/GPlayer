@@ -110,18 +110,24 @@ class VideoController:
             logger.debug('unable to undo removal')
 
     def next_video(self):
-        if not self.__playlist.is_end():
+        playlist = self.__playlist
+        if not playlist.is_end():
+            self.__save_section_manager()
             self.__player.join()
-            self.__playlist.next_video(self.__player)
-            logger.info(f'next_video: {self.__playlist.video_name()}')
+            playlist.next_video()
+            self.__open_video(self.video_manager, playlist.get_video_info())
+            logger.info(f'next_video: {playlist.video_name()}')
         else:
             logger.debug("it's already at the end of the playlist")
 
     def prev_video(self):
-        if not self.__playlist.is_beginning():
+        playlist = self.__playlist
+        if not playlist.is_beginning():
+            self.__save_section_manager()
             self.__player.join()
-            self.__playlist.prev_video(self.__player)
-            logger.info(f'prev_video: {self.__playlist.video_name()}')
+            playlist.prev_video()
+            self.__open_video(self.video_manager, playlist.get_video_info())
+            logger.info(f'prev_video: {playlist.video_name()}')
         else:
             logger.debug('is already at the beginning of the playlist')
 
