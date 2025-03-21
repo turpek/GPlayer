@@ -21,19 +21,25 @@ class VideoController:
                  video_manager: VideoManager):
 
         # Abrindo o vídeo e atualizando informaçẽos do vídeo
-        video_info = playlist.get_video_info()
-        self.__section_manager = video_manager.open(
-            video_info.path, video_info.label, video_info.format_file
-        )
-        video_manager.load_video_info(video_info)
-
-        player, mapper, trash = video_manager.get()
-
+        self.__player = None
+        self.__mapper = None
+        self.__trash = None
+        self.__section_manager = None
         self.__playlist = playlist
+
+        video_info = playlist.get_video_info()
+        self.__open_video(video_manager, video_info)
+        self.video_manager = video_manager
+
+    def __open_video(self, video_manager: VideoManager, vinfo) -> None:
+        """Método para abrir o vídeo e cofigurar a seção."""
+        section_manager = video_manager.open(vinfo.path, vinfo.label, vinfo.format_file)
+        video_manager.load_video_info(vinfo)
+        player, mapper, trash = video_manager.get()
         self.__player = player
         self.__mapper = mapper
         self.__trash = trash
-        self.video_manager = video_manager
+        self.__section_manager = section_manager
 
     def __save_section_manager(self):
         video_info = self.__playlist.get_video_info()
