@@ -22,7 +22,7 @@ class VideoSection:
         self.__removed_frame = adapter.removed_frames()
         self.black_list_frames = adapter.black_list_frames()
         self.__id = self.__calculate_id()
-        self.__mapping = self.__calculate_mapping(self.__removed_frame)
+        self.__mapping = self._calculate_mapping(self.__removed_frame)
 
     def __repr__(self):
         return f"VideoSection('{self.id_}')"
@@ -38,6 +38,9 @@ class VideoSection:
     def __lt__(self, obj: VideoSection) -> bool:
         return self.id_ < obj.id_
 
+    def __le__(self, obj: VideoSection) -> bool:
+        return self.id_ <= obj.id_
+
     def __truediv__(self, frame_id: int) -> tuple[VideoSection, VideoSection]:
         return self.split_section(frame_id)
 
@@ -47,7 +50,7 @@ class VideoSection:
             return min(self.start, removed)
         return self.start
 
-    def __calculate_mapping(self, removed):
+    def _calculate_mapping(self, removed):
         if self.start is None:
             return []
         frames_id = set(range(self.start, self.end))
@@ -76,7 +79,6 @@ class VideoSection:
         Devolve uma pilha dos frames removidos, portanto os elementos
         no topo do deque foram os primeiros removidos
         """
-        self.__mapping = self.__calculate_mapping(self.__removed_frame)
         return self.__removed_frame
 
     def get_mapping(self):
@@ -161,6 +163,9 @@ class SectionManager:
 
         self.load_mementos()
 
+    def __len__(self):
+        return len(self._right) + len(self._left)
+
     def __load_removed_sections(
         self,
         manager_adapter: ISectionManagerAdapter,
@@ -181,6 +186,7 @@ class SectionManager:
     def load_mementos_frames(self, trash: Trash):
         trash_originator = trash.get_originator()
         trash_caretaker = trash.get_caretaker()
+        self._right.top._calculate_mapping(self._right.top.get_trash())
         frame_handler = FrameMementoHandler(trash_originator, trash_caretaker)
         frame_handler.load_mementos(self._right.top)
 
@@ -263,7 +269,7 @@ class SectionManager:
         while self._prev_section():
             if self._left.empty():
                 break
-            elif self._left.top < section:
+            elif self._left.top <= section:
                 break
 
     def restore_section(self):
@@ -275,7 +281,7 @@ class SectionManager:
 
             if not self._left.empty() and section_2 < self._left.top:
                 self.__restore_left(section_2)
-            elif not self._right.empty() and self._right.top < section_2:
+            elif not self._right.empty() and self._right.top <= section_2:
                 self.__restore_right(section_2)
 
             # A escolha de poder fazer section_1 ser None, nos permite
@@ -284,6 +290,9 @@ class SectionManager:
             if isinstance(section_1, VideoSection):
                 self._left.pop()
                 self._left.push(section_1)
+            elif not self._left.empty() and self._left.top == section_2:
+                self._left.pop()
+                self._right.pop()
 
             self._right.push(section_2)
             return True

@@ -122,6 +122,14 @@ class SplitSectionCommand(Command):
         self.receiver.split_section()
 
 
+class UndoSectionCommand(Command):
+    def __init__(self, receiver: VideoController):
+        self.receiver = receiver
+
+    def executor(self) -> None:
+        self.receiver.undo_section()
+
+
 class Invoker:
     def __init__(self):
         self.commands = {}

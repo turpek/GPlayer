@@ -78,6 +78,7 @@ class VideoManager:
 
     def create(self, section_manager: SectionManager):
 
+        section_manager.load_mementos_frames(self.trash)
         self.player.servant.join_like()
         self.player.master.join_like()
         self.load_mapping(section_manager.get_mapping())

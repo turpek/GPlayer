@@ -148,7 +148,11 @@ class VideoController:
         self.video_manager.create(self.__section_manager)
 
     def undo_section(self):
-        logger.info('Desfazendo')
+        if self.__section_manager.restore_section():
+            logger.info('Desfazendo.')
+            self.video_manager.create(self.__section_manager)
+        else:
+            logger.info('Não foi possível desfazer.')
 
     def read(self):
         return self.__player.read()

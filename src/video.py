@@ -16,7 +16,8 @@ from src.video_command import (
     ProceesCommand,
     QuitCommand,
     SplitSectionCommand,
-    UndoFrameCommand
+    UndoFrameCommand,
+    UndoSectionCommand
 )
 from src.manager import VideoManager
 from src.adapter import ISectionManagerAdapter
@@ -116,6 +117,7 @@ class VideoCon:
         command.set_command(ord('k'), NextSectionCommand(video_controller))
         command.set_command(ord('j'), PrevSectionCommand(video_controller))
         command.set_command(ord('s'), SplitSectionCommand(video_controller))
+        command.set_command(ord('y'), UndoSectionCommand(video_controller))
 
     def control(self, key):
         self.command.executor_command(key)
