@@ -342,3 +342,15 @@ class PlayerControl:
     def join(self):
         self.servant.join()
         self.master.join()
+
+    def get_buffer_left(self) -> VideoBufferLeft:
+        """Retorna o VideoBufferLeft."""
+        if isinstance(self.master, VideoBufferLeft):
+            return self.master
+        return self.servant
+
+    def get_buffer_right(self) -> VideoBufferRight:
+        """Retorna o VideoBufferRight."""
+        if isinstance(self.master, VideoBufferRight):
+            return self.master
+        return self.servant
