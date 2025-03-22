@@ -251,12 +251,14 @@ class SectionManager:
         self._originator.set_state(data)
         self._caretaker.save(self._originator)
 
-    def remove_section(self) -> bool:
+    def remove_section(self, trash: Trash) -> bool:
         if self._right.empty():
             logger.debug('there are no more sections to remove')
             return False
+        self.store_mementos_frames(trash)
         self.__remove_section(self._right.pop())
         self.__check_right()
+        return True
 
     def __restore_right(self, section) -> None:
         while self.__next_section(0):

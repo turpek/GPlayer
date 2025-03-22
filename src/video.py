@@ -11,6 +11,7 @@ from src.video_command import (
     PrevVideoCommand,
     PrevSectionCommand,
     RemoveFrameCommand,
+    RemoveSectionCommand,
     RestoreDelayCommand,
     RewindCommand,
     PauseCommand,
@@ -120,6 +121,7 @@ class VideoCon:
         command.set_command(ord('s'), SplitSectionCommand(video_controller))
         command.set_command(ord('y'), UndoSectionCommand(video_controller))
         command.set_command(ord('c'), JoinSectionCommand(video_controller))
+        command.set_command(ord('r'), RemoveSectionCommand(video_controller))
 
     def control(self, key):
         self.command.executor_command(key)

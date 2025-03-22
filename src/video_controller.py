@@ -147,6 +147,10 @@ class VideoController:
         self.__section_manager.prev_section(self.__trash)
         self.video_manager.create(self.__section_manager)
 
+    def remove_section(self):
+        if self.__section_manager.remove_section(self.__trash):
+            self.video_manager.create(self.__section_manager)
+
     def join_section(self):
         if self.__section_manager.join_section(self.__trash):
             logger.debug('Seções unidas com sucesso!')
