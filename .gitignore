@@ -12,3 +12,4 @@ __pycache__/
 .coverage
 .coveragerc
 *.mp4
+*.json
