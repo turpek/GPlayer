@@ -1,13 +1,7 @@
-from __future__ import annotations
-from typing import TYPE_CHECKING
 from collections import deque
 from pathlib import Path
+from src.custom_exceptions import PlaylistError
 from src.utils import VideoInfo
-
-
-if TYPE_CHECKING:
-    # Para poder usar o `VideoCon` com dica
-    from src.manager import VideoManager
 
 
 class Playlist:
@@ -29,6 +23,10 @@ class Playlist:
                 tem a relação de 1:1 com o argumento `videos`. se o elemento for None, o mesmo
                 assumerá o valor de 'section_x' onde x é um valor inteiro
         """
+
+        if len(videos) == 0:
+            raise PlaylistError('the video list is empty')
+
         self.__right_videos = deque(maxlen=len(videos))
         self.__left_videos = deque(maxlen=len(videos))
         self.__video_file = None
