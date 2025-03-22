@@ -114,6 +114,14 @@ class PrevSectionCommand(Command):
         self.receiver.prev_section()
 
 
+class SplitSectionCommand(Command):
+    def __init__(self, receiver: VideoController):
+        self.receiver = receiver
+
+    def executor(self) -> None:
+        self.receiver.split_section()
+
+
 class Invoker:
     def __init__(self):
         self.commands = {}

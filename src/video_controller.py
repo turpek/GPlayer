@@ -131,6 +131,12 @@ class VideoController:
         else:
             logger.debug('is already at the beginning of the playlist')
 
+    def split_section(self):
+        logger.info('Dividindo a seção')
+        frame_id = self.__player.frame_id
+        self.__section_manager.split_section(frame_id, self.__trash)
+        self.video_manager.create(self.__section_manager)
+
     def next_section(self):
         logger.info('Proxima seção')
         self.__section_manager.next_section(self.__trash)
@@ -140,6 +146,9 @@ class VideoController:
         logger.info('Seção  anterior')
         self.__section_manager.prev_section(self.__trash)
         self.video_manager.create(self.__section_manager)
+
+    def undo_section(self):
+        logger.info('Desfazendo')
 
     def read(self):
         return self.__player.read()

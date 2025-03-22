@@ -2,7 +2,12 @@ from __future__ import annotations
 from collections import deque
 from copy import deepcopy
 from loguru import logger
-from src.adapter import ISectionAdapter, ISectionManagerAdapter, SectionUnionAdapter
+from src.adapter import (
+    ISectionAdapter,
+    ISectionManagerAdapter,
+    SectionSplitProcess,
+    SectionUnionAdapter
+)
 from src.custom_exceptions import SectionManagerError
 from src.frame_mapper import FrameMapper
 from src.memento import Caretaker, SectionOriginator
@@ -32,6 +37,9 @@ class VideoSection:
 
     def __lt__(self, obj: VideoSection) -> bool:
         return self.id_ < obj.id_
+
+    def __truediv__(self, frame_id: int) -> tuple[VideoSection, VideoSection]:
+        return self.split_section(frame_id)
 
     def __calculate_id(self):
         if len(self.get_trash()) > 0:
@@ -73,6 +81,15 @@ class VideoSection:
 
     def get_mapping(self):
         return self.__mapping
+
+    def split_section(self, frame_id: int) -> tuple[VideoSection, VideoSection]:
+        """Método para dividir a seção em duas a partir do frame de indice `frame_id`."""
+        process = SectionSplitProcess(self, frame_id)
+        section_1, section_2 = process.split()
+        return (
+            VideoSection(section_1),
+            VideoSection(section_2)
+        )
 
     def to_dict(self) -> dict:
         """ Retorna o estado atual da `VideoSection` como um dicionário."""
@@ -282,6 +299,20 @@ class SectionManager:
             self._right.push(lower + upper)
             self.__remove_section(lower, upper)
             return True
+
+    def split_section(self, frame_id: int, trash: Trash):
+        try:
+            self.store_mementos_frames(trash)
+            section = self._right.pop()
+            section_1, section_2 = section / frame_id
+        except Exception:
+            self._right.push(section)
+            self.load_mementos_frames(trash)
+            return False
+        self._left.push(section_1)
+        self._right.push(section_2)
+        self.__remove_section(section)
+        return True
 
     def next_section(self, trash: Trash):
         self.store_mementos_frames(trash)
