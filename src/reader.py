@@ -91,8 +91,6 @@ def reader(buffer: Buffer) -> None:
                 break
 
     except Exception as e:
-        import ipdb
-        ipdb.set_trace()
         exc_info = traceback.format_exc()
         buffer._error.put(e, exc_info)
     finally:
