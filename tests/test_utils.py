@@ -8,13 +8,13 @@ from src.utils import (
     FrameWrapper,
     SectionMementoHandler,
     SimpleStack,
-    VideoInfo
+    VideoInfo,
+    partition_by_value
 )
 from src.memento import Caretaker, TrashOriginator, SectionOriginator
 from src.section import VideoSection, SectionWrapper
 from src.adapter import FakeSectionAdapter
 from src.trash import Trash
-from .uteis import MyVideoCapture
 from threading import Semaphore
 from pytest import fixture, raises
 from unittest.mock import patch
@@ -769,3 +769,50 @@ def test_VideoInfo_fps_apos_ler_metadados_do_video(video_info, mycap):
     video_info.load_video_property(mycap)
     result = video_info.fps
     assert expect == result
+
+
+def test_partition_by_value_para_uma_lista_vazia():
+    expect_1 = []
+    expect_2 = []
+    result_1, result_2 = partition_by_value([], 0)
+
+    assert expect_1 == result_1
+    assert expect_2 == result_2
+
+
+def test_partition_by_value_para_uma_lista_ordenda_com_split_no_inicio():
+    expect_1 = []
+    expect_2 = [0, 1, 2, 3, 4, 5, 6]
+    result_1, result_2 = partition_by_value(expect_2, 0)
+
+    assert expect_1 == result_1
+    assert expect_2 == result_2
+
+
+def test_partition_by_value_para_uma_lista_ordenda_com_split_no_final():
+    expect_1 = [0, 1, 2, 3, 4, 5]
+    expect_2 = [6]
+    result_1, result_2 = partition_by_value([0, 1, 2, 3, 4, 5, 6], 6)
+
+    assert expect_1 == result_1
+    assert expect_2 == result_2
+
+
+def test_partition_by_value_para_uma_lista_ordenda_com_split_maior_que_lista():
+    expect_1 = [0, 1, 2, 3, 4, 5, 6]
+    expect_2 = []
+    result_1, result_2 = partition_by_value([0, 1, 2, 3, 4, 5, 6], 7)
+
+    assert expect_1 == result_1
+    assert expect_2 == result_2
+
+
+def test_partition_by_value_para_uma_lista_nao_ordenada():
+    expect_1 = [5, 2, 6, 3, 0, 4, 1]
+    expect_2 = [13, 9, 11, 8, 12]
+
+    source = [5, 2, 13, 9, 6, 3, 0, 11, 4, 8, 1, 12]
+    result_1, result_2 = partition_by_value(source, 7)
+
+    assert expect_1 == result_1
+    assert expect_2 == result_2
