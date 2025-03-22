@@ -4,7 +4,7 @@ from src.adapter import FakeSectionAdapter, FakeSectionManagerAdapter
 from src.section import SectionManager, VideoSection, SectionWrapper
 from src.custom_exceptions import SectionManagerError
 from src.trash import Trash
-from pytest import fixture
+from pytest import fixture, raises
 from threading import Semaphore
 from unittest.mock import patch
 import numpy as np
@@ -322,6 +322,68 @@ def test_VideoSection_uniao_de_duas_secoes_nao_vizinhas_invertendo_soma():
 
     assert expect_id == result_id
     assert expect_black_list == result_black_list
+
+
+def test_VideoSection_dividindo_a_secao_em_duas_no_segundo_frame():
+    expect_1 = 0
+    expect_2 = 1
+    section = VideoSection(FakeSectionAdapter(FAKES[1]))
+    section_1, section_2 = section.split_section(1)
+    result_1 = section_1.start
+    result_2 = section_2.start
+
+    assert expect_1 == result_1
+    assert expect_2 == result_2
+
+
+def test_VideoSection_dividindo_a_secao_em_duas_no_ultimo_frame():
+    expect_1 = 0
+    expect_2 = 98
+    section = VideoSection(FakeSectionAdapter(FAKES[1]))
+    section_1, section_2 = section.split_section(98)
+    result_1 = section_1.start
+    result_2 = section_2.start
+
+    assert expect_1 == result_1
+    assert expect_2 == result_2
+
+
+def test_VideoSection_dividindo_a_secao_em_duas_remove_frame():
+    expect_1 = deque([136, 135, 134])
+    expect_2 = deque([150, 149, 148, 147])
+    section = VideoSection(FakeSectionAdapter(FAKES[2]))
+    section_1, section_2 = section.split_section(140)
+    result_1 = section_1.get_trash()
+    result_2 = section_2.get_trash()
+
+    assert expect_1 == result_1
+    assert expect_2 == result_2
+
+
+def test_VideoSection_dividindo_a_secao_em_duas_black_list():
+    expect_1 = [210, 211, 212, 213, 214, 215]
+    expect_2 = []
+
+    section = VideoSection(FakeSectionAdapter(FAKES[3]))
+    section_1, section_2 = section.split_section(250)
+    result_1 = section_1.black_list_frames
+    result_2 = section_2.black_list_frames
+
+    assert expect_1 == result_1
+    assert expect_2 == result_2
+
+
+def test_VideoSection_dividindo_a_secao_em_duas_id_():
+    expect_1 = 200
+    expect_2 = 250
+
+    section = VideoSection(FakeSectionAdapter(FAKES[3]))
+    section_1, section_2 = section / 250
+    result_1 = section_1.id_
+    result_2 = section_2.id_
+
+    assert expect_1 == result_1
+    assert expect_2 == result_2
 
 
 def test_VideoSection_comparacao_secao1_menor_que_secao2():
@@ -1390,4 +1452,83 @@ def test_SectionManager_to_dict_sections(trash):
     expect = FAKEMAN
     secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN))
     result = secman.to_dict(trash)
+    assert expect == result
+
+
+# ################# Testes para dividir a seção em duas ###################### #
+
+def test_SectionManager_split_section_no_1o_frame_da_1o_secao(trash):
+    expect = False
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
+    result = secman.split_section(0, trash)
+    assert expect == result
+
+
+def test_SectionManager_split_section_no_2o_frame_da_1o_secao(trash):
+    expect = True
+    expect_id = 1
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
+    result = secman.split_section(1, trash)
+    section = secman.get_section()
+    result_id = section.id_
+    assert expect == result
+    assert expect_id == result_id
+
+
+def test_SectionManager_split_section_sem_load_memento_frames(trash):
+    expect_1 = deque([396, 397, 398, 399, 498, 401, 499, 402])
+    expect_2 = deque([150, 149, 148, 147, 136, 135, 134, ])
+
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN))
+    secman.split_section(199, trash)
+
+    section_1 = secman.get_section()
+    result_1 = section_1.get_trash()
+    secman.prev_section(trash)
+    section_2 = secman.get_section()
+    result_2 = section_2.get_trash()
+    secman.store_mementos_frames(trash)
+
+    assert expect_1 == result_1
+    assert expect_2 == result_2
+
+
+def test_SectionManager_split_section_com_load_memento_frame_antes(trash):
+    expect = deque([396, 397, 398, 399, 498, 401, 499, 402])
+
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN))
+    secman.load_mementos_frames(trash)
+    secman.split_section(199, trash)
+
+    section = secman.get_section()
+    result = section.get_trash()
+
+    assert expect == result
+
+
+def test_SectionManager_split_section_mal_sucedida(trash):
+    expect_id = 200
+
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
+    secman.load_mementos_frames(trash)
+    [secman.next_section(trash) for _ in range(2)]
+    secman.split_section(159, trash)
+
+    section = secman.get_section()
+    result_id = section.id_
+
+    assert expect_id == result_id
+
+
+def test_SectionManager_split_section_mal_sucedida_checar_frames_removidos(trash):
+    expect = deque([])
+
+    secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
+    secman.load_mementos_frames(trash)
+    [secman.next_section(trash) for _ in range(2)]
+    secman.split_section(159, trash)
+
+    section = secman.get_section()
+    result = section.get_trash()
+
     assert expect == result
