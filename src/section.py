@@ -298,16 +298,15 @@ class SectionManager:
             return True
         return False
 
-    def join_section(self) -> bool:
+    def join_section(self, trash: Trash) -> bool:
         if self._left.empty():
-            logger.debug('Not the previous section to join')
             return False
-        else:
-            lower = self._left.pop()
-            upper = self._right.pop()
-            self._right.push(lower + upper)
-            self.__remove_section(lower, upper)
-            return True
+        self.store_mementos_frames(trash)
+        lower = self._left.pop()
+        upper = self._right.pop()
+        self._right.push(lower + upper)
+        self.__remove_section(lower, upper)
+        return True
 
     def split_section(self, frame_id: int, trash: Trash):
         try:

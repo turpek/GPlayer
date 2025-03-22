@@ -4,6 +4,7 @@ from src.video_command import (
     Invoker,
     DecreaseSpeedCommand,
     IncreaseSpeedCommand,
+    JoinSectionCommand,
     NextSectionCommand,
     NextVideoCommand,
     PauseDelayCommand,
@@ -118,6 +119,7 @@ class VideoCon:
         command.set_command(ord('j'), PrevSectionCommand(video_controller))
         command.set_command(ord('s'), SplitSectionCommand(video_controller))
         command.set_command(ord('y'), UndoSectionCommand(video_controller))
+        command.set_command(ord('c'), JoinSectionCommand(video_controller))
 
     def control(self, key):
         self.command.executor_command(key)

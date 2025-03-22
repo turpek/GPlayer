@@ -130,6 +130,14 @@ class UndoSectionCommand(Command):
         self.receiver.undo_section()
 
 
+class JoinSectionCommand(Command):
+    def __init__(self, receiver: VideoController):
+        self.receiver = receiver
+
+    def executor(self) -> None:
+        self.receiver.join_section()
+
+
 class Invoker:
     def __init__(self):
         self.commands = {}
