@@ -210,3 +210,11 @@ class VideoInfo:
         if not self.frame_count:
             self.__frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             self.__fps = cap.get(cv2.CAP_PROP_FPS)
+
+
+def partition_by_value(source: list, value_split) -> tuple[list, list]:
+    """Função que separa a lista `source` em duas, a partir do valor `value_split`."""
+    list_1, list_2 = [], []
+    for value in source:
+        list_1.append(value) if value < value_split else list_2.append(value)
+    return (list_1, list_2)
