@@ -612,17 +612,17 @@ def test_SectionManager_prev_section_5x_voltando_para_o_inicio():
     assert expect == result
 
 
-def test_SectionManager_remove_section_com_removed_section_vazia():
+def test_SectionManager_remove_section_com_removed_section_vazia(trash):
     data = {
         'SECTIONS': [{'RANGE_FRAME_ID': (0, 99), 'REMOVED_FRAMES': [14, 13, 12, 11, 10], 'BLACK_LIST': []}],
         'REMOVED': []
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
-    secman.remove_section()
+    secman.remove_section(trash)
     assert secman.removed_sections.empty()
 
 
-def test_SectionManager_remove_section_com_removed_sections_vazia():
+def test_SectionManager_remove_section_com_removed_sections_vazia(trash):
     data = {
         'SECTIONS': [],
         'REMOVED':
@@ -635,48 +635,48 @@ def test_SectionManager_remove_section_com_removed_sections_vazia():
     }
 
     secman = SectionManager(FakeSectionManagerAdapter(data))
-    secman.remove_section()
+    secman.remove_section(trash)
     assert secman.removed_sections.empty()
 
 
-def test_SectionManager_remove_section_1_secao():
+def test_SectionManager_remove_section_1_secao(trash):
     expect = 100
     secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
-    secman.remove_section()
+    secman.remove_section(trash)
     result = secman.section_id
     assert expect == result
 
 
-def test_SectionManager_remove_section_2_secao():
+def test_SectionManager_remove_section_2_secao(trash):
     expect = 200
     secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
-    [secman.remove_section() for _ in range(2)]
+    [secman.remove_section(trash) for _ in range(2)]
     result = secman.section_id
     assert expect == result
 
 
-def test_SectionManager_remove_section_ultimo_secao():
+def test_SectionManager_remove_section_ultimo_secao(trash):
     expect = 401
     secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman._next_section() for _ in range(5)]
-    secman.remove_section()
+    secman.remove_section(trash)
     result = secman.section_id
     assert expect == result
 
 
-def test_SectionManager_remove_section_todas_as_secoes():
+def test_SectionManager_remove_section_todas_as_secoes(trash):
     expect = None
     secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
-    [secman.remove_section() for _ in range(6)]
+    [secman.remove_section(trash) for _ in range(6)]
     result = secman.section_id
     assert expect == result
 
 
-def test_SectionManager_remove_section_todas_as_secoes_a_partir_do_ultima():
+def test_SectionManager_remove_section_todas_as_secoes_a_partir_do_ultima(trash):
     expect = None
     secman = SectionManager(FakeSectionManagerAdapter(FAKEMAN0))
     [secman._next_section() for _ in range(5)]
-    [secman.remove_section() for _ in range(6)]
+    [secman.remove_section(trash) for _ in range(6)]
     result = secman.section_id
     assert expect == result
 
@@ -931,7 +931,7 @@ def test_SectionManager_restore_section_excluida_pela_importacao_dos_dados_pilha
     assert expect == result
 
 
-def test_SectionManager_restore_section_excluida_manual_do_1_elemento_e_insercao_na_posicao_atual():
+def test_SectionManager_restore_section_excluida_manual_do_1_elemento_e_insercao_na_posicao_atual(trash):
     expect = 100
     data = {
         'SECTIONS': [
@@ -943,7 +943,7 @@ def test_SectionManager_restore_section_excluida_manual_do_1_elemento_e_insercao
         'REMOVED': []
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
-    secman.remove_section()
+    secman.remove_section(trash)
     secman.restore_section()
 
     # Devemos checar o id da próxima seção para verificar se a seção restaurada
@@ -954,7 +954,7 @@ def test_SectionManager_restore_section_excluida_manual_do_1_elemento_e_insercao
     assert expect == result
 
 
-def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_insercao_na_pilha_superior():
+def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_insercao_na_pilha_superior(trash):
     expect = 300
     data = {
         'SECTIONS': [
@@ -967,7 +967,7 @@ def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_in
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(2)]
-    secman.remove_section()
+    secman.remove_section(trash)
 
     secman._prev_section()
     secman.restore_section()
@@ -980,7 +980,7 @@ def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_in
     assert expect == result
 
 
-def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_insercao_na_pilha_inferior():
+def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_insercao_na_pilha_inferior(trash):
     expect = 200
     data = {
         'SECTIONS': [
@@ -993,7 +993,7 @@ def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_in
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     secman._next_section()
-    secman.remove_section()
+    secman.remove_section(trash)
     [secman._next_section() for _ in range(2)]
 
     secman._prev_section()
@@ -1007,7 +1007,7 @@ def test_SectionManager_restore_section_excluida_manual_do_elemento_ao_meio_e_in
     assert expect == result
 
 
-def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_insercao_sem_prev_section():
+def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_insercao_sem_prev_section(trash):
     expect = 300
     data = {
         'SECTIONS': [
@@ -1020,7 +1020,7 @@ def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_ins
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
-    secman.remove_section()
+    secman.remove_section(trash)
     secman.restore_section()
 
     # Devemos checar o id da próxima seção para verificar se a seção restaurada
@@ -1031,7 +1031,7 @@ def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_ins
     assert expect == result
 
 
-def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_insercao_com_prev_section():
+def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_insercao_com_prev_section(trash):
     expect = 300
     data = {
         'SECTIONS': [
@@ -1044,7 +1044,7 @@ def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_ins
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
-    secman.remove_section()
+    secman.remove_section(trash)
     secman._prev_section()
     secman.restore_section()
 
@@ -1056,7 +1056,7 @@ def test_SectionManager_restore_section_excluida_manual_do_ultimo_elemento_e_ins
     assert expect == result
 
 
-def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_1_e_restaurando_1_elemento():
+def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_1_e_restaurando_1_elemento(trash):
     expect = 300
     data = {
         'SECTIONS': [
@@ -1068,7 +1068,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
         'REMOVED': []
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
-    [secman.remove_section() for _ in range(4)]
+    [secman.remove_section(trash) for _ in range(4)]
     secman.restore_section()
 
     # Devemos checar o id da próxima seção para verificar se a seção restaurada
@@ -1079,7 +1079,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
     assert expect == result
 
 
-def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_ultimo_e_restaurando_1_elemento():
+def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_ultimo_e_restaurando_1_elemento(trash):
     expect = 0
     data = {
         'SECTIONS': [
@@ -1092,7 +1092,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
-    [secman.remove_section() for _ in range(4)]
+    [secman.remove_section(trash) for _ in range(4)]
     secman.restore_section()
 
     # Devemos checar o id da próxima seção para verificar se a seção restaurada
@@ -1103,7 +1103,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
     assert expect == result
 
 
-def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_1_e_restaurando_todos():
+def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_1_e_restaurando_todos(trash):
     expect = 100
     data = {
         'SECTIONS': [
@@ -1115,7 +1115,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
         'REMOVED': []
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
-    [secman.remove_section() for _ in range(4)]
+    [secman.remove_section(trash) for _ in range(4)]
     [secman.restore_section() for _ in range(4)]
 
     # Devemos checar o id da próxima seção para verificar se a seção restaurada
@@ -1126,7 +1126,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
     assert expect == result
 
 
-def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_ultimo_e_restaurando_todos():
+def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_a_partir_do_ultimo_e_restaurando_todos(trash):
     expect = 300
     data = {
         'SECTIONS': [
@@ -1139,7 +1139,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(4)]
-    [secman.remove_section() for _ in range(4)]
+    [secman.remove_section(trash) for _ in range(4)]
     [secman.restore_section() for _ in range(4)]
 
     # Devemos checar o id da próxima seção para verificar se a seção restaurada
@@ -1399,7 +1399,7 @@ def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_sec
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
     [secman.join_section(trash) for _ in range(3)]
-    secman.remove_section()
+    secman.remove_section(trash)
     [secman.restore_section() for _ in range(4)]
     result = secman.section_id
     secman._prev_section()
