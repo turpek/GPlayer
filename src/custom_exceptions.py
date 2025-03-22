@@ -36,3 +36,13 @@ class FrameWrapperError(Exception):
 class FrameStackError(Exception):
     def __init__(self, message):
         self.message = message
+
+
+class PlaylistError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+
+class SectionSplitProcessError(Exception):
+    def __init__(self, message):
+        self.message = message

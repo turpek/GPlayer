@@ -2,20 +2,21 @@ from __future__ import annotations
 from collections import deque
 from loguru import logger
 from pathlib import Path
-from src.interfaces import ISectionAdapter, ISectionManagerAdapter
 from typing import TYPE_CHECKING
-from src.utils import FrameWrapper
+from src.custom_exceptions import SectionSplitProcessError
+from src.frame_mapper import FrameMapper
+from src.interfaces import ISectionAdapter, ISectionManagerAdapter
 from src.readers import JSONReader, JSONWriter
+from src.utils import partition_by_value
 
-import json
-
+import bisect
 
 if TYPE_CHECKING:
-    from src.section import Section
+    from src.section import VideoSection
 
 
 class SectionUnionAdapter(ISectionAdapter):
-    def __init__(self, section_1: Section | None, section_2: Section):
+    def __init__(self, section_1: VideoSection | None, section_2: VideoSection):
 
         lower, upper = self.__get_sections(section_1, section_2)
 
@@ -51,6 +52,47 @@ class SectionUnionAdapter(ISectionAdapter):
 
     def black_list_frames(self) -> list:
         return self.__black_list
+
+
+class SectionSplitProcess():
+    def __init__(self, section: VideoSection, frame_id: int):
+
+        mapping = section.get_mapping()
+        if frame_id == section.start:
+            raise SectionSplitProcessError('cannot split section from start frame')
+        elif frame_id > section.end or frame_id < section.start or frame_id not in mapping:
+            raise SectionSplitProcessError(
+                f'Cannot split at position "{frame_id}": ' +
+                'frame is either deleted or not in the current section.'
+            )
+
+        data_1 = dict()
+        data_2 = dict()
+
+        removed_1, removed_2 = partition_by_value(section.get_trash(), frame_id)
+        black_1, black_2 = partition_by_value(section.black_list_frames, frame_id)
+
+        start_1 = section.start
+        idx_end = bisect.bisect_left(mapping, frame_id) - 1
+        end_1 = mapping[idx_end]
+        data_1['RANGE_FRAME_ID'] = (start_1, end_1)
+        data_1['REMOVED_FRAMES'] = removed_1
+        data_1['BLACK_LIST'] = black_1
+
+        start_2 = frame_id
+        end_2 = section.end
+        data_2['RANGE_FRAME_ID'] = (start_2, end_2)
+        data_2['REMOVED_FRAMES'] = removed_2
+        data_2['BLACK_LIST'] = black_2
+
+        self.__data_1 = data_1
+        self.__data_2 = data_2
+
+    def split(self) -> tuple[JSONSectionAdapter, JSONSectionAdapter]:
+        return (
+            JSONSectionAdapter(self.__data_1),
+            JSONSectionAdapter(self.__data_2)
+        )
 
 
 class JSONSectionAdapter(ISectionAdapter):
@@ -135,4 +177,3 @@ class FakeSectionManagerAdapter(ISectionManagerAdapter):
     @property
     def section_adapter(self) -> FakeSectionAdapter:
         return FakeSectionAdapter
-
