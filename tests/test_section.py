@@ -1152,7 +1152,7 @@ def test_SectionManager_restore_section_excluida_todos_os_elementos_manualmente_
 
 # ###################### Unindo a seção atual com a seção anterior #####################
 
-def test_SectionManager_unindo_a_primeira_secao_com_a_anterior():
+def test_SectionManager_unindo_a_primeira_secao_com_a_anterior(trash):
     expect = 100
     data = {
         'SECTIONS': [
@@ -1164,7 +1164,7 @@ def test_SectionManager_unindo_a_primeira_secao_com_a_anterior():
         'REMOVED': []
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
-    secman.join_section()
+    secman.join_section(trash)
 
     # Devemos checar o id da próxima seção para verificar se a seção foi
     # unida corretamente
@@ -1174,7 +1174,7 @@ def test_SectionManager_unindo_a_primeira_secao_com_a_anterior():
     assert expect == result
 
 
-def test_SectionManager_unindo_a_segunda_secao_com_a_anterior():
+def test_SectionManager_unindo_a_segunda_secao_com_a_anterior(trash):
     expect = 0
     expect_next = 200
     data = {
@@ -1188,7 +1188,7 @@ def test_SectionManager_unindo_a_segunda_secao_com_a_anterior():
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     secman._next_section()
-    secman.join_section()
+    secman.join_section(trash)
 
     result = secman.section_id
     secman._next_section()
@@ -1198,7 +1198,7 @@ def test_SectionManager_unindo_a_segunda_secao_com_a_anterior():
     assert expect_next == result_next
 
 
-def test_SectionManager_unindo_a_ultima_secao_com_a_anterior():
+def test_SectionManager_unindo_a_ultima_secao_com_a_anterior(trash):
     expect = 200
     expect_next = 200
     data = {
@@ -1212,7 +1212,7 @@ def test_SectionManager_unindo_a_ultima_secao_com_a_anterior():
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
-    secman.join_section()
+    secman.join_section(trash)
 
     result = secman.section_id
     secman._next_section()
@@ -1222,7 +1222,7 @@ def test_SectionManager_unindo_a_ultima_secao_com_a_anterior():
     assert expect_next == result_next
 
 
-def test_SectionManager_unindo_todas_as_secoes_a_partir_da_ultima():
+def test_SectionManager_unindo_todas_as_secoes_a_partir_da_ultima(trash):
     expect = 0
     data = {
         'SECTIONS': [
@@ -1235,14 +1235,14 @@ def test_SectionManager_unindo_todas_as_secoes_a_partir_da_ultima():
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
-    [secman.join_section() for _ in range(3)]
+    [secman.join_section(trash) for _ in range(3)]
 
     result = secman.section_id
 
     assert expect == result
 
 
-def test_SectionManager_restaura_a_1_secao_unida_com_2_elementos():
+def test_SectionManager_restaura_a_1_secao_unida_com_2_elementos(trash):
     expect_prev = 0
     expect = 100
     data = {
@@ -1254,7 +1254,7 @@ def test_SectionManager_restaura_a_1_secao_unida_com_2_elementos():
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     secman._next_section()
-    secman.join_section()
+    secman.join_section(trash)
     secman.restore_section()
     result = secman.section_id
     secman._prev_section()
@@ -1264,7 +1264,7 @@ def test_SectionManager_restaura_a_1_secao_unida_com_2_elementos():
     assert expect_prev == result_prev
 
 
-def test_SectionManager_restaura_a_1_secao_unida():
+def test_SectionManager_restaura_a_1_secao_unida(trash):
     expect_prev = 0
     expect = 100
     data = {
@@ -1278,7 +1278,7 @@ def test_SectionManager_restaura_a_1_secao_unida():
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     secman._next_section()
-    secman.join_section()
+    secman.join_section(trash)
     secman.restore_section()
     result = secman.section_id
     secman._prev_section()
@@ -1288,7 +1288,7 @@ def test_SectionManager_restaura_a_1_secao_unida():
     assert expect_prev == result_prev
 
 
-def test_SectionManager_restaura_a_secao_do_meio_unida():
+def test_SectionManager_restaura_a_secao_do_meio_unida(trash):
     expect_prev = 100
     expect = 200
     data = {
@@ -1302,7 +1302,7 @@ def test_SectionManager_restaura_a_secao_do_meio_unida():
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(2)]
-    secman.join_section()
+    secman.join_section(trash)
     secman.restore_section()
     result = secman.section_id
     secman._prev_section()
@@ -1312,7 +1312,7 @@ def test_SectionManager_restaura_a_secao_do_meio_unida():
     assert expect_prev == result_prev
 
 
-def test_SectionManager_restaura_a_ultima_secao_unida():
+def test_SectionManager_restaura_a_ultima_secao_unida(trash):
     expect_prev = 200
     expect = 300
     data = {
@@ -1326,7 +1326,7 @@ def test_SectionManager_restaura_a_ultima_secao_unida():
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
-    secman.join_section()
+    secman.join_section(trash)
     secman.restore_section()
     result = secman.section_id
     secman._prev_section()
@@ -1336,7 +1336,7 @@ def test_SectionManager_restaura_a_ultima_secao_unida():
     assert expect_prev == result_prev
 
 
-def test_SectionManager_restaura_a_ultima_secao_unida_quando_unimos_todas_as_secoes():
+def test_SectionManager_restaura_a_ultima_secao_unida_quando_unimos_todas_as_secoes(trash):
     expect_prev = 0
     expect = 100
     data = {
@@ -1350,7 +1350,7 @@ def test_SectionManager_restaura_a_ultima_secao_unida_quando_unimos_todas_as_sec
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
-    [secman.join_section() for _ in range(3)]
+    [secman.join_section(trash) for _ in range(3)]
     secman.restore_section()
     result = secman.section_id
     secman._prev_section()
@@ -1360,7 +1360,7 @@ def test_SectionManager_restaura_a_ultima_secao_unida_quando_unimos_todas_as_sec
     assert expect_prev == result_prev
 
 
-def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_secoes():
+def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_secoes(trash):
     expect_prev = 200
     expect = 300
     data = {
@@ -1374,7 +1374,7 @@ def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_sec
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
-    [secman.join_section() for _ in range(3)]
+    [secman.join_section(trash) for _ in range(3)]
     [secman.restore_section() for _ in range(3)]
     result = secman.section_id
     secman._prev_section()
@@ -1384,7 +1384,7 @@ def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_sec
     assert expect_prev == result_prev
 
 
-def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_secoes_e_removemos_a_ultima_secao():
+def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_secoes_e_removemos_a_ultima_secao(trash):
     expect_prev = 200
     expect = 300
     data = {
@@ -1398,7 +1398,7 @@ def test_SectionManager_restaura_todas_as_secao_unida_quando_unimos_todas_as_sec
     }
     secman = SectionManager(FakeSectionManagerAdapter(data))
     [secman._next_section() for _ in range(3)]
-    [secman.join_section() for _ in range(3)]
+    [secman.join_section(trash) for _ in range(3)]
     secman.remove_section()
     [secman.restore_section() for _ in range(4)]
     result = secman.section_id
