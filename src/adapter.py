@@ -34,6 +34,7 @@ class SectionUnionAdapter(ISectionAdapter):
         if len(section.get_trash()) > 0:
             end = max(section.get_trash())
             return max(section.end, end)
+        return section.end
 
     def __get_black_list(self, lower, upper):
         neighbor_start = self.__get_true_end(lower) + 1
