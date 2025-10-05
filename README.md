@@ -30,8 +30,6 @@ Sua arquitetura é baseada em um sistema de duplo buffer (`BufferLeft` e `Buffer
 
 **1. Clone o repositório:** ```bashgit clone [GitHub - turpek/GPlayer: Utiliza OpenCV para criar um buffer de frames de vídeo, permitindo controle eficiente de reprodução com funcionalidades de pausa e retrocesso de maneira fluida.](https://github.com/turpek/GPlayer.git)cd GPlayer
 
-
-
 **2. Crie um ambiente virtual (recomendado):**
 
 Bash
@@ -43,7 +41,10 @@ python -m venv venv
 - No Windows: `venv\Scripts\activate`
 
 - No Linux/macOS: `source venv/bin/activate`
-3. Instale as dependências:
+  
+  
+
+**3. Instale as dependências:**
 
 O projeto utiliza as bibliotecas listadas no arquivo requeriments.txt.
 
@@ -53,7 +54,7 @@ Bash
 pip install -r requeriments.txt
 ```
 
-4. Execute o programa:
+**4. Execute o programa:**
 
 Para iniciar, crie um script principal (ex: main.py) para instanciar e rodar a classe VideoCon.
 
