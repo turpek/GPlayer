@@ -28,7 +28,12 @@ Sua arquitetura é baseada em um sistema de duplo buffer (`BufferLeft` e `Buffer
 
 ## 🚀 Instalação e Execução
 
-**1. Clone o repositório:** ```bashgit clone [GitHub - turpek/GPlayer: Utiliza OpenCV para criar um buffer de frames de vídeo, permitindo controle eficiente de reprodução com funcionalidades de pausa e retrocesso de maneira fluida.](https://github.com/turpek/GPlayer.git)cd GPlayer
+**1. Clone o repositório:** 
+
+```bash
+git clone https://github.com/turpek/GPlayer.git
+cd GPlayer
+```
 
 **2. Crie um ambiente virtual (recomendado):**
 
@@ -41,8 +46,6 @@ python -m venv venv
 - No Windows: `venv\Scripts\activate`
 
 - No Linux/macOS: `source venv/bin/activate`
-  
-  
 
 **3. Instale as dependências:**
 
@@ -61,7 +64,7 @@ Para iniciar, crie um script principal (ex: main.py) para instanciar e rodar a c
 Python
 
 ```python
-# Exemplo de conteúdo para main.py
+# Exemplo deit clone https://github.com/turpek/GPlayer.git conteúdo para main.py
 
 from src.video import VideoCon
 from src.playlist import Playlist
@@ -82,7 +85,7 @@ Execute o script:
 
 Bash
 
-```
+```bash
 python main.py
 ```
 
@@ -111,13 +114,9 @@ A interação com o player é feita através de teclas na janela do OpenCV:
 | **`p`**      | **Vídeo Anterior**       | Carrega o vídeo anterior da playlist.                         |
 | **`q`**      | **Sair**                 | Encerra o programa e salva o estado das seções.               |
 
-
-
 ### Diferença entre os Pauses Modos de Operação: Reprodução vs. Edição
 
 O GPlayer foi projetado com dois modos distintos de pausa que definem a sua operação: um **Modo de Reprodução** e um **Modo de Edição**. Ao pressionar a tecla `espaço`, o programa entra no **Modo de Edição**, um estado de "pausa ativa" onde o vídeo congela, mas o sistema fica aguardando comandos. Isso permite a navegação precisa frame a frame com as teclas `a` e `d`, além de outras operações como remover (`x`) ou dividir (`s`) seções diretamente no quadro exibido. Em contrapartida, a tecla `b` ativa um pause de reprodução convencional, que simplesmente interrompe o fluxo do vídeo para visualização, sem permitir a mesma interatividade para manipulação dos frames.
-
-
 
 ## 💡 Conceitos do Projeto
 
