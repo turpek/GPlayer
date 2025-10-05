@@ -111,6 +111,14 @@ A interação com o player é feita através de teclas na janela do OpenCV:
 | **`p`**      | **Vídeo Anterior**       | Carrega o vídeo anterior da playlist.                         |
 | **`q`**      | **Sair**                 | Encerra o programa e salva o estado das seções.               |
 
+
+
+### Diferença entre os Pauses Modos de Operação: Reprodução vs. Edição
+
+O GPlayer foi projetado com dois modos distintos de pausa que definem a sua operação: um **Modo de Reprodução** e um **Modo de Edição**. Ao pressionar a tecla `espaço`, o programa entra no **Modo de Edição**, um estado de "pausa ativa" onde o vídeo congela, mas o sistema fica aguardando comandos. Isso permite a navegação precisa frame a frame com as teclas `a` e `d`, além de outras operações como remover (`x`) ou dividir (`s`) seções diretamente no quadro exibido. Em contrapartida, a tecla `b` ativa um pause de reprodução convencional, que simplesmente interrompe o fluxo do vídeo para visualização, sem permitir a mesma interatividade para manipulação dos frames.
+
+
+
 ## 💡 Conceitos do Projeto
 
 - **`FrameMapper`**: Uma estrutura de dados central que mapeia todos os frames válidos que devem ser exibidos, excluindo os que foram removidos ou estão em `blacklists`.
