@@ -13,3 +13,6 @@ __pycache__/
 .coveragerc
 *.mp4
 *.json
+gp.py
+.python-version
+

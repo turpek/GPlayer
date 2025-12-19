@@ -1,10 +1,10 @@
 from cv2 import VideoCapture
 from collections import deque
 from loguru import logger
-from src.buffer_right import VideoBufferRight
-from src.frame_mapper import FrameMapper
-from src.utils import FrameWrapper, FrameStack
-from src.memento import Caretaker, TrashOriginator
+from gplayer.buffer_right import VideoBufferRight
+from gplayer.frame_mapper import FrameMapper
+from gplayer.utils import FrameWrapper, FrameStack
+from gplayer.memento import Caretaker, TrashOriginator
 from threading import Semaphore
 from numpy import ndarray
 

@@ -39,8 +39,8 @@ from abc import ABC, abstractmethod
 from collections import deque
 from loguru import logger
 from queue import Queue
-from src.channel import Channel1
-from src.custom_exceptions import VideoBufferError
+from gplayer.channel import Channel1
+from gplayer.custom_exceptions import VideoBufferError
 from threading import Event, Lock, Semaphore
 
 

@@ -5,14 +5,14 @@ from collections import deque
 from pathlib import Path
 from threading import Semaphore
 
-from src.buffer_left import VideoBufferLeft
-from src.buffer_right import VideoBufferRight
-from src.frame_mapper import FrameMapper
-from src.section import SectionManager
-from src.section_service import SectionService
-from src.player_control import PlayerControl
-from src.trash import Trash
-from src.utils import VideoInfo
+from gplayer.buffer_left import VideoBufferLeft
+from gplayer.buffer_right import VideoBufferRight
+from gplayer.frame_mapper import FrameMapper
+from gplayer.section import SectionManager
+from gplayer.section_service import SectionService
+from gplayer.player_control import PlayerControl
+from gplayer.trash import Trash
+from gplayer.utils import VideoInfo
 
 
 class VideoManager:

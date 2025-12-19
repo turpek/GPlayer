@@ -1,6 +1,6 @@
 from array import array
-from src.custom_exceptions import InvalidFrameIdError
-from src.interfaces import IVideoBuffer
+from gplayer.custom_exceptions import InvalidFrameIdError
+from gplayer.interfaces import IVideoBuffer
 import bisect
 
 

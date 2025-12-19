@@ -1,8 +1,8 @@
 from __future__ import annotations
 from collections import deque
-from src.custom_exceptions import FrameStackError, FrameWrapperError, SimpleStackError
-from src.interfaces import IMementoHandler
-from src.memento import Caretaker
+from gplayer.custom_exceptions import FrameStackError, FrameWrapperError, SimpleStackError
+from gplayer.interfaces import IMementoHandler
+from gplayer.memento import Caretaker
 from numpy import ndarray
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -10,9 +10,9 @@ from typing import TYPE_CHECKING
 import cv2
 
 if TYPE_CHECKING:
-    from src.section import VideoSection
-    from src.memento import TrashOriginator, SectionOriginator
-    from src.trash import Trash
+    from gplayer.section import VideoSection
+    from gplayer.memento import TrashOriginator, SectionOriginator
+    from gplayer.trash import Trash
 
 
 class SimpleStack:

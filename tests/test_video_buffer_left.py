@@ -1,7 +1,7 @@
 from pytest import fixture
-from src.buffer_left import VideoBufferLeft
-from src.custom_exceptions import VideoBufferError
-from src.frame_mapper import FrameMapper
+from gplayer.buffer_left import VideoBufferLeft
+from gplayer.custom_exceptions import VideoBufferError
+from gplayer.frame_mapper import FrameMapper
 from pytest import raises
 from unittest.mock import patch
 from time import sleep
@@ -975,7 +975,7 @@ def test_buffer_VideoBufferLeft_setando_o_buffer_com_frame_id_maior_que_o_maior_
     frame_id = 105
     expect = 'frame_id does not belong to the lot range.'
     myvideo.buffersize = 0
-    with patch("src.buffer_left.bisect.bisect_left", return_value=50):
+    with patch("gplayer.buffer_left.bisect.bisect_left", return_value=50):
         with raises(IndexError) as excinfo:
             myvideo.set(frame_id)
     result = str(excinfo.value)

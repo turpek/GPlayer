@@ -1,6 +1,6 @@
 from array import array
 from pytest import fixture
-from src.video import VideoCon
+from gplayer.video import VideoCon
 from unittest.mock import patch
 
 import cv2
@@ -49,13 +49,13 @@ class MyVideoCapture():
 
 @fixture
 def mycap():
-    with patch('src.video.cv2.VideoCapture', return_value=MyVideoCapture()) as mock:
+    with patch('gplayer.video.cv2.VideoCapture', return_value=MyVideoCapture()) as mock:
         yield mock
 
 
 @fixture
 def creating_window():
-    with patch('src.video.VideoCon._VideoCon__creating_window', return_value=None) as mock:
+    with patch('gplayer.video.VideoCon._VideoCon__creating_window', return_value=None) as mock:
         yield mock
 
 

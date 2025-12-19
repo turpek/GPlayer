@@ -1,5 +1,5 @@
-from src.custom_exceptions import PlaylistError
-from src.playlist import Playlist
+from gplayer.custom_exceptions import PlaylistError
+from gplayer.playlist import Playlist
 from pathlib import Path
 from pytest import fixture, raises
 from unittest.mock import MagicMock

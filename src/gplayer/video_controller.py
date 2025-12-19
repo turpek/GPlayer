@@ -1,8 +1,8 @@
 from loguru import logger
-from src.manager import VideoManager
-from src.playlist import Playlist
-from src.section import SectionManager
-from src.adapter import FakeSectionAdapter, FakeSectionManagerAdapter
+from gplayer.manager import VideoManager
+from gplayer.playlist import Playlist
+from gplayer.section import SectionManager
+from gplayer.adapter import FakeSectionAdapter, FakeSectionManagerAdapter
 from numpy import ndarray
 
 fake = {

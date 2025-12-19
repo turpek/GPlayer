@@ -1,9 +1,9 @@
 import pytest
 from collections import deque
-from src.adapter import FakeSectionAdapter, FakeSectionManagerAdapter
-from src.section import SectionManager, VideoSection, SectionWrapper
-from src.custom_exceptions import SectionManagerError
-from src.trash import Trash
+from gplayer.adapter import FakeSectionAdapter, FakeSectionManagerAdapter
+from gplayer.section import SectionManager, VideoSection, SectionWrapper
+from gplayer.custom_exceptions import SectionManagerError
+from gplayer.trash import Trash
 from pytest import fixture, raises
 from threading import Semaphore
 from unittest.mock import patch

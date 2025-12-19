@@ -2,17 +2,17 @@ from __future__ import annotations
 from collections import deque
 from copy import deepcopy
 from loguru import logger
-from src.adapter import (
+from gplayer.adapter import (
     ISectionAdapter,
     ISectionManagerAdapter,
     SectionSplitProcess,
     SectionUnionAdapter
 )
-from src.custom_exceptions import SectionManagerError
-from src.frame_mapper import FrameMapper
-from src.memento import Caretaker, SectionOriginator
-from src.utils import FrameMementoHandler, SimpleStack, SectionMementoHandler
-from src.trash import Trash
+from gplayer.custom_exceptions import SectionManagerError
+from gplayer.frame_mapper import FrameMapper
+from gplayer.memento import Caretaker, SectionOriginator
+from gplayer.utils import FrameMementoHandler, SimpleStack, SectionMementoHandler
+from gplayer.trash import Trash
 
 
 class VideoSection:

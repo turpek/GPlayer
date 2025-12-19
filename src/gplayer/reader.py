@@ -1,7 +1,7 @@
-from src.custom_exceptions import VideoOpenError
+from gplayer.custom_exceptions import VideoOpenError
 from cv2 import VideoCapture
 from time import time
-from src.buffer import Buffer
+from gplayer.buffer import Buffer
 
 import cv2
 import traceback

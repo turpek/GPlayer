@@ -1,6 +1,6 @@
 from pathlib import Path
-from src.adapter import ISectionManagerAdapter, JSONSectionManagerAdapter
-from src.readers import JSONReader
+from gplayer.adapter import ISectionManagerAdapter, JSONSectionManagerAdapter
+from gplayer.readers import JSONReader
 import json
 
 

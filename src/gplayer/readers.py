@@ -1,5 +1,5 @@
 import json
-from src.interfaces import IDataReader, IDataWriter
+from gplayer.interfaces import IDataReader, IDataWriter
 
 
 class JSONReader(IDataReader):

@@ -1,5 +1,5 @@
-from src.interfaces import Command
-from src.video_controller import VideoController
+from gplayer.interfaces import Command
+from gplayer.video_controller import VideoController
 
 
 class PauseCommand(Command):

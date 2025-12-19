@@ -1,7 +1,7 @@
 from collections import deque
 from pathlib import Path
-from src.custom_exceptions import PlaylistError
-from src.utils import VideoInfo
+from gplayer.custom_exceptions import PlaylistError
+from gplayer.utils import VideoInfo
 
 
 class Playlist:

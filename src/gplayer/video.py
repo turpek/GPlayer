@@ -1,6 +1,6 @@
 from loguru import logger
-from src.playlist import Playlist
-from src.video_command import (
+from gplayer.playlist import Playlist
+from gplayer.video_command import (
     Invoker,
     DecreaseSpeedCommand,
     IncreaseSpeedCommand,
@@ -21,9 +21,9 @@ from src.video_command import (
     UndoFrameCommand,
     UndoSectionCommand
 )
-from src.manager import VideoManager
-from src.adapter import ISectionManagerAdapter
-from src.video_controller import VideoController
+from gplayer.manager import VideoManager
+from gplayer.adapter import ISectionManagerAdapter
+from gplayer.video_controller import VideoController
 from time import sleep
 import cv2
 

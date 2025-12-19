@@ -3,16 +3,16 @@ from collections import deque
 from loguru import logger
 from pathlib import Path
 from typing import TYPE_CHECKING
-from src.custom_exceptions import SectionSplitProcessError
-from src.frame_mapper import FrameMapper
-from src.interfaces import ISectionAdapter, ISectionManagerAdapter
-from src.readers import JSONReader, JSONWriter
-from src.utils import partition_by_value
+from gplayer.custom_exceptions import SectionSplitProcessError
+from gplayer.frame_mapper import FrameMapper
+from gplayer.interfaces import ISectionAdapter, ISectionManagerAdapter
+from gplayer.readers import JSONReader, JSONWriter
+from gplayer.utils import partition_by_value
 
 import bisect
 
 if TYPE_CHECKING:
-    from src.section import VideoSection
+    from gplayer.section import VideoSection
 
 
 class SectionUnionAdapter(ISectionAdapter):

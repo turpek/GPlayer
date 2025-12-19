@@ -1,6 +1,6 @@
-from src.template import TemplateFactory, SectionManagerProcessFactory
-from src.adapter import JSONSectionManagerAdapter, JSONSectionSave
-from src.section import SectionManager
+from gplayer.template import TemplateFactory, SectionManagerProcessFactory
+from gplayer.adapter import JSONSectionManagerAdapter, JSONSectionSave
+from gplayer.section import SectionManager
 from pathlib import Path
 
 

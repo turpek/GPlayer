@@ -1,5 +1,5 @@
 from collections import deque
-from src.trash import Trash
+from gplayer.trash import Trash
 from threading import Semaphore
 from pytest import fixture
 from unittest.mock import patch

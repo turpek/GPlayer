@@ -1,8 +1,8 @@
 
 from collections import deque
 from .uteis import MyVideoCapture
-from src.custom_exceptions import FrameStackError, FrameWrapperError, SimpleStackError
-from src.utils import (
+from gplayer.custom_exceptions import FrameStackError, FrameWrapperError, SimpleStackError
+from gplayer.utils import (
     FrameMementoHandler,
     FrameStack,
     FrameWrapper,
@@ -11,10 +11,10 @@ from src.utils import (
     VideoInfo,
     partition_by_value
 )
-from src.memento import Caretaker, TrashOriginator, SectionOriginator
-from src.section import VideoSection, SectionWrapper
-from src.adapter import FakeSectionAdapter
-from src.trash import Trash
+from gplayer.memento import Caretaker, TrashOriginator, SectionOriginator
+from gplayer.section import VideoSection, SectionWrapper
+from gplayer.adapter import FakeSectionAdapter
+from gplayer.trash import Trash
 from threading import Semaphore
 from pytest import fixture, raises
 from unittest.mock import patch

@@ -1,0 +1,29 @@
+[project]
+name = "gplayer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12.5"
+dependencies = [
+    "loguru>=0.7.3",
+    "opencv-python>=4.12.0.88",
+    "pathlib3x>=2.0.3",
+]
+
+[dependency-groups]
+dev = [
+    "ipdb>=0.13.13",
+    "ipython>=9.8.0",
+    "pytest>=9.0.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "undo: tests related to undo operations",
+    "backward: tests related to backward playback/seek",
+    "forward: tests related to forward playback/seek",
+    "dev0: temporary or experimental tests",
+]
+

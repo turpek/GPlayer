@@ -1,8 +1,8 @@
 from collections import deque
 from pytest import raises
-from src.custom_exceptions import SectionSplitProcessError
-from src.section import VideoSection
-from src.adapter import FakeSectionAdapter, SectionSplitProcess
+from gplayer.custom_exceptions import SectionSplitProcessError
+from gplayer.section import VideoSection
+from gplayer.adapter import FakeSectionAdapter, SectionSplitProcess
 
 
 FAKES = {
