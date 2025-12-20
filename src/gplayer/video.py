@@ -1,4 +1,5 @@
 from loguru import logger
+from gplayer.input_handler import CV2KeyReader
 from gplayer.playlist import Playlist
 from gplayer.video_command import (
     Invoker,
@@ -42,6 +43,7 @@ class VideoCon:
         self.__log = log
         self.__buffersize = buffersize
         self.__creating_window()
+        self.__key_reader = CV2KeyReader()
 
         self.__video_manager = VideoManager(buffersize, log)
         self.__video_controller = VideoController(self.__playlist,
@@ -71,6 +73,7 @@ class VideoCon:
 
     def join(self):
         self.__video_controller.join()
+        self.__key_reader.join()
 
     @property
     def frame_id(self):
@@ -99,7 +102,8 @@ class VideoCon:
         if flag is True:
             logger.info(f'exibindo o frame de id {self.frame_id}')
             self._show(frame)
-        return self.control(cv2.waitKeyEx(self.__video_manager.player.delay))
+        delay = self.__video_manager.player.delay
+        return self.control(self.__key_reader.get_code(delay))
 
     def set_commands(self, video_controller: VideoController) -> None:
 

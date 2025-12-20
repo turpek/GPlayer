@@ -227,13 +227,16 @@ class KeyModifierState:
         self._lock = Lock()
         self.shift = False
         self.alt = False
+        self.__just_pressed = False
 
     def on_press(self, key):
         with self._lock:
             if key in (keyboard.Key.shift, keyboard.Key.shift_r):
                 self.shift = True
+                self.__just_pressed = True
             elif key in (keyboard.Key.alt, keyboard.Key.alt_gr):
                 self.alt = True
+                self.__just_pressed = True
 
     def on_release(self, key):
         with self._lock:
@@ -242,6 +245,12 @@ class KeyModifierState:
             elif key in (keyboard.Key.alt, keyboard.Key.alt_gr):
                 self.alt = False
 
+    def just_pressed(self) -> bool:
+        with self._lock:
+            return self.__just_pressed
+
     def snapshot(self) -> tuple[bool | bool]:
         with self._lock:
+            self.__just_pressed = False
             return self.shift, self.alt
+
