@@ -5,6 +5,8 @@ from gplayer.interfaces import IMementoHandler
 from gplayer.memento import Caretaker
 from numpy import ndarray
 from pathlib import Path
+from pynput import keyboard
+from threading import Lock
 from typing import TYPE_CHECKING
 
 import cv2
@@ -218,3 +220,28 @@ def partition_by_value(source: list, value_split) -> tuple[list, list]:
     for value in source:
         list_1.append(value) if value < value_split else list_2.append(value)
     return (list_1, list_2)
+
+
+class KeyModifierState:
+    def __init__(self):
+        self._lock = Lock()
+        self.shift = False
+        self.alt = False
+
+    def on_press(self, key):
+        with self._lock:
+            if key in (keyboard.Key.shift, keyboard.Key.shift_r):
+                self.shift = True
+            elif key in (keyboard.Key.alt, keyboard.Key.alt_gr):
+                self.alt = True
+
+    def on_release(self, key):
+        with self._lock:
+            if key in (keyboard.Key.shift, keyboard.Key.shift_r):
+                self.shift = False
+            elif key in (keyboard.Key.alt, keyboard.Key.alt_gr):
+                self.alt = False
+
+    def snapshot(self) -> tuple[bool | bool]:
+        with self._lock:
+            return self.shift, self.alt
