@@ -15,4 +15,4 @@ __pycache__/
 *.json
 gp.py
 .python-version
-
+src/gplayer.egg-info/
