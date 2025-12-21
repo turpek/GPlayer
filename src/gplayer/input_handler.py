@@ -41,13 +41,19 @@ class HybridKeyReader(InputHandler):
     def join(self):
         if self.__listener.running:
             self.__listener.stop()
-        self.__listener.join()
+        self.__listener.join(timeout=0.5)
 
     def get_code(self, delay: int) -> int:
         code = cv2.waitKeyEx(delay)
+        just_pressed = self.__modifiers.just_pressed()
         shift, alt = self.__modifiers.snapshot()
         if code != -1:
             code &= 0xFF
+
+            if just_pressed:
+                code = cv2.waitKeyEx(1)
+                code &= 0xFF
+
             if shift:
                 code |= self.SHIFT_BIT
             if alt:
