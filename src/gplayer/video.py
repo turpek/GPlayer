@@ -1,5 +1,6 @@
 from loguru import logger
-from gplayer.input_handler import CV2KeyReader
+
+from gplayer.input_handler import InputHandler, CV2KeyReader
 from gplayer.playlist import Playlist
 from gplayer.video_command import (
     Invoker,
@@ -24,6 +25,7 @@ from gplayer.video_command import (
 )
 from gplayer.manager import VideoManager
 from gplayer.adapter import ISectionManagerAdapter
+from gplayer.shortcuts import CV2_SHORTCUTS, SHORTCUTS
 from gplayer.video_controller import VideoController
 from time import sleep
 import cv2
@@ -36,6 +38,7 @@ class VideoCon:
             frames_mapping: list[int] = None,
             section: ISectionManagerAdapter = None,
             buffersize: int = 60,
+            key_reader: InputHandler = CV2KeyReader,
             log: bool = False
     ):
 
@@ -43,7 +46,9 @@ class VideoCon:
         self.__log = log
         self.__buffersize = buffersize
         self.__creating_window()
-        self.__key_reader = CV2KeyReader()
+        self.__key_reader = key_reader()
+        kr = type(self.__key_reader)
+        self.__shortcuts = SHORTCUTS.get(kr, CV2_SHORTCUTS)
 
         self.__video_manager = VideoManager(buffersize, log)
         self.__video_controller = VideoController(self.__playlist,
@@ -108,27 +113,28 @@ class VideoCon:
     def set_commands(self, video_controller: VideoController) -> None:
 
         command = self.command
-        command.set_command(ord('b'), PauseCommand(video_controller))
-        command.set_command(ord('q'), QuitCommand(video_controller))
-        command.set_command(ord('a'), RewindCommand(video_controller))
-        command.set_command(ord('d'), ProceesCommand(video_controller))
-        command.set_command(ord(']'), IncreaseSpeedCommand(video_controller))
-        command.set_command(ord('['), DecreaseSpeedCommand(video_controller))
-        command.set_command(ord(' '), PauseDelayCommand(video_controller))
-        command.set_command(ord('='), RestoreDelayCommand(video_controller))
-        command.set_command(ord('x'), RemoveFrameCommand(video_controller))
-        command.set_command(ord('u'), UndoFrameCommand(video_controller))
-        command.set_command(ord('n'), NextVideoCommand(video_controller))
-        command.set_command(ord('p'), PrevVideoCommand(video_controller))
-        command.set_command(ord('k'), NextSectionCommand(video_controller))
-        command.set_command(ord('j'), PrevSectionCommand(video_controller))
-        command.set_command(ord('s'), SplitSectionCommand(video_controller))
-        command.set_command(ord('y'), UndoSectionCommand(video_controller))
-        command.set_command(ord('c'), JoinSectionCommand(video_controller))
-        command.set_command(ord('r'), RemoveSectionCommand(video_controller))
+        command.set_command('PauseCommand', PauseCommand(video_controller))
+        command.set_command('QuitCommand', QuitCommand(video_controller))
+        command.set_command('RewindCommand', RewindCommand(video_controller))
+        command.set_command('ProceesCommand', ProceesCommand(video_controller))
+        command.set_command('IncreaseSpeedCommand', IncreaseSpeedCommand(video_controller))
+        command.set_command('DecreaseSpeedCommand', DecreaseSpeedCommand(video_controller))
+        command.set_command('PauseDelayCommand', PauseDelayCommand(video_controller))
+        command.set_command('RestoreDelayCommand', RestoreDelayCommand(video_controller))
+        command.set_command('RemoveFrameCommand', RemoveFrameCommand(video_controller))
+        command.set_command('UndoFrameCommand', UndoFrameCommand(video_controller))
+        command.set_command('NextVideoCommand', NextVideoCommand(video_controller))
+        command.set_command('PrevVideoCommand', PrevVideoCommand(video_controller))
+        command.set_command('NextSectionCommand', NextSectionCommand(video_controller))
+        command.set_command('PrevSectionCommand', PrevSectionCommand(video_controller))
+        command.set_command('SplitSectionCommand', SplitSectionCommand(video_controller))
+        command.set_command('UndoSectionCommand', UndoSectionCommand(video_controller))
+        command.set_command('JoinSectionCommand', JoinSectionCommand(video_controller))
+        command.set_command('RemoveSectionCommand', RemoveSectionCommand(video_controller))
 
     def control(self, key):
-        self.command.executor_command(key)
+        shortcut_key = self.__shortcuts.get(key)
+        self.command.executor_command(shortcut_key)
         return key
 
     def read(self):
